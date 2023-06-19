@@ -38,7 +38,7 @@ namespace gm {
         Point &operator=(Point &&point) noexcept;
 
         // overload
-        friend bool operator==(const Point &point1, const Point &point2) ;
+        friend bool operator==(const Point &point1, const Point &point2);
 
         friend std::ostream &operator<<(std::ostream &os, const Point &point);
 
@@ -61,7 +61,7 @@ namespace gm {
         LineSegment() = default;
 
         LineSegment(Point leftEdge, Point rightEdge) : leftEdge(std::move(leftEdge)),
-                                                                     rightEdge(std::move(rightEdge)) {
+                                                       rightEdge(std::move(rightEdge)) {
             num_lines++;
             slope = (this->leftEdge.y - this->rightEdge.y) / (this->leftEdge.x - this->rightEdge.x);
             intercept = this->leftEdge.y - slope * this->leftEdge.x;
@@ -98,11 +98,14 @@ namespace gm {
     };
 
     class BaselineSeg : public LineSegment {
-    protected:
-        double spacing_, offset_, spacing_leftover_;
-        std::unique_ptr<std::vector<Point>> points_ptr_;
     public:
-        BaselineSeg(double spacing, double offset, const Point &leftEdge, const Point &rightEdge);
+        double spacing_, offset_, spacing_leftover_;
+        std::unique_ptr<std::vector<Point>> transects_ptr_;
+    public:
+        BaselineSeg(double spacing, double offset, const Point &leftEdge, const Point &rightEdge,
+                    double spacing_leftover);
+
+        BaselineSeg() = default;
     };
 
     class MultiLines {
@@ -113,6 +116,14 @@ namespace gm {
         MultiLines() = default;
 
         explicit MultiLines(std::vector<Point> &points, unsigned int id = 0);
+
+        MultiLines(const MultiLines &multiLines);
+
+        MultiLines& operator=(const MultiLines &multiLines) = delete;
+
+        MultiLines(MultiLines &&multiLines) noexcept;
+
+        MultiLines& operator=(MultiLines &&multiLines) = delete;
 
         ~MultiLines() = default;
 
@@ -127,20 +138,40 @@ namespace gm {
     private:
         const std::string year;
     public:
+        Shorelines() = default;
+
         Shorelines(std::vector<Point> &shore_points, std::string &year, unsigned int shoreline_id = 0);
+
+        ~Shorelines() = default;
 
         void pushBack(Point &point);
 
         void pushFront(Point &point);
     };
 
-    class Baselines: public MultiLines{
+    class Baselines : public MultiLines {
     protected:
-        std::unique_ptr<std::vector<BaselineSeg>> baselines_vec_;
+        std::unique_ptr<std::vector<Point>> transects_;
+        const double transect_length_;
+        const double spacing_;
+        const double offset_;
     public:
-        Baselines(std::unique_ptr<std::vector<Point>> point_ptr, unsigned int baseline_id = 0);
+
+        Baselines(const std::unique_ptr<std::vector<Point>> &baseline_points, double transect_length, double spacing,
+                  int baseline_id, double offset);
     };
 
+    class TransectLine: LineSegment{
+    private:
+        Point transect_base_;
+        LineSegment transect_line_;
+        double transect_length_;
+
+        std::tuple<Point, Point> create_transect(Point &transect_base);
+
+    public:
+        TransectLine(Point &transect_base, double transect_length);
+    };
 }
 
 

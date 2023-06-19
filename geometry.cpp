@@ -143,7 +143,7 @@ gm::LineSegment::LineSegment(const gm::LineSegment &lineSegment) :
 
 void gm::LineSegment::moveLine(double dest) {
     if (dest != 0) {
-        double normalDir = atan(slope) + PI/2;
+        double normalDir = atan(slope) + PI / 2;
         leftEdge.movePoint(normalDir, dest);
         rightEdge.movePoint(normalDir, dest);
     }
@@ -151,7 +151,7 @@ void gm::LineSegment::moveLine(double dest) {
 
 gm::LineSegment gm::LineSegment::createLine(double dest) const {
     if (dest != 0) {
-        double normalDir = atan(slope) + PI/2;
+        double normalDir = atan(slope) + PI / 2;
         Point leftEdgeNew = leftEdge.createPoint(normalDir, dest);
         Point rightEdgeNew = rightEdge.createPoint(normalDir, dest);
         return {leftEdgeNew, rightEdgeNew};
@@ -194,21 +194,33 @@ gm::LineSegment &gm::LineSegment::operator=(gm::LineSegment &&lineSegment) noexc
 }
 
 
-gm::MultiLines::MultiLines(std::vector<Point> &points, unsigned int id) : id(id){
-    for(int i=0; i<points.size() - 1; i++){
-        lines_vec_ptr_->push_back(LineSegment(points[i], points[i+1]));
+gm::MultiLines::MultiLines(std::vector<Point> &points, unsigned int id) : id(id) {
+    for (int i = 0; i < points.size() - 1; i++) {
+        lines_vec_ptr_->push_back(LineSegment(points[i], points[i + 1]));
     }
+}
+
+gm::MultiLines::MultiLines(const gm::MultiLines &multiLines) :
+        id(multiLines.id) {
+    for (int i = 0; i < multiLines.lines_vec_ptr_->size() - 1; i++) {
+        lines_vec_ptr_->push_back(
+                LineSegment(multiLines.lines_vec_ptr_->at(i).leftEdge, multiLines.lines_vec_ptr_->at(i + 1).rightEdge));
+    }
+}
+
+gm::MultiLines::MultiLines(gm::MultiLines &&multiLines) noexcept: id(multiLines.id),
+                                                                  lines_vec_ptr_(std::move(multiLines.lines_vec_ptr_)) {
+
 }
 
 
 gm::Shorelines::Shorelines(std::vector<Point> &shore_points, std::string &year, unsigned int shoreline_id) :
-        MultiLines(shore_points, shoreline_id), year(year)
-{
+        MultiLines(shore_points, shoreline_id), year(year) {
 
 }
 
 void gm::Shorelines::pushBack(gm::Point &point) {
-    unsigned long lastIndex = lines_vec_ptr_->size()-1;
+    unsigned long lastIndex = lines_vec_ptr_->size() - 1;
     lines_vec_ptr_->emplace_back((*lines_vec_ptr_)[lastIndex].rightEdge, point);
 }
 
@@ -218,21 +230,59 @@ void gm::Shorelines::pushFront(gm::Point &point) {
 }
 
 
-gm::BaselineSeg::BaselineSeg(double spacing, double offset, const Point &leftEdge, const Point &rightEdge):
-LineSegment(leftEdge, rightEdge), spacing_(spacing), offset_(offset)
-{
+gm::BaselineSeg::BaselineSeg(double spacing, double offset, const Point &leftEdge, const Point &rightEdge,
+                             double spacing_leftover) :
+        LineSegment(leftEdge, rightEdge), spacing_(spacing), offset_(offset), spacing_leftover_(spacing_leftover) {
+    moveLine(offset_);
     const double length = leftEdge.distanceToPoint(rightEdge);
-    if (spacing_ < length)
-    {
+    double start = spacing_leftover_;
+    double ratio = start / length;
+
+    if (spacing_ < length - start) {
+        double x_l{leftEdge.x}, y_l{rightEdge.y};
+        double x_r{rightEdge.x}, y_r{rightEdge.y};
+        double x_start{x_l + ratio * (x_r - x_l)};
+        double y_start{y_l + ratio * (y_r - y_l)};
+        gm::Point p0{x_start, y_start};
+        int num = floor(p0.distanceToPoint(rightEdge) / spacing_);
+        double x_step = sqrt(spacing_ * spacing_ / (1 + slope * slope)) * fabs(x_r - x_l) / (x_r - x_l);
+        double y_step = sqrt(slope * slope * spacing_ * spacing_ / (1 + slope * slope));
+        double x_cur, y_cur;
+        for (int i = 0; i < num; i++) {
+            x_cur = x_start + i * x_step;
+            y_cur = y_start + i * y_step;
+            transects_ptr_->push_back(Point(x_cur, y_cur));
+        }
+        spacing_leftover_ = spacing_ - sqrt((rightEdge.x - x_cur) * (rightEdge.x - x_cur) +
+                                            (rightEdge.y - y_cur) * (rightEdge.y - y_cur));
 
     }
 }
 
-gm::Baselines::Baselines(std::unique_ptr<std::vector<Point>> point_ptr, unsigned int baseline_id):
-        MultiLines(*point_ptr, baseline_id)
-{
-    for(int i = 0; i < lines_vec_ptr_->size(); i++){
+gm::Baselines::Baselines(const std::unique_ptr<std::vector<Point>> &baseline_points, double transect_length, double spacing,
+                         int baseline_id, const double offset) :
+        MultiLines(*baseline_points, baseline_id), spacing_(spacing), transect_length_(transect_length),
+        offset_(offset) {
+    BaselineSeg base0{spacing_, offset_, lines_vec_ptr_->at(0).leftEdge, lines_vec_ptr_->at(0).rightEdge, 0.00};
+    transects_->insert(transects_->end(), base0.transects_ptr_->begin(), base0.transects_ptr_->end());
+    double left_over = base0.spacing_leftover_;
 
-
+    for (int i = 1; i < lines_vec_ptr_->size(); i++) {
+        BaselineSeg baselineSeg{spacing_, offset_, lines_vec_ptr_->at(i).leftEdge, lines_vec_ptr_->at(i).rightEdge,
+                                left_over};
+        transects_->insert(transects_->end(), baselineSeg.transects_ptr_->begin(), baselineSeg.transects_ptr_->end());
+        left_over = baselineSeg.spacing_leftover_;
     }
+}
+
+gm::TransectLine::TransectLine(gm::Point &transect_base, double transect_length) :
+        transect_base_(transect_base), transect_length_(transect_length)
+{
+
+}
+
+std::tuple<gm::Point, gm::Point> gm::TransectLine::create_transect(gm::Point &transect_base) {
+    gm::Point leftEdge, rightEdge;
+
+    return std::tuple<Point, Point>();
 }
