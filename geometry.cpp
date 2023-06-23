@@ -9,7 +9,7 @@
 
 #define MIN(A, B) ((A) < (B) ? (A) : (B))
 #define MAX(A, B) ((A) < (B) ? (B) : (A))
-#define PI 3.1415926
+#define EPS_OFFSET 1e-6
 
 template<typename T>
 T crossProduct(std::vector<T> &vec1, std::vector<T> &vec2) {
@@ -143,7 +143,7 @@ gm::LineSegment::LineSegment(const gm::LineSegment &lineSegment) :
 
 void gm::LineSegment::moveLine(double dest) {
     if (dest != 0) {
-        double normalDir = atan(slope) + PI / 2;
+        double normalDir = orient;
         leftEdge.movePoint(normalDir, dest);
         rightEdge.movePoint(normalDir, dest);
     }
@@ -151,7 +151,7 @@ void gm::LineSegment::moveLine(double dest) {
 
 gm::LineSegment gm::LineSegment::createLine(double dest) const {
     if (dest != 0) {
-        double normalDir = atan(slope) + PI / 2;
+        double normalDir = orient;
         Point leftEdgeNew = leftEdge.createPoint(normalDir, dest);
         Point rightEdgeNew = rightEdge.createPoint(normalDir, dest);
         return {leftEdgeNew, rightEdgeNew};
@@ -209,8 +209,14 @@ gm::MultiLines::MultiLines(const gm::MultiLines &multiLines) :
 }
 
 gm::MultiLines::MultiLines(gm::MultiLines &&multiLines) noexcept: id(multiLines.id),
-                                                                  lines_vec_ptr_(std::move(multiLines.lines_vec_ptr_)) {
+                                                                  lines_vec_ptr_(multiLines.lines_vec_ptr_) {
 
+}
+
+gm::MultiLines &gm::MultiLines::operator=(const gm::MultiLines &multiLines) {
+    lines_vec_ptr_ = multiLines.lines_vec_ptr_;
+    id = multiLines.id;
+    return *this;
 }
 
 
@@ -219,33 +225,32 @@ gm::Shorelines::Shorelines(std::vector<Point> &shore_points, std::string &year, 
 
 }
 
-void gm::Shorelines::pushBack(gm::Point &point) {
-    unsigned long lastIndex = lines_vec_ptr_->size() - 1;
-    lines_vec_ptr_->emplace_back((*lines_vec_ptr_)[lastIndex].rightEdge, point);
+void gm::Shorelines::pushBack(LineSegment line) {
+    lines_vec_ptr_->emplace_back(line);
 }
 
-void gm::Shorelines::pushFront(gm::Point &point) {
-    LineSegment newShore(point, (*lines_vec_ptr_)[0].leftEdge);
-    lines_vec_ptr_->insert(lines_vec_ptr_->begin(), newShore);
+void gm::Shorelines::pushFront(LineSegment line) {
+    lines_vec_ptr_->insert(lines_vec_ptr_->begin(), line);
 }
 
 
 gm::BaselineSeg::BaselineSeg(double spacing, double offset, const Point &leftEdge, const Point &rightEdge,
                              double spacing_leftover) :
-        LineSegment(leftEdge, rightEdge), spacing_(spacing), offset_(offset), spacing_leftover_(spacing_leftover) {
+        LineSegment(leftEdge, rightEdge), spacing_(spacing), offset_(offset), spacing_leftover_(spacing_leftover),
+        transects_ptr_() {
     moveLine(offset_);
     const double length = leftEdge.distanceToPoint(rightEdge);
     double start = spacing_leftover_;
     double ratio = start / length;
 
     if (spacing_ < length - start) {
-        double x_l{leftEdge.x}, y_l{rightEdge.y};
+        double x_l{leftEdge.x}, y_l{leftEdge.y};
         double x_r{rightEdge.x}, y_r{rightEdge.y};
         double x_start{x_l + ratio * (x_r - x_l)};
         double y_start{y_l + ratio * (y_r - y_l)};
         gm::Point p0{x_start, y_start};
-        int num = floor(p0.distanceToPoint(rightEdge) / spacing_);
-        double x_step = sqrt(spacing_ * spacing_ / (1 + slope * slope)) * fabs(x_r - x_l) / (x_r - x_l);
+        int num = floor((p0.distanceToPoint(rightEdge) + spacing) / spacing_);
+        double x_step = sqrt(spacing_ * spacing_ / (1 + slope * slope)) * fabs(x_r - x_l) / (x_r - x_l + EPS_OFFSET);
         double y_step = sqrt(slope * slope * spacing_ * spacing_ / (1 + slope * slope));
         double x_cur, y_cur;
         for (int i = 0; i < num; i++) {
@@ -259,10 +264,12 @@ gm::BaselineSeg::BaselineSeg(double spacing, double offset, const Point &leftEdg
     }
 }
 
-gm::Baselines::Baselines(const std::unique_ptr<std::vector<Point>> &baseline_points, double transect_length, double spacing,
+gm::Baselines::Baselines(std::vector<Point> &baseline_points, double transect_length, double spacing,
                          int baseline_id, const double offset) :
-        MultiLines(*baseline_points, baseline_id), spacing_(spacing), transect_length_(transect_length),
+        MultiLines(baseline_points, baseline_id), spacing_(spacing), transect_length_(transect_length),
         offset_(offset) {
+    transects_ = new std::vector<Point>();
+    transects_line_ = new std::vector<TransectLine>();
     BaselineSeg base0{spacing_, offset_, lines_vec_ptr_->at(0).leftEdge, lines_vec_ptr_->at(0).rightEdge, 0.00};
     transects_->insert(transects_->end(), base0.transects_ptr_->begin(), base0.transects_ptr_->end());
     double left_over = base0.spacing_leftover_;
@@ -270,19 +277,33 @@ gm::Baselines::Baselines(const std::unique_ptr<std::vector<Point>> &baseline_poi
     for (int i = 1; i < lines_vec_ptr_->size(); i++) {
         BaselineSeg baselineSeg{spacing_, offset_, lines_vec_ptr_->at(i).leftEdge, lines_vec_ptr_->at(i).rightEdge,
                                 left_over};
-        transects_->insert(transects_->end(), baselineSeg.transects_ptr_->begin(), baselineSeg.transects_ptr_->end());
+
+        for (auto &transect: (*baselineSeg.transects_ptr_)) {
+            transects_->push_back(transect);
+            transects_line_->push_back(TransectLine(transect, transect_length_, baselineSeg.orient));
+        }
+
         left_over = baselineSeg.spacing_leftover_;
+
     }
 }
 
-gm::TransectLine::TransectLine(gm::Point &transect_base, double transect_length) :
-        transect_base_(transect_base), transect_length_(transect_length)
-{
+
+gm::TransectLine::TransectLine(gm::Point &transect_base, double transect_length, double baseline_orient) :
+        LineSegment(std::move(create_transect(transect_base, baseline_orient, transect_length))),
+        transect_base_(transect_base),
+        transect_length_(transect_length), baseline_orient(baseline_orient) {
 
 }
 
-std::tuple<gm::Point, gm::Point> gm::TransectLine::create_transect(gm::Point &transect_base) {
+gm::LineSegment
+gm::TransectLine::create_transect(gm::Point &transect_base, double baseline_orient, double transect_length) {
     gm::Point leftEdge, rightEdge;
+    leftEdge = std::move(transect_base.createPoint(baseline_orient - PI / 2, transect_length / 2));
+    rightEdge = std::move(transect_base.createPoint(baseline_orient + PI / 2, transect_length / 2));
 
-    return std::tuple<Point, Point>();
+    return {leftEdge, rightEdge};
 }
+
+
+

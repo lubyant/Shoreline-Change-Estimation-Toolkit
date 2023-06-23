@@ -2,7 +2,16 @@ cmake_minimum_required(VERSION 3.25)
 project(shorecalculator)
 
 set(CMAKE_CXX_STANDARD 17)
-find_package(matplot++ CONFIG REQUIRED)
+add_subdirectory(matplotplusplus)
 
-add_executable(shorecalculator main.cpp geometry.cpp geometry.h)
-target_link_libraries(shorecalculator PRIVATE Matplot++::cimg std::filesystem Matplot++::matplot Matplot++::nodesoup)
+find_package(OpenCV CONFIG REQUIRED)
+#find_package(matplot++  REQUIRED)
+#find_package(GDAL REQUIRED)
+include_directories( ${OpenCV_INCLUDE_DIRS} )
+
+add_executable(shorecalculator main.cpp geometry.cpp geometry.h image.cpp image.h)
+#target_link_libraries(shorecalculator PRIVATE Matplot++::cimg std::filesystem Matplot++::matplot Matplot++::nodesoup ${OpenCV_LIBS})
+target_link_libraries(shorecalculator PRIVATE ${OpenCV_LIBS})
+target_link_libraries(shorecalculator PUBLIC matplot cimg)
+#target_link_libraries(shorecalculator PRIVATE GDAL::GDAL)
+

@@ -9,6 +9,9 @@
 #include <utility>
 #include <vector>
 #include <memory>
+#include <cmath>
+#define EPS_OFFSET 1e-6
+#define PI 3.14159265
 
 
 namespace gm {
@@ -54,7 +57,7 @@ namespace gm {
     class LineSegment {
     public:
         Point leftEdge, rightEdge;
-        double slope = 0, intercept = 0;
+        double slope = 0, intercept = 0, orient = 0;
         static int num_lines;
 
         // constructor
@@ -63,8 +66,22 @@ namespace gm {
         LineSegment(Point leftEdge, Point rightEdge) : leftEdge(std::move(leftEdge)),
                                                        rightEdge(std::move(rightEdge)) {
             num_lines++;
-            slope = (this->leftEdge.y - this->rightEdge.y) / (this->leftEdge.x - this->rightEdge.x);
+            double dx = rightEdge.x - leftEdge.x, dy = rightEdge.y - leftEdge.y;
+            slope = dy/(dx + EPS_OFFSET);
             intercept = this->leftEdge.y - slope * this->leftEdge.x;
+            if(dy >= 0){
+                if(dx >= 0){
+                    orient = atan(fabs(slope));
+                } else {
+                    orient = atan(fabs(slope)) + PI/2;
+                }
+            } else {
+                if (dx >= 0){
+                    orient = 2*PI - atan(fabs(slope));
+                } else {
+                    orient = PI + atan(fabs(slope));
+                }
+            }
         }
 
         // copy constructor
@@ -100,18 +117,21 @@ namespace gm {
     class BaselineSeg : public LineSegment {
     public:
         double spacing_, offset_, spacing_leftover_;
-        std::unique_ptr<std::vector<Point>> transects_ptr_;
+        std::vector<Point> *transects_ptr_;
     public:
         BaselineSeg(double spacing, double offset, const Point &leftEdge, const Point &rightEdge,
                     double spacing_leftover);
 
         BaselineSeg() = default;
+
+        ~BaselineSeg() {delete transects_ptr_;}
     };
 
     class MultiLines {
-    protected:
-        const unsigned int id = 0;
-        std::unique_ptr<std::vector<LineSegment>> lines_vec_ptr_;
+    public:
+        unsigned int id = 0;
+        std::vector<LineSegment> *lines_vec_ptr_{};
+        [[nodiscard]] unsigned long size() const{return lines_vec_ptr_->size(); }
     public:
         MultiLines() = default;
 
@@ -119,13 +139,13 @@ namespace gm {
 
         MultiLines(const MultiLines &multiLines);
 
-        MultiLines& operator=(const MultiLines &multiLines) = delete;
+        MultiLines& operator=(const MultiLines &multiLines);
+
 
         MultiLines(MultiLines &&multiLines) noexcept;
 
-        MultiLines& operator=(MultiLines &&multiLines) = delete;
 
-        ~MultiLines() = default;
+        ~MultiLines() {delete lines_vec_ptr_;}
 
         const LineSegment &operator[](unsigned int i) const {
             return (*lines_vec_ptr_)[i];
@@ -136,7 +156,7 @@ namespace gm {
 
     class Shorelines : public MultiLines {
     private:
-        const std::string year;
+        std::string year;
     public:
         Shorelines() = default;
 
@@ -144,34 +164,43 @@ namespace gm {
 
         ~Shorelines() = default;
 
-        void pushBack(Point &point);
+        void pushBack(LineSegment line);
 
-        void pushFront(Point &point);
-    };
-
-    class Baselines : public MultiLines {
-    protected:
-        std::unique_ptr<std::vector<Point>> transects_;
-        const double transect_length_;
-        const double spacing_;
-        const double offset_;
-    public:
-
-        Baselines(const std::unique_ptr<std::vector<Point>> &baseline_points, double transect_length, double spacing,
-                  int baseline_id, double offset);
+        void pushFront(LineSegment line);
     };
 
     class TransectLine: LineSegment{
     private:
         Point transect_base_;
         LineSegment transect_line_;
-        double transect_length_;
+        double transect_length_, baseline_orient;
 
-        std::tuple<Point, Point> create_transect(Point &transect_base);
+        static LineSegment create_transect(gm::Point &transect_base, double baseline_orient, double transect_length);
 
     public:
-        TransectLine(Point &transect_base, double transect_length);
+        TransectLine(Point &transect_base, double transect_length, double baseline_orient);
+
+        TransectLine(TransectLine & transectLine) = default;
+
+        TransectLine(TransectLine &&transectLine) = default;
+
     };
+
+    class Baselines : public MultiLines {
+    protected:
+        const double transect_length_;
+        const double spacing_;
+        const double offset_;
+    public:
+        std::vector<Point> *transects_;
+        std::vector<TransectLine> *transects_line_;
+        Baselines(std::vector<Point> &baseline_points, double transect_length, double spacing,
+                  int baseline_id, double offset);
+        ~Baselines() {delete transects_; delete transects_line_;}
+    };
+
+
+
 }
 
 
