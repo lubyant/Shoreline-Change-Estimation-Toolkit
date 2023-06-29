@@ -109,11 +109,12 @@
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
 #include "image.h"
+#include <chrono>
 
 using namespace cv;
 
 int main() {
-
+    auto start = std::chrono::high_resolution_clock::now();
     Mat image;
     std::string path = "/home/lby/Desktop/shorecalculator/images/ExamplePNGs/5_5_m_4708733_ne_16_h_20160725.png";
     image = imread(path, 1);
@@ -123,24 +124,26 @@ int main() {
     }
 
     auto contour = im::extract_contours_water(path);
-    auto shorelines = im::extract_shorelines(contour, image.rows - 1, image.cols - 1);
-
+    std::vector<gm::Shorelines>shorelines{};
+    im::extract_shorelines(contour, image.rows - 1, image.cols - 1, shorelines);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << "Execution time: " << duration.count() << " milliseconds" << std::endl;
     std::vector<double> x, y;
 
+    using namespace matplot;
+
     for (auto &shore: shorelines) {
-        for (auto &point: *shore.lines_vec_ptr_) {
-            x.push_back(point.leftEdge.x);
-            y.push_back(point.leftEdge.y);
+        for (auto &point: *shore.shore_ptr_) {
+            x.push_back(point->x);
+            y.push_back(point->y);
         }
+        plot(x, y);
+        x.clear();
+        y.clear();
     }
 
-    using namespace matplot;
-    plot(x, y);
     show();
 
-//    std::cout << contour;
-//    namedWindow("Display Image", WINDOW_AUTOSIZE );
-//    imshow("Display Image", image);
-//    waitKey(0);
     return 0;
 }

@@ -10,6 +10,7 @@
 #include <vector>
 #include <memory>
 #include <cmath>
+
 #define EPS_OFFSET 1e-6
 #define PI 3.14159265
 
@@ -56,33 +57,14 @@ namespace gm {
 
     class LineSegment {
     public:
-        Point leftEdge, rightEdge;
-        double slope = 0, intercept = 0, orient = 0;
+        Point leftEdge_, rightEdge_;
+        double slope_, intercept_, orient_;
         static int num_lines;
 
         // constructor
-        LineSegment() = default;
+        LineSegment();
 
-        LineSegment(Point leftEdge, Point rightEdge) : leftEdge(std::move(leftEdge)),
-                                                       rightEdge(std::move(rightEdge)) {
-            num_lines++;
-            double dx = rightEdge.x - leftEdge.x, dy = rightEdge.y - leftEdge.y;
-            slope = dy/(dx + EPS_OFFSET);
-            intercept = this->leftEdge.y - slope * this->leftEdge.x;
-            if(dy >= 0){
-                if(dx >= 0){
-                    orient = atan(fabs(slope));
-                } else {
-                    orient = atan(fabs(slope)) + PI/2;
-                }
-            } else {
-                if (dx >= 0){
-                    orient = 2*PI - atan(fabs(slope));
-                } else {
-                    orient = PI + atan(fabs(slope));
-                }
-            }
-        }
+        LineSegment(Point leftEdge, Point rightEdge);
 
         // copy constructor
         LineSegment(const LineSegment &lineSegment);
@@ -97,7 +79,7 @@ namespace gm {
         LineSegment &operator=(LineSegment &&lineSegment) noexcept;
 
         // destructor
-        ~LineSegment() { num_lines--; }
+        virtual ~LineSegment() { num_lines--; }
 
         // overload
         friend bool operator==(LineSegment &line1, LineSegment &line2);
@@ -117,89 +99,169 @@ namespace gm {
     class BaselineSeg : public LineSegment {
     public:
         double spacing_, offset_, spacing_leftover_;
-        std::vector<Point> *transects_ptr_;
-    public:
+        std::vector<std::unique_ptr<Point>> *transects_ptr_;
+
+        // constructor
         BaselineSeg(double spacing, double offset, const Point &leftEdge, const Point &rightEdge,
                     double spacing_leftover);
 
-        BaselineSeg() = default;
+        // default constructor
+        BaselineSeg()
+                : LineSegment(), spacing_leftover_(0), offset_(0), spacing_(0),
+                  transects_ptr_(new std::vector<std::unique_ptr<Point>>()) {};
 
-        ~BaselineSeg() {delete transects_ptr_;}
+        // copy constructor
+        BaselineSeg(const BaselineSeg &baselineSeg);
+
+        // copy operator
+        BaselineSeg &operator=(const BaselineSeg &baselineSeg);
+
+        // move constructor
+        BaselineSeg(BaselineSeg &&baselineSeg) noexcept;
+
+        // move operator
+        BaselineSeg &operator=(BaselineSeg &&baselineSeq) noexcept;
+
+        // destructor
+        ~BaselineSeg() override { delete transects_ptr_; }
+
+        // element accessing
+        const Point &operator[](const unsigned int n) const { return *transects_ptr_->at(n); }
+
+        // element modifying
+        Point &operator[](const unsigned int n) { return *transects_ptr_->at(n); }
     };
 
-    class MultiLines {
+
+    class Shorelines {
     public:
-        unsigned int id = 0;
-        std::vector<LineSegment> *lines_vec_ptr_{};
-        [[nodiscard]] unsigned long size() const{return lines_vec_ptr_->size(); }
-    public:
-        MultiLines() = default;
-
-        explicit MultiLines(std::vector<Point> &points, unsigned int id = 0);
-
-        MultiLines(const MultiLines &multiLines);
-
-        MultiLines& operator=(const MultiLines &multiLines);
-
-
-        MultiLines(MultiLines &&multiLines) noexcept;
-
-
-        ~MultiLines() {delete lines_vec_ptr_;}
-
-        const LineSegment &operator[](unsigned int i) const {
-            return (*lines_vec_ptr_)[i];
-        }
-
-        [[nodiscard]] unsigned int getId() const { return id; }
-    };
-
-    class Shorelines : public MultiLines {
-    private:
         std::string year;
-    public:
-        Shorelines() = default;
 
-        Shorelines(std::vector<Point> &shore_points, std::string &year, unsigned int shoreline_id = 0);
+        unsigned int id;
 
-        ~Shorelines() = default;
+        std::vector<std::unique_ptr<Point>> *shore_ptr_;
 
-        void pushBack(LineSegment line);
+        std::vector<std::unique_ptr<LineSegment>> *shores_;
 
-        void pushFront(LineSegment line);
+        [[nodiscard]] unsigned long size() const { return shore_ptr_->size(); }
+
+        // default constructor
+        Shorelines();
+
+        // constructor
+        Shorelines(const std::vector<Point> &shore_points, std::string year, unsigned int shoreline_id = 0);
+
+        // copy constructor
+        Shorelines(const Shorelines &shorelines);
+
+        // copy operator
+        Shorelines &operator=(const Shorelines &shorelines);
+
+        // move constructor
+        Shorelines(Shorelines &&shorelines) noexcept;
+
+        // move operator
+        Shorelines &operator=(Shorelines &&shorelines) noexcept;
+
+        // destructor
+        ~Shorelines() {
+            delete shore_ptr_;
+            delete shores_;
+        };
+
+        // element accessing
+        const Point &operator[](unsigned int i) const { return *shore_ptr_->at(i); }
+
+        // element modifying
+        Point &operator[](unsigned int i) { return *shore_ptr_->at(i); }
+
+        void pushBack(double x, double y) { shore_ptr_->push_back(std::make_unique<Point>(x, y)); }
+
+        void pushFront(double x, double y) { shore_ptr_->insert(shore_ptr_->begin(), std::make_unique<Point>(x, y)); }
+
+        [[nodiscard]] std::vector<std::unique_ptr<LineSegment>> shores() const noexcept;
     };
 
-    class TransectLine: LineSegment{
-    private:
+    class TransectLine : public LineSegment {
+    public:
         Point transect_base_;
-        LineSegment transect_line_;
-        double transect_length_, baseline_orient;
+
+        double transect_length_, baseline_orient_, transect_orient_;
 
         static LineSegment create_transect(gm::Point &transect_base, double baseline_orient, double transect_length);
 
-    public:
+        // default constructor
+        TransectLine()
+                : LineSegment(), transect_orient_(0), transect_length_(0), baseline_orient_(0), transect_base_() {}
+
+        // constructor
         TransectLine(Point &transect_base, double transect_length, double baseline_orient);
 
-        TransectLine(TransectLine & transectLine) = default;
+        // copy constructor
+        TransectLine(const TransectLine &transectLine) = default;
 
+        // copy0 operator
+        TransectLine &operator=(const TransectLine &transectLine) = default;
+
+        // move constructor
         TransectLine(TransectLine &&transectLine) = default;
 
+        // move operator
+        TransectLine &operator=(TransectLine &&transectLine) = default;
+
+        // destructor
+        ~TransectLine() override = default;
+
     };
 
-    class Baselines : public MultiLines {
-    protected:
-        const double transect_length_;
-        const double spacing_;
-        const double offset_;
+    class Baselines {
     public:
-        std::vector<Point> *transects_;
-        std::vector<TransectLine> *transects_line_;
+        double transect_length_;
+        double spacing_;
+        double offset_;
+        int baseline_id;
+        std::vector<std::unique_ptr<Point>> *transects_; // vector to store transects base
+        std::vector<std::unique_ptr<TransectLine>> *transects_line_; // vector to transects
+        std::vector<std::unique_ptr<BaselineSeg>> *baselines_; // vector to baselines
+
+        // constructor
         Baselines(std::vector<Point> &baseline_points, double transect_length, double spacing,
                   int baseline_id, double offset);
-        ~Baselines() {delete transects_; delete transects_line_;}
+
+        // default constructor
+        Baselines()
+                : transect_length_(0), spacing_(0), offset_(0), baseline_id(0),
+                  transects_(new std::vector<std::unique_ptr<Point>>()),
+                  transects_line_(new std::vector<std::unique_ptr<TransectLine>>()),
+                  baselines_(new std::vector<std::unique_ptr<BaselineSeg>>()) {}
+
+        // move constructor
+        Baselines(Baselines &&baselines) noexcept;
+
+        // move operator
+        Baselines &operator=(Baselines &&baselines) noexcept;
+
+        // copy constructor
+        Baselines(const Baselines &baselines);
+
+        // copy operator
+        Baselines &operator=(const Baselines &baselines);
+
+        // destructor
+        ~Baselines() {
+            delete transects_;
+            delete transects_line_;
+            delete baselines_;
+        }
+
+        [[nodiscard]] unsigned int size() const { return baselines_->size(); }
+
+        const BaselineSeg &operator[](unsigned int i) const { return *baselines_->at(i); }
+
+        std::vector<std::unique_ptr<Point>> intersect_shorelines(Shorelines &shorelines) const;
+
+
     };
-
-
 
 }
 

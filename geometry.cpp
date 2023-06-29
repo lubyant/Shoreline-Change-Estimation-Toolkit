@@ -4,6 +4,7 @@
 
 #include "geometry.h"
 #include <cmath>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -107,8 +108,8 @@ gm::Point gm::Point::createPoint(double direction, double dest) const {
 }
 
 void gm::Point::movePoint(double direction, double dest) {
-    x = x + dest * cos(direction);
-    y = y + dest * sin(direction);
+    x += dest * cos(direction);
+    y += dest * sin(direction);
 }
 
 std::ostream &gm::operator<<(std::ostream &os, const gm::Point &point) {
@@ -125,119 +126,169 @@ gm::Point &gm::Point::operator=(gm::Point &&point) noexcept {
 
 // line
 bool gm::operator==(gm::LineSegment &line1, gm::LineSegment &line2) {
-    return (line1.rightEdge == line2.rightEdge && line1.leftEdge == line2.leftEdge);
+    return (line1.rightEdge_ == line2.rightEdge_ && line1.leftEdge_ == line2.leftEdge_);
 }
 
 std::ostream &gm::operator<<(std::ostream &os, const gm::LineSegment &lineSegment) {
-    os << "left edge: " << lineSegment.leftEdge << ", right edge: "
-       << lineSegment.rightEdge;
+    os << "left edge: " << lineSegment.leftEdge_ << ", right edge: "
+       << lineSegment.rightEdge_;
     return os;
 }
 
 
 gm::LineSegment::LineSegment(const gm::LineSegment &lineSegment) :
-        leftEdge(lineSegment.leftEdge), rightEdge(lineSegment.rightEdge), slope(lineSegment.slope),
-        intercept(lineSegment.intercept) {
+        leftEdge_(lineSegment.leftEdge_), rightEdge_(lineSegment.rightEdge_), slope_(lineSegment.slope_),
+        intercept_(lineSegment.intercept_), orient_(lineSegment.orient_) {
     num_lines++;
 }
 
 void gm::LineSegment::moveLine(double dest) {
     if (dest != 0) {
-        double normalDir = orient;
-        leftEdge.movePoint(normalDir, dest);
-        rightEdge.movePoint(normalDir, dest);
+        double normalDir = orient_;
+        leftEdge_.movePoint(normalDir, dest);
+        rightEdge_.movePoint(normalDir, dest);
     }
 }
 
 gm::LineSegment gm::LineSegment::createLine(double dest) const {
     if (dest != 0) {
-        double normalDir = orient;
-        Point leftEdgeNew = leftEdge.createPoint(normalDir, dest);
-        Point rightEdgeNew = rightEdge.createPoint(normalDir, dest);
+        double normalDir = orient_;
+        Point leftEdgeNew = leftEdge_.createPoint(normalDir, dest);
+        Point rightEdgeNew = rightEdge_.createPoint(normalDir, dest);
         return {leftEdgeNew, rightEdgeNew};
     } else {
-        return {leftEdge, rightEdge};
+        return {leftEdge_, rightEdge_};
     }
 }
 
 bool gm::LineSegment::isIntersect(gm::Point &point1, gm::Point &point2) const {
-    return isTwoSegmentIntersected(leftEdge, rightEdge, point1, point2);
+    return isTwoSegmentIntersected(leftEdge_, rightEdge_, point1, point2);
 }
 
 gm::Point gm::LineSegment::findIntersection(gm::Point &point1, gm::Point &point2) const {
     if (!isIntersect(point1, point2))
         throw std::runtime_error("Not intersect");
-    return computeIntersectPoint(leftEdge, rightEdge, point1, point2);
+    return computeIntersectPoint(leftEdge_, rightEdge_, point1, point2);
 }
 
 gm::LineSegment &gm::LineSegment::operator=(const gm::LineSegment &lineSegment) {
-    leftEdge = lineSegment.leftEdge;
-    rightEdge = lineSegment.rightEdge;
-    slope = lineSegment.slope;
-    intercept = lineSegment.intercept;
+    leftEdge_ = lineSegment.leftEdge_;
+    rightEdge_ = lineSegment.rightEdge_;
+    slope_ = lineSegment.slope_;
+    intercept_ = lineSegment.intercept_;
     return *this;
 }
 
 gm::LineSegment::LineSegment(gm::LineSegment &&lineSegment) noexcept {
-    leftEdge = lineSegment.leftEdge;
-    rightEdge = lineSegment.rightEdge;
-    slope = lineSegment.slope;
-    intercept = lineSegment.intercept;
+    leftEdge_ = std::move(lineSegment.leftEdge_);
+    rightEdge_ = std::move(lineSegment.rightEdge_);
+    slope_ = lineSegment.slope_;
+    intercept_ = lineSegment.intercept_;
+    orient_ = lineSegment.orient_;
+    num_lines++;
 }
 
 gm::LineSegment &gm::LineSegment::operator=(gm::LineSegment &&lineSegment) noexcept {
-    leftEdge = std::move(lineSegment.leftEdge);
-    rightEdge = std::move(lineSegment.rightEdge);
-    slope = lineSegment.slope;
-    intercept = lineSegment.intercept;
+    leftEdge_ = std::move(lineSegment.leftEdge_);
+    rightEdge_ = std::move(lineSegment.rightEdge_);
+    slope_ = lineSegment.slope_;
+    intercept_ = lineSegment.intercept_;
     return *this;
 }
 
+gm::LineSegment::LineSegment() : leftEdge_(), rightEdge_(), slope_(0), intercept_(0), orient_(0) {
+    num_lines++;
+}
 
-gm::MultiLines::MultiLines(std::vector<Point> &points, unsigned int id) : id(id) {
-    for (int i = 0; i < points.size() - 1; i++) {
-        lines_vec_ptr_->push_back(LineSegment(points[i], points[i + 1]));
+gm::LineSegment::LineSegment(gm::Point leftEdge, gm::Point rightEdge)
+        : leftEdge_(std::move(leftEdge)),
+          rightEdge_(std::move(rightEdge)) {
+    num_lines++;
+    double dx = rightEdge.x - leftEdge.x, dy = rightEdge.y - leftEdge.y;
+    slope_ = dy / (dx + EPS_OFFSET);
+    intercept_ = this->leftEdge_.y - slope_ * this->leftEdge_.x;
+    if (dy >= 0) {
+        if (dx >= 0) {
+            orient_ = atan(fabs(slope_));
+        } else {
+            orient_ = atan(fabs(slope_)) + PI / 2;
+        }
+    } else {
+        if (dx >= 0) {
+            orient_ = 2 * PI - atan(fabs(slope_));
+        } else {
+            orient_ = PI + atan(fabs(slope_));
+        }
     }
 }
 
-gm::MultiLines::MultiLines(const gm::MultiLines &multiLines) :
-        id(multiLines.id) {
-    for (int i = 0; i < multiLines.lines_vec_ptr_->size() - 1; i++) {
-        lines_vec_ptr_->push_back(
-                LineSegment(multiLines.lines_vec_ptr_->at(i).leftEdge, multiLines.lines_vec_ptr_->at(i + 1).rightEdge));
+
+gm::Shorelines::Shorelines(const std::vector<Point> &shore_points, std::string year, unsigned int shoreline_id) :
+        year(std::move(year)), shore_ptr_{new std::vector<std::unique_ptr<Point>>{}}, id(shoreline_id),
+        shores_(nullptr) {
+    for (const auto &point: shore_points) {
+        shore_ptr_->push_back(std::make_unique<Point>(point));
     }
 }
 
-gm::MultiLines::MultiLines(gm::MultiLines &&multiLines) noexcept: id(multiLines.id),
-                                                                  lines_vec_ptr_(multiLines.lines_vec_ptr_) {
+gm::Shorelines::Shorelines() : year{"2000"}, id{0}, shore_ptr_{new std::vector<std::unique_ptr<Point>>()}, shores_(
+        nullptr) {
 
 }
 
-gm::MultiLines &gm::MultiLines::operator=(const gm::MultiLines &multiLines) {
-    lines_vec_ptr_ = multiLines.lines_vec_ptr_;
-    id = multiLines.id;
+gm::Shorelines::Shorelines(const gm::Shorelines &shorelines) : year(shorelines.year), id(shorelines.id),
+                                                               shore_ptr_{new std::vector<std::unique_ptr<Point>>()},
+                                                               shores_(
+                                                                       nullptr) {
+    for (unsigned int i = 0; i < shorelines.size(); i++) {
+        shore_ptr_->push_back(std::make_unique<Point>(shorelines[i]));
+    }
+}
+
+gm::Shorelines &gm::Shorelines::operator=(const gm::Shorelines &shorelines) {
+    if (this != &shorelines) {
+        year = shorelines.year;
+        id = shorelines.id;
+        delete shore_ptr_;
+
+        shore_ptr_ = new std::vector<std::unique_ptr<Point>>();
+        for (unsigned int i = 0; i < shorelines.size(); i++) {
+            shore_ptr_->push_back(std::make_unique<Point>(shorelines[i]));
+        }
+    }
     return *this;
 }
 
-
-gm::Shorelines::Shorelines(std::vector<Point> &shore_points, std::string &year, unsigned int shoreline_id) :
-        MultiLines(shore_points, shoreline_id), year(year) {
-
+gm::Shorelines::Shorelines(gm::Shorelines &&shorelines) noexcept:
+        year(std::move(shorelines.year)), id(shorelines.id), shore_ptr_(shorelines.shore_ptr_) {
+    shorelines.shore_ptr_ = nullptr;
+    shorelines.shores_ = nullptr;
 }
 
-void gm::Shorelines::pushBack(LineSegment line) {
-    lines_vec_ptr_->emplace_back(line);
+gm::Shorelines &gm::Shorelines::operator=(gm::Shorelines &&shorelines) noexcept {
+    if (this != &shorelines) {
+        id = shorelines.id;
+        year = std::move(shorelines.year);
+        delete shore_ptr_;
+        shore_ptr_ = shorelines.shore_ptr_;
+        shorelines.shore_ptr_ = nullptr;
+    }
+    return *this;
 }
 
-void gm::Shorelines::pushFront(LineSegment line) {
-    lines_vec_ptr_->insert(lines_vec_ptr_->begin(), line);
+std::vector<std::unique_ptr<gm::LineSegment>> gm::Shorelines::shores() const noexcept {
+    auto ret = std::vector<std::unique_ptr<LineSegment>>();
+    for (unsigned int i = 0; i < shore_ptr_->size() - 1; i++) {
+        ret.push_back(std::make_unique<LineSegment>(operator[](i), operator[](i + 1)));
+    }
+    return ret;
 }
 
 
 gm::BaselineSeg::BaselineSeg(double spacing, double offset, const Point &leftEdge, const Point &rightEdge,
                              double spacing_leftover) :
         LineSegment(leftEdge, rightEdge), spacing_(spacing), offset_(offset), spacing_leftover_(spacing_leftover),
-        transects_ptr_() {
+        transects_ptr_(new std::vector<std::unique_ptr<Point>>()) {
     moveLine(offset_);
     const double length = leftEdge.distanceToPoint(rightEdge);
     double start = spacing_leftover_;
@@ -250,13 +301,13 @@ gm::BaselineSeg::BaselineSeg(double spacing, double offset, const Point &leftEdg
         double y_start{y_l + ratio * (y_r - y_l)};
         gm::Point p0{x_start, y_start};
         int num = floor((p0.distanceToPoint(rightEdge) + spacing) / spacing_);
-        double x_step = sqrt(spacing_ * spacing_ / (1 + slope * slope)) * fabs(x_r - x_l) / (x_r - x_l + EPS_OFFSET);
-        double y_step = sqrt(slope * slope * spacing_ * spacing_ / (1 + slope * slope));
+        double x_step = sqrt(spacing_ * spacing_ / (1 + slope_ * slope_)) * fabs(x_r - x_l) / (x_r - x_l + EPS_OFFSET);
+        double y_step = sqrt(slope_ * slope_ * spacing_ * spacing_ / (1 + slope_ * slope_));
         double x_cur, y_cur;
         for (int i = 0; i < num; i++) {
             x_cur = x_start + i * x_step;
             y_cur = y_start + i * y_step;
-            transects_ptr_->push_back(Point(x_cur, y_cur));
+            transects_ptr_->push_back(std::make_unique<Point>(x_cur, y_cur));
         }
         spacing_leftover_ = spacing_ - sqrt((rightEdge.x - x_cur) * (rightEdge.x - x_cur) +
                                             (rightEdge.y - y_cur) * (rightEdge.y - y_cur));
@@ -264,23 +315,76 @@ gm::BaselineSeg::BaselineSeg(double spacing, double offset, const Point &leftEdg
     }
 }
 
+gm::BaselineSeg::BaselineSeg(const gm::BaselineSeg &baselineSeg) : LineSegment(baselineSeg.leftEdge_,
+                                                                               baselineSeg.rightEdge_),
+                                                                   transects_ptr_(
+                                                                           new std::vector<std::unique_ptr<Point>>()),
+                                                                   spacing_(baselineSeg.spacing_),
+                                                                   offset_(baselineSeg.offset_),
+                                                                   spacing_leftover_(baselineSeg.spacing_leftover_) {
+    for (const auto &unique_ptr: *baselineSeg.transects_ptr_) {
+        transects_ptr_->push_back(std::make_unique<Point>(*unique_ptr));
+    }
+}
+
+gm::BaselineSeg &gm::BaselineSeg::operator=(const gm::BaselineSeg &baselineSeg) {
+    if (this != &baselineSeg) {
+        leftEdge_ = baselineSeg.leftEdge_;
+        rightEdge_ = baselineSeg.rightEdge_;
+        spacing_ = baselineSeg.spacing_;
+        offset_ = baselineSeg.offset_;
+        delete transects_ptr_;
+        transects_ptr_ = new std::vector<std::unique_ptr<Point>>();
+        for (const auto &unique_ptr: *baselineSeg.transects_ptr_) {
+            transects_ptr_->push_back(std::make_unique<Point>(*unique_ptr));
+        }
+    }
+    return *this;
+}
+
+gm::BaselineSeg::BaselineSeg(gm::BaselineSeg &&baselineSeg) noexcept: spacing_(baselineSeg.spacing_),
+                                                                      offset_(baselineSeg.offset_),
+                                                                      spacing_leftover_(baselineSeg.spacing_leftover_),
+                                                                      transects_ptr_(baselineSeg.transects_ptr_) {
+    baselineSeg.transects_ptr_ = nullptr;
+}
+
+gm::BaselineSeg &gm::BaselineSeg::operator=(gm::BaselineSeg &&baselineSeq) noexcept {
+    if (this != &baselineSeq) {
+        spacing_ = baselineSeq.spacing_;
+        offset_ = baselineSeq.offset_;
+        spacing_leftover_ = baselineSeq.spacing_leftover_;
+        delete transects_ptr_;
+        transects_ptr_ = baselineSeq.transects_ptr_;
+        baselineSeq.transects_ptr_ = nullptr;
+    }
+    return *this;
+}
+
 gm::Baselines::Baselines(std::vector<Point> &baseline_points, double transect_length, double spacing,
-                         int baseline_id, const double offset) :
-        MultiLines(baseline_points, baseline_id), spacing_(spacing), transect_length_(transect_length),
-        offset_(offset) {
-    transects_ = new std::vector<Point>();
-    transects_line_ = new std::vector<TransectLine>();
-    BaselineSeg base0{spacing_, offset_, lines_vec_ptr_->at(0).leftEdge, lines_vec_ptr_->at(0).rightEdge, 0.00};
-    transects_->insert(transects_->end(), base0.transects_ptr_->begin(), base0.transects_ptr_->end());
+                         int baseline_id, const double offset) : baseline_id(baseline_id),
+                                                                 spacing_(spacing), transect_length_(transect_length),
+                                                                 baselines_(
+                                                                         new std::vector<std::unique_ptr<BaselineSeg>>()),
+                                                                 offset_(offset),
+                                                                 transects_(new std::vector<std::unique_ptr<Point>>()),
+                                                                 transects_line_(
+                                                                         new std::vector<std::unique_ptr<TransectLine>>()) {
+    for (auto &baseline_point: baseline_points) {
+        transects_->push_back(std::make_unique<Point>(std::move(baseline_point)));
+    }
+    BaselineSeg base0{spacing_, offset_, *transects_->at(0), *transects_->at(1), 0.00};
+
     double left_over = base0.spacing_leftover_;
 
-    for (int i = 1; i < lines_vec_ptr_->size(); i++) {
-        BaselineSeg baselineSeg{spacing_, offset_, lines_vec_ptr_->at(i).leftEdge, lines_vec_ptr_->at(i).rightEdge,
+    for (int i = 1; i < transects_->size() - 1; i++) {
+        BaselineSeg baselineSeg{spacing_, offset_, *transects_->at(i), *transects_->at(i + 1),
                                 left_over};
 
         for (auto &transect: (*baselineSeg.transects_ptr_)) {
-            transects_->push_back(transect);
-            transects_line_->push_back(TransectLine(transect, transect_length_, baselineSeg.orient));
+            transects_->push_back(std::make_unique<Point>(*transect));
+            transects_line_->push_back(
+                    std::make_unique<TransectLine>(*transect, transect_length_, baselineSeg.orient_));
         }
 
         left_over = baselineSeg.spacing_leftover_;
@@ -288,22 +392,112 @@ gm::Baselines::Baselines(std::vector<Point> &baseline_points, double transect_le
     }
 }
 
+gm::Baselines::Baselines(const gm::Baselines &baselines) : spacing_(baselines.spacing_),
+                                                           baseline_id(baselines.baseline_id),
+                                                           transect_length_(baselines.transect_length_),
+                                                           offset_(baselines.offset_),
+                                                           transects_(new std::vector<std::unique_ptr<Point>>()),
+                                                           transects_line_(
+                                                                   new std::vector<std::unique_ptr<TransectLine>>()),
+                                                           baselines_(new std::vector<std::unique_ptr<BaselineSeg>>()) {
+    for (const auto &transect: *baselines.transects_) {
+        transects_->push_back(std::make_unique<Point>(*transect));
+    }
+
+    for (const auto &transect_line: *baselines.transects_line_) {
+        transects_line_->push_back(std::make_unique<TransectLine>(*transect_line));
+    }
+
+    for (const auto &baseline_seg: *baselines.baselines_) {
+        baselines_->push_back(std::make_unique<BaselineSeg>(*baseline_seg));
+    }
+}
+
+gm::Baselines &gm::Baselines::operator=(const gm::Baselines &baselines) {
+    if (this != &baselines) {
+        spacing_ = baselines.spacing_;
+        transects_line_ = baselines.transects_line_;
+        offset_ = baselines.offset_;
+        delete transects_;
+        transects_ = new std::vector<std::unique_ptr<Point>>();
+        delete transects_line_;
+        transects_line_ = new std::vector<std::unique_ptr<TransectLine>>();
+        for (const auto &transect: *baselines.transects_) {
+            transects_->push_back(std::make_unique<Point>(*transect));
+        }
+
+        for (const auto &transect_line: *baselines.transects_line_) {
+            transects_line_->push_back(std::make_unique<TransectLine>(*transect_line));
+        }
+    }
+    return *this;
+}
+
+gm::Baselines::Baselines(gm::Baselines &&baselines) noexcept: transect_length_(baselines.transect_length_),
+                                                              spacing_(baselines.spacing_),
+                                                              offset_(baselines.offset_),
+                                                              baseline_id(baselines.baseline_id),
+                                                              transects_(baselines.transects_),
+                                                              baselines_(baselines.baselines_),
+                                                              transects_line_(baselines.transects_line_) {
+    baselines.transects_ = nullptr;
+    baselines.baselines_ = nullptr;
+    baselines.transects_line_ = nullptr;
+}
+
+gm::Baselines &gm::Baselines::operator=(gm::Baselines &&baselines) noexcept {
+    if (this != &baselines) {
+        transects_ = baselines.transects_;
+        spacing_ = baselines.spacing_;
+        offset_ = baselines.offset_;
+
+        // move the transects
+        delete transects_;
+        transects_ = baselines.transects_;
+        baselines.transects_ = nullptr;
+
+        // move the baselines
+        delete baselines_;
+        baselines_ = baselines.baselines_;
+        baselines.baselines_ = nullptr;
+
+        // move the transect_line_
+        delete transects_line_;
+        transects_line_ = baselines.transects_line_;
+        baselines.transects_line_ = nullptr;
+    }
+    return *this;
+}
+
+std::vector<std::unique_ptr<gm::Point>> gm::Baselines::intersect_shorelines(gm::Shorelines &shorelines) const {
+    std::vector<std::unique_ptr<Point>> intersects{};
+    for (const auto &transect: *transects_line_) {
+        for (const auto &shore_seg: shorelines.shores()) {
+            if (transect->isIntersect(shore_seg->leftEdge_, shore_seg->rightEdge_)) {
+                intersects.push_back(std::make_unique<Point>(
+                        transect->findIntersection(shore_seg->leftEdge_, shore_seg->rightEdge_)
+                ));
+                break;
+            }
+        }
+    }
+    return intersects;
+}
+
 
 gm::TransectLine::TransectLine(gm::Point &transect_base, double transect_length, double baseline_orient) :
         LineSegment(std::move(create_transect(transect_base, baseline_orient, transect_length))),
-        transect_base_(transect_base),
-        transect_length_(transect_length), baseline_orient(baseline_orient) {
+        transect_base_(transect_base), transect_orient_(baseline_orient + PI / 2),
+        transect_length_(transect_length), baseline_orient_(baseline_orient) {
 
 }
 
 gm::LineSegment
 gm::TransectLine::create_transect(gm::Point &transect_base, double baseline_orient, double transect_length) {
-    gm::Point leftEdge, rightEdge;
-    leftEdge = std::move(transect_base.createPoint(baseline_orient - PI / 2, transect_length / 2));
-    rightEdge = std::move(transect_base.createPoint(baseline_orient + PI / 2, transect_length / 2));
+    gm::Point leftEdge = std::move(transect_base.createPoint(baseline_orient - PI / 2, transect_length / 2));
+    gm::Point rightEdge = std::move(transect_base.createPoint(baseline_orient + PI / 2, transect_length / 2));
 
     return {leftEdge, rightEdge};
 }
-
 
 

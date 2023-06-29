@@ -14,7 +14,9 @@ namespace im {
 
     std::vector<std::string> read_files(std::string &path);
     std::vector<std::vector<cv::Point>> extract_contours_water(std::string &path);
-    std::vector<gm::Shorelines> extract_shorelines(std::vector<std::vector<cv::Point>> &contours, int x_lim, int y_lim);
+    void
+    extract_shorelines(std::vector<std::vector<cv::Point>> &contours, int x_lim, int y_lim,
+                       std::vector<gm::Shorelines> &shores_inventory);
     void create_transects();
     void create_intersections();
     void save_shp();
