@@ -141,7 +141,7 @@ namespace gm {
 
         std::vector<std::unique_ptr<Point>> *shore_ptr_;
 
-        std::vector<std::unique_ptr<LineSegment>> *shores_;
+        std::vector<std::unique_ptr<LineSegment>> *shores_= nullptr;
 
         [[nodiscard]] unsigned long size() const { return shore_ptr_->size(); }
 
@@ -262,6 +262,7 @@ namespace gm {
 
 
     };
+
 
 }
 

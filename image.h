@@ -17,8 +17,7 @@ namespace im {
     void
     extract_shorelines(std::vector<std::vector<cv::Point>> &contours, int x_lim, int y_lim,
                        std::vector<gm::Shorelines> &shores_inventory);
-    void create_transects();
-    void create_intersections();
+    void create_intersections(gm::Baselines &baselines, std::vector<gm::Shorelines> &shorelines);
     void save_shp();
 
 } // im

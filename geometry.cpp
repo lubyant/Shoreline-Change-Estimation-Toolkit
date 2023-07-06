@@ -68,8 +68,6 @@ gm::Point computeIntersectPoint(const gm::Point &p1, const gm::Point &p2, const 
         double y = (c0 * a1 - c1 * a0) / d;
         return {x, y};
     }
-
-
 }
 
 int gm::Point::num_points = 0;

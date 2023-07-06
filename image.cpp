@@ -45,50 +45,64 @@ namespace im {
         bool isEdgeCut = false;
         for (auto &contour: contours) {
             unsigned long num = contour.size();
-            auto shore = std::make_unique<gm::Shorelines>();
-            auto temp = std::make_unique<std::vector<gm::Shorelines>>();
-
+//            auto shore = std::make_unique<gm::Shorelines>();
+            gm::Shorelines shore{};
+//            auto temp = std::make_unique<std::vector<gm::Shorelines>>();
+            std::vector<gm::Shorelines> temp{};
             for (unsigned long i = 0; i < num; i++) {
                 auto cur_x = contour[i].x, cur_y = contour[i].y;
 
                 if (!IsEdge(cur_x, cur_y, x_lim, y_lim)) {
-                    shore->pushBack(cur_x, cur_y);
+                    shore.pushBack(cur_x, cur_y);
                 } else {
                     isEdgeCut = true;
-                    if (shore->size() > 0) {
-                        temp->push_back(*shore);
-                        shore = std::make_unique<gm::Shorelines>();
+                    if (shore.size() > 0) {
+                        temp.push_back(std::move(shore));
+                        shore = gm::Shorelines();
                     }
                     continue;
                 }
             }
+
             auto start_x = contour[0].x, start_y = contour[0].y;
             auto end_x = contour[contour.size() - 1].x, end_y = contour[contour.size() - 1].y;
             if (!isEdgeCut) {
                 continue;
             } else {
-                if (shore->size() > 0) {
-                    temp->push_back(*shore);
+                if (shore.size() > 0) {
+                    temp.push_back(std::move(shore));
                 }
             }
 
-            if (isEdgeCut == true && temp->size() > 1 &&
+            if (isEdgeCut == true && temp.size() > 1 &&
                 !(IsEdge(start_x, start_y, x_lim, y_lim) || IsEdge(end_x, end_y, x_lim, y_lim))) {
-                auto front_shore = (*temp)[0];
-                auto end_shore = (*temp)[temp->size() - 1];
-                temp->pop_back();
+
+                auto front_shore = temp[0];
+                auto end_shore = temp[temp.size() - 1];
+                temp.pop_back();
 
                 auto end_shore_num = end_shore.size();
                 for (unsigned long i = 0; i < end_shore_num; i++) {
                     front_shore.pushFront(end_shore.shore_ptr_->at(end_shore_num - i - 1)->x,
                                           end_shore.shore_ptr_->at(end_shore_num - i - 1)->y);
                 }
-                temp->erase(temp->begin());
-                temp->insert(temp->begin(), front_shore);
+
+                temp.erase(temp.begin());
+
+                temp.insert(temp.begin(), front_shore);
+
             }
-            if (!temp->empty()) {
-                shores_inventory.insert(shores_inventory.end(), temp->begin(), temp->end());
+
+            if (!temp.empty()) {
+                shores_inventory.insert(shores_inventory.end(), temp.begin(), temp.end());
             }
+
+        }
+    }
+
+    void create_intersections(gm::Baselines &baselines, std::vector<gm::Shorelines> &shorelines) {
+        for(auto& shoreline: shorelines){
+            baselines.intersect_shorelines(shoreline);
         }
     }
 
