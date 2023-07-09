@@ -44,10 +44,11 @@
 //}
 
 using namespace cv;
+using namespace std;
+
 void func(std::string &path);
 
-int main()
-{
+int main() {
     auto start = std::chrono::high_resolution_clock::now();
 
     std::string path1 = "/home/lby/Desktop/shorecalculator/images/ExamplePNGs/5_5_m_4708733_ne_16_h_20160725.png";
@@ -84,10 +85,18 @@ int main()
     return 0;
 }
 
-void func(std::string &path)
-{
-    auto image = imread(path, 1);
-    auto contour = im::extract_contours_water(path);
-    auto *shorelines = new std::vector<gm::Shorelines>();
-    im::extract_shorelines(contour, image.rows - 1, image.cols - 1, *shorelines, 2000);
+void func(vector<string> &paths) {
+    vector<vector<gm::Shorelines>> shores_years;
+    const double transect_length = 1000.00;
+    const double spacing = 10.00;
+    const double offset = 0.00;
+    for (const auto &path: paths) {
+        auto image = imread(path, 1);
+        auto contour = im::extract_contours_water(path);
+        auto shores = im::extract_shorelines(contour, image.rows - 1, image.cols - 1, 2000);
+        shores_years.push_back(shores);
+    }
+    auto&& baseline = im::create_baseline(shores_years[0], transect_length, spacing, 0);
+    auto intersections = im::create_intersections(baseline, shores_years[1]);
+
 }

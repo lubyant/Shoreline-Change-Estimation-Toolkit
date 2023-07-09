@@ -189,19 +189,21 @@ namespace gm {
 
         double transect_length_, baseline_orient_, transect_orient_;
 
+        int transect_id_;
+
         static LineSegment create_transect(gm::Point &transect_base, double baseline_orient, double transect_length);
 
         // default constructor
         TransectLine()
-                : LineSegment(), transect_orient_(0), transect_length_(0), baseline_orient_(0), transect_base_() {}
+                : LineSegment(), transect_id_(0), transect_orient_(0), transect_length_(0), baseline_orient_(0), transect_base_() {}
 
         // constructor
-        TransectLine(Point &transect_base, double transect_length, double baseline_orient);
+        TransectLine(Point &transect_base, double transect_length, double baseline_orient, int transect_id);
 
         // copy constructor
         TransectLine(const TransectLine &transectLine) = default;
 
-        // copy0 operator
+        // copy operator
         TransectLine &operator=(const TransectLine &transectLine) = default;
 
         // move constructor
@@ -265,6 +267,7 @@ namespace gm {
     };
 
     class Intersections {
+    public:
         int baseline_id_, transect_id_;
         std::vector<std::pair<int, Point>> *intersects_;
         double epr = 0.0, lrr = 0.0; // end point rate, linear regression rate
@@ -322,6 +325,8 @@ namespace gm {
 
         // calculate the linear regression rate
         void reg_rate();
+
+        //
     };
 }
 

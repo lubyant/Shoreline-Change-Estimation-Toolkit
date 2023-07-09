@@ -499,10 +499,10 @@ std::vector<std::unique_ptr<gm::Point>> gm::Baselines::intersect_shorelines(gm::
 }
 
 
-gm::TransectLine::TransectLine(gm::Point &transect_base, double transect_length, double baseline_orient) :
+gm::TransectLine::TransectLine(Point &transect_base, double transect_length, double baseline_orient, int transect_id) :
         LineSegment(std::move(create_transect(transect_base, baseline_orient, transect_length))),
         transect_base_(transect_base), transect_orient_(baseline_orient + PI / 2),
-        transect_length_(transect_length), baseline_orient_(baseline_orient) {
+        transect_length_(transect_length), baseline_orient_(baseline_orient) , transect_id_(transect_id){
 
 }
 

@@ -20,7 +20,7 @@ namespace im {
         return path_string;
     }
 
-    std::vector<std::vector<cv::Point>> extract_contours_water(std::string &path) {
+    std::vector<std::vector<cv::Point>> extract_contours_water(const std::string &path) {
         // read the image
         cv::Mat img = cv::imread(path);
 
@@ -39,9 +39,10 @@ namespace im {
         return contours;
     }
 
-    void
-    extract_shorelines(std::vector<std::vector<cv::Point>> &contours, int x_lim, int y_lim,
-                       std::vector<gm::Shorelines> &shores_inventory, int year) {
+    std::vector<gm::Shorelines>
+    extract_shorelines(const std::vector<std::vector<cv::Point>> &contours, int x_lim, int y_lim,
+                       int year) {
+        std::vector<gm::Shorelines> shores_inventory{};
         bool isEdgeCut = false;
         for (auto &contour: contours) {
             unsigned long num = contour.size();
@@ -99,29 +100,56 @@ namespace im {
             }
 
         }
+        return shores_inventory;
     }
 
-    gm::Baselines
+    std::vector<gm::Baselines>
     create_baseline(std::vector<gm::Shorelines> &shores_inventory, double transects_length, double spacing,
-                    int baseline_id, double offset) {
+                    double offset) {
         using namespace gm;
         using namespace std;
-        // sort
-        sort(shores_inventory.begin(), shores_inventory.end(),
-             [](const auto &a, const auto &b) { return a.year < b.year; });
-
-        // use the earliest year as baseline
-        vector<Point> baseline_points;
-        for (const auto &p: *shores_inventory[0].shore_ptr_) {
-            baseline_points.push_back(*std::make_unique<Point>(*p));
+        int baseline_id = 0;
+        vector<Baselines> baselines;
+        for (const auto &shore: shores_inventory) {
+            vector<Point> baseline_points;
+            for (const auto &p: *shores_inventory[0].shore_ptr_) {
+                baseline_points.push_back(*std::make_unique<Point>(*p));
+            }
+            baselines.emplace_back(baseline_points, transects_length, spacing, baseline_id++, offset);
         }
-        return {baseline_points, transects_length, spacing, baseline_id, offset};
+
+        return baselines;
     }
 
-    void create_intersections(gm::Baselines &baselines, std::vector<gm::Shorelines> &shorelines) {
-        for (auto &shoreline: shorelines) {
-            baselines.intersect_shorelines(shoreline);
+    std::vector<gm::Intersections>
+    create_intersections(std::vector<gm::Baselines> &baselines, std::vector<gm::Shorelines> &shorelines) {
+        using namespace std;
+        using namespace gm;
+        for(const auto& baseline: baselines){
+            auto transects = baseline.transects_line_;
+            vector<Intersections> intersections_vec{};
+            for (const auto &transect: *transects) {
+                // create the transect
+                Intersections intersections{};
+                intersections.transectLine_ = *transect;
+                intersections.baseline_id_ = baseline.baseline_id;
+                intersections.transect_id_ = transect->transect_id_;
+
+                // loop the shorelines
+                for (const auto &shores: shorelines) {
+                    for (const auto &shore: *shores.shores_) {
+                        if (transect->isIntersect(shore->leftEdge_, shore->rightEdge_)) {
+                            intersections.intersects_->push_back(
+                                    {shores.year, transect->findIntersection(shore->leftEdge_, shore->rightEdge_)});
+                        }
+                        break;
+                    }
+                }
+                intersections_vec.push_back(std::move(intersections));
+            }
         }
+
+        return intersections_vec;
     }
 
 

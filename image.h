@@ -15,17 +15,17 @@ namespace im {
 
     std::vector<std::string> read_files(std::string &path);
 
-    std::vector<std::vector<cv::Point>> extract_contours_water(std::string &path);
+    std::vector<std::vector<cv::Point>> extract_contours_water(const std::string &path);
 
-    void
-    extract_shorelines(std::vector<std::vector<cv::Point>> &contours, int x_lim, int y_lim,
-                       std::vector<gm::Shorelines> &shores_inventory, int year);
+    std::vector<gm::Shorelines>
+    extract_shorelines(const std::vector<std::vector<cv::Point>> &contours, int x_lim, int y_lim,
+                       int year);
 
-    gm::Baselines
+    std::vector<gm::Baselines>
     create_baseline(std::vector<gm::Shorelines> &shores_inventory, double transects_length, double spacing,
-                    int baseline_id, double offset = 0.0);
+                    double offset);
 
-    void create_intersections(gm::Baselines &baselines, std::vector<gm::Shorelines> &shorelines);
+    std::vector<gm::Intersections>create_intersections(std::vector<gm::Baselines> &baselines, std::vector<gm::Shorelines> &shorelines);
 
     void save_shp();
 
