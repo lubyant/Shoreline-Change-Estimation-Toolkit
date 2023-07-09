@@ -10,6 +10,7 @@
 #include <vector>
 #include <memory>
 #include <cmath>
+#include <cassert>
 
 #define EPS_OFFSET 1e-6
 #define PI 3.14159265
@@ -135,13 +136,13 @@ namespace gm {
 
     class Shorelines {
     public:
-        std::string year;
+        int year;
 
         unsigned int id;
 
         std::vector<std::unique_ptr<Point>> *shore_ptr_;
 
-        std::vector<std::unique_ptr<LineSegment>> *shores_= nullptr;
+        std::vector<std::unique_ptr<LineSegment>> *shores_ = nullptr;
 
         [[nodiscard]] unsigned long size() const { return shore_ptr_->size(); }
 
@@ -149,7 +150,7 @@ namespace gm {
         Shorelines();
 
         // constructor
-        Shorelines(const std::vector<Point> &shore_points, std::string year, unsigned int shoreline_id = 0);
+        Shorelines(const std::vector<Point> &shore_points, int year, unsigned int shoreline_id = 0);
 
         // copy constructor
         Shorelines(const Shorelines &shorelines);
@@ -224,7 +225,7 @@ namespace gm {
         std::vector<std::unique_ptr<TransectLine>> *transects_line_; // vector to transects
         std::vector<std::unique_ptr<BaselineSeg>> *baselines_; // vector to baselines
 
-        // constructor
+        // constructor 1
         Baselines(std::vector<Point> &baseline_points, double transect_length, double spacing,
                   int baseline_id, double offset);
 
@@ -263,7 +264,65 @@ namespace gm {
 
     };
 
+    class Intersections {
+        int baseline_id_, transect_id_;
+        std::vector<std::pair<int, Point>> *intersects_;
+        double epr = 0.0, lrr = 0.0; // end point rate, linear regression rate
+        TransectLine transectLine_;
+        // default constructor
+        Intersections() : baseline_id_(0), transect_id_(0), intersects_(new std::vector<std::pair<int, Point>>()), transectLine_() {}
 
+        // copy constructor
+        Intersections(const Intersections &intersections) : baseline_id_(intersections.baseline_id_),
+                                                            transect_id_(intersections.transect_id_),
+                                                            intersects_(new std::vector<std::pair<int, Point>>()),
+                                                            transectLine_(intersections.transectLine_){
+            for (const auto &pair: *intersections.intersects_) {
+                intersects_->push_back(pair);
+            }
+        }
+
+        // copy operator
+        Intersections &operator=(const Intersections &intersections) {
+            if (this != &intersections) {
+                baseline_id_ = intersections.baseline_id_;
+                transect_id_ = intersections.transect_id_;
+                transectLine_ = intersections.transectLine_;
+                delete intersects_;
+                for (const auto &pair: *intersections.intersects_) {
+                    intersects_->push_back(pair);
+                }
+            }
+            return *this;
+        }
+
+        // move constructor
+        Intersections(Intersections &&intersections) noexcept: baseline_id_(intersections.baseline_id_),
+                                                               transect_id_(intersections.transect_id_),
+                                                               intersects_(intersections.intersects_),
+                                                               transectLine_(std::move(intersections.transectLine_)){
+            intersections.intersects_ = nullptr;
+        }
+
+        // move operator
+        Intersections &operator=(Intersections &&intersections) noexcept {
+            if (this != &intersections) {
+                baseline_id_ = intersections.baseline_id_;
+                transect_id_ = intersections.transect_id_;
+                transectLine_ = std::move(transectLine_);
+                delete intersects_;
+                intersects_ = intersections.intersects_;
+                intersections.intersects_ = nullptr;
+            }
+            return *this;
+        }
+
+        // destructor
+        ~Intersections() { delete intersects_; }
+
+        // calculate the linear regression rate
+        void reg_rate();
+    };
 }
 
 

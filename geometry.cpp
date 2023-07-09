@@ -7,6 +7,8 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include <algorithm>
+#include <numeric>
 
 #define MIN(A, B) ((A) < (B) ? (A) : (B))
 #define MAX(A, B) ((A) < (B) ? (B) : (A))
@@ -51,6 +53,20 @@ bool isTwoSegmentIntersected(const gm::Point &p1, const gm::Point &p2, const gm:
     } else {
         return false;
     }
+}
+
+double linearRegressRate(const std::vector<double>& years, const std::vector<double>& distances){
+    u_long n = years.size();
+    double mean_year = std::accumulate(years.begin(), years.end(), 0.0) / (double )years.size();
+    double mean_dis =  std::accumulate(years.begin(), years.end(), 0.0) / (double)years.size();
+
+    // Calculating cross-deviation and deviation of x
+    double num = 0.0, den = 0.0;
+    for (int i = 0; i < n; i++) {
+        num += (years[i] - mean_year) * (distances[i] - mean_dis);
+        den += (years[i] - mean_year) * (years[i] - mean_year);
+    }
+    return num/den;
 }
 
 gm::Point computeIntersectPoint(const gm::Point &p1, const gm::Point &p2, const gm::Point &p3, const gm::Point &p4) {
@@ -221,7 +237,7 @@ gm::LineSegment::LineSegment(gm::Point leftEdge, gm::Point rightEdge)
 }
 
 
-gm::Shorelines::Shorelines(const std::vector<Point> &shore_points, std::string year, unsigned int shoreline_id) :
+gm::Shorelines::Shorelines(const std::vector<Point> &shore_points, int year, unsigned int shoreline_id) :
         year(std::move(year)), shore_ptr_{new std::vector<std::unique_ptr<Point>>{}}, id(shoreline_id),
         shores_(nullptr) {
     for (const auto &point: shore_points) {
@@ -229,7 +245,7 @@ gm::Shorelines::Shorelines(const std::vector<Point> &shore_points, std::string y
     }
 }
 
-gm::Shorelines::Shorelines() : year{"2000"}, id{0}, shore_ptr_{new std::vector<std::unique_ptr<Point>>()}, shores_(
+gm::Shorelines::Shorelines() : year{0}, id{0}, shore_ptr_{new std::vector<std::unique_ptr<Point>>()}, shores_(
         nullptr) {
 
 }
@@ -499,3 +515,34 @@ gm::TransectLine::create_transect(gm::Point &transect_base, double baseline_orie
 }
 
 
+void gm::Intersections::reg_rate() {
+    assert(intersects_->size() > 0);
+    u_long num = intersects_->size();
+    std::vector<std::vector<double>> tbl{};
+    std::vector<double> years;
+    std::vector<double> distances;
+    double distance = 0;
+
+    // compute distance at each year
+    for (ulong i = 0; i < num; i++) {
+        distance = intersects_->at(i).second.distanceToPoint(transectLine_.leftEdge_);
+        std::vector<double> temp = {(double)intersects_->at(i).first, distance};
+        years.push_back((double)intersects_->at(i).first);
+        distances.push_back(distance);
+        tbl.emplace_back(temp);
+    }
+
+    // sort
+    if (num > 1){
+      std::sort(tbl.begin(), tbl.end(),
+                [](const auto &a, const auto &b){
+          return a[0] < b[0];
+      });
+    }
+
+    // compute the end point rate
+    epr = (tbl.end()->at(1) - tbl.begin()->at(1))/(tbl.begin()->at(0) - tbl.begin()->at(0));
+
+    // compute the linear regression rate
+    lrr = linearRegressRate(years, distances);
+}

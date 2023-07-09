@@ -5,11 +5,49 @@
 #include "image.h"
 #include <chrono>
 #include <thread>
+#include <gdal_priv.h>
+#include <ogrsf_frmts.h>
+
+//int main()
+//{
+//    // Step 1: Initialize GDAL
+//    GDALAllRegister();
+//
+//    // Step 2: Get the shapefile driver
+//    GDALDriver *driver = GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
+//
+//    // Step 3: Create a new shapefile
+//    GDALDataset *dataset = driver->Create("line.shp", 0, 0, 0, GDT_Unknown, NULL);
+//
+//    // Step 4: Create a layer for the shapefile
+//    OGRLayer *layer = dataset->CreateLayer("line", NULL, wkbLineString, NULL);
+//
+//    // Step 5: Create a new feature
+//    OGRFeature *feature = OGRFeature::CreateFeature(layer->GetLayerDefn());
+//
+//    // Step 6: Create a line geometry and add points to it
+//    OGRLineString line;
+//    line.addPoint(0.0, 0.0);
+//    line.addPoint(1.0, 1.0);
+//
+//    // Step 7: Add the geometry to the feature
+//    feature->SetGeometry(&line);
+//
+//    // Step 8: Add the feature to the layer
+//    layer->CreateFeature(feature);
+//
+//    // Clean up
+//    OGRFeature::DestroyFeature(feature);
+//    GDALClose(dataset);
+//
+//    return 0;
+//}
 
 using namespace cv;
-void func(std::string& path);
+void func(std::string &path);
 
-int main() {
+int main()
+{
     auto start = std::chrono::high_resolution_clock::now();
 
     std::string path1 = "/home/lby/Desktop/shorecalculator/images/ExamplePNGs/5_5_m_4708733_ne_16_h_20160725.png";
@@ -26,29 +64,30 @@ int main() {
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     std::cout << "Execution time: " << duration.count() << " milliseconds" << std::endl;
-//    std::vector<double> x, y;
-//
-//    using namespace matplot;
-//
-//    for (auto &shore: *shorelines) {
-//        for (auto &point: *shore.shore_ptr_) {
-//            x.push_back(point->x);
-//            y.push_back(point->y);
-//        }
-//        plot(x, y);
-//        x.clear();
-//        y.clear();
-//    }
-//
-//    show();
-//    delete shorelines;
+    //    std::vector<double> x, y;
+    //
+    //    using namespace matplot;
+    //
+    //    for (auto &shore: *shorelines) {
+    //        for (auto &point: *shore.shore_ptr_) {
+    //            x.push_back(point->x);
+    //            y.push_back(point->y);
+    //        }
+    //        plot(x, y);
+    //        x.clear();
+    //        y.clear();
+    //    }
+    //
+    //    show();
+    //    delete shorelines;
 
     return 0;
 }
 
-void func(std::string& path){
+void func(std::string &path)
+{
     auto image = imread(path, 1);
     auto contour = im::extract_contours_water(path);
     auto *shorelines = new std::vector<gm::Shorelines>();
-    im::extract_shorelines(contour, image.rows - 1, image.cols - 1, *shorelines);
+    im::extract_shorelines(contour, image.rows - 1, image.cols - 1, *shorelines, 2000);
 }
