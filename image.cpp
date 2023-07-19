@@ -4,23 +4,27 @@
 
 #include "image.h"
 
-#define IsEdge(x_cor, y_cor, x_lim, y_lim) ((x_cor) == 0 || (x_cor) == x_lim || (y_cor) == 0 || (y_cor) == y_lim)
-
+#define IsEdge(x_cor, y_cor, x_lim, y_lim)                                     \
+  ((x_cor) == 0 || (x_cor) == x_lim || (y_cor) == 0 || (y_cor) == y_lim)
 
 namespace im {
     std::vector<std::string> read_files(std::string &path) {
         std::vector<std::string> path_string;
         std::string search_path = path + "/*.*";
-        for (const auto &entry: std::filesystem::recursive_directory_iterator(path)) {
-            if (entry.path().extension() == ".png" || entry.path().extension() == ".jpg" ||
-                entry.path().extension() == ".jpeg" || entry.path().extension() == ".tiff") {
+        for (const auto &entry:
+                std::filesystem::recursive_directory_iterator(path)) {
+            if (entry.path().extension() == ".png" ||
+                entry.path().extension() == ".jpg" ||
+                entry.path().extension() == ".jpeg" ||
+                entry.path().extension() == ".tiff") {
                 path_string.push_back(entry.path().string());
             }
         }
         return path_string;
     }
 
-    std::vector<std::vector<cv::Point>> extract_contours_water(const std::string &path) {
+    std::vector<std::vector<cv::Point>>
+    extract_contours_water(const std::string &path) {
         // read the image
         cv::Mat img = cv::imread(path);
 
@@ -40,16 +44,16 @@ namespace im {
     }
 
     std::vector<gm::Shorelines>
-    extract_shorelines(const std::vector<std::vector<cv::Point>> &contours, int x_lim, int y_lim,
-                       int year) {
+    extract_shorelines(const std::vector<std::vector<cv::Point>> &contours,
+                       int x_lim, int y_lim, int year) {
         std::vector<gm::Shorelines> shores_inventory{};
         bool isEdgeCut = false;
         for (auto &contour: contours) {
             unsigned long num = contour.size();
-//            auto shore = std::make_unique<gm::Shorelines>();
+            //            auto shore = std::make_unique<gm::Shorelines>();
             gm::Shorelines shore{};
             shore.year = year;
-//            auto temp = std::make_unique<std::vector<gm::Shorelines>>();
+            //            auto temp = std::make_unique<std::vector<gm::Shorelines>>();
             std::vector<gm::Shorelines> temp{};
             for (unsigned long i = 0; i < num; i++) {
                 auto cur_x = contour[i].x, cur_y = contour[i].y;
@@ -67,7 +71,8 @@ namespace im {
             }
 
             auto start_x = contour[0].x, start_y = contour[0].y;
-            auto end_x = contour[contour.size() - 1].x, end_y = contour[contour.size() - 1].y;
+            auto end_x = contour[contour.size() - 1].x,
+                    end_y = contour[contour.size() - 1].y;
             if (!isEdgeCut) {
                 continue;
             } else {
@@ -77,7 +82,8 @@ namespace im {
             }
 
             if (isEdgeCut == true && temp.size() > 1 &&
-                !(IsEdge(start_x, start_y, x_lim, y_lim) || IsEdge(end_x, end_y, x_lim, y_lim))) {
+                !(IsEdge(start_x, start_y, x_lim, y_lim) ||
+                  IsEdge(end_x, end_y, x_lim, y_lim))) {
 
                 auto front_shore = temp[0];
                 auto end_shore = temp[temp.size() - 1];
@@ -85,72 +91,110 @@ namespace im {
 
                 auto end_shore_num = end_shore.size();
                 for (unsigned long i = 0; i < end_shore_num; i++) {
-                    front_shore.pushFront(end_shore.shore_ptr_->at(end_shore_num - i - 1)->x,
-                                          end_shore.shore_ptr_->at(end_shore_num - i - 1)->y);
+                    front_shore.pushFront(
+                            end_shore.shore_ptr_->at(end_shore_num - i - 1)->x,
+                            end_shore.shore_ptr_->at(end_shore_num - i - 1)->y);
                 }
 
                 temp.erase(temp.begin());
 
                 temp.insert(temp.begin(), front_shore);
-
             }
 
             if (!temp.empty()) {
                 shores_inventory.insert(shores_inventory.end(), temp.begin(), temp.end());
             }
-
         }
         return shores_inventory;
     }
 
     std::vector<gm::Baselines>
-    create_baseline(std::vector<gm::Shorelines> &shores_inventory, double transects_length, double spacing,
-                    double offset) {
+    create_baseline(std::vector<gm::Shorelines> &shores_inventory,
+                    double transects_length, double spacing, double offset,
+                    int smooth_factor) {
         using namespace gm;
         using namespace std;
         int baseline_id = 0;
         vector<Baselines> baselines;
         for (const auto &shore: shores_inventory) {
-            vector<Point> baseline_points;
-            for (const auto &p: *shores_inventory[0].shore_ptr_) {
-                baseline_points.push_back(*std::make_unique<Point>(*p));
-            }
-            baselines.emplace_back(baseline_points, transects_length, spacing, baseline_id++, offset);
+            baselines.emplace_back(shore, transects_length, spacing, baseline_id,
+                                   offset, smooth_factor);
         }
 
         return baselines;
     }
 
     std::vector<gm::Intersections>
-    create_intersections(std::vector<gm::Baselines> &baselines, std::vector<gm::Shorelines> &shorelines) {
+    create_intersections(std::vector<gm::Baselines> &baselines,
+                         std::vector<std::vector<gm::Shorelines>> &shorelines) {
         using namespace std;
         using namespace gm;
-        for(const auto& baseline: baselines){
+        vector<Intersections> intersections_vec{};
+        for (const auto &baseline: baselines) {
             auto transects = baseline.transects_line_;
-            vector<Intersections> intersections_vec{};
             for (const auto &transect: *transects) {
                 // create the transect
-                Intersections intersections{};
-                intersections.transectLine_ = *transect;
-                intersections.baseline_id_ = baseline.baseline_id;
-                intersections.transect_id_ = transect->transect_id_;
-
-                // loop the shorelines
-                for (const auto &shores: shorelines) {
-                    for (const auto &shore: *shores.shores_) {
-                        if (transect->isIntersect(shore->leftEdge_, shore->rightEdge_)) {
-                            intersections.intersects_->push_back(
-                                    {shores.year, transect->findIntersection(shore->leftEdge_, shore->rightEdge_)});
-                        }
-                        break;
-                    }
-                }
-                intersections_vec.push_back(std::move(intersections));
+               intersections_vec.emplace_back(baseline.baseline_id, shorelines, *transect) ;
             }
         }
-
         return intersections_vec;
     }
 
+    template<typename T>
+    void save_shp(std::vector<T> &shapes, const char *output_path) {
+        // Step 1: Initialize GDAL
+        GDALAllRegister();
 
-} // im
+        // Step 2: Get the shapefile driver
+        GDALDriver *driver =
+                GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
+
+        // Step 3: Create a new shapefile
+        GDALDataset *dataset =
+                driver->Create(output_path, 0, 0, 0, GDT_Unknown, NULL);
+
+        if (std::is_base_of<T, gm::LineSegment>::value) {
+            // Step 4: Create a layer for the shapefile
+            OGRLayer *layer = dataset->CreateLayer("line", NULL, wkbLineString, NULL);
+
+            // Step 5: Create a new feature
+            OGRFeature *feature = OGRFeature::CreateFeature(layer->GetLayerDefn());
+
+            // Step 6: Create a line geometry and add points to it
+            OGRLineString line;
+            for (const auto &shape: shapes) {
+                line.addPoint(shape.leftEdge.x, shape.rightEdge.y);
+            }
+
+            // Step 7: Add the geometry to the feature
+            feature->SetGeometry(&line);
+
+            // Step 8: Add the feature to the layer
+            layer->CreateFeature(feature);
+            OGRFeature::DestroyFeature(feature);
+        } else if (std::is_base_of<T, gm::Point>::value) {
+            // Step 4: Create a layer for the shapefile
+            OGRLayer *layer = dataset->CreateLayer("pointLayer", NULL, wkbPoint, NULL);
+
+            // Step 5: Create a new feature
+            OGRFeature *feature = OGRFeature::CreateFeature(layer->GetLayerDefn());
+
+            // Step 6: Create a line geometry and add points to it
+            OGRPoint point;
+            for (const auto &shape: shapes) {
+                point.setX(shape.x);
+                point.setY(shape.y);
+            }
+
+            // Step 7: Add the geometry to the feature
+            feature->SetGeometry(&point);
+            OGRFeature::DestroyFeature(feature);
+        } else {
+            exit(1);
+        }
+
+        // Clean up
+        GDALClose(dataset);
+    }
+
+} // namespace im

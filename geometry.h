@@ -5,16 +5,16 @@
 #ifndef SHORECALCULATOR_GEOMETRY_H
 #define SHORECALCULATOR_GEOMETRY_H
 
+#include <algorithm>
+#include <cassert>
+#include <cmath>
 #include <iostream>
+#include <memory>
 #include <utility>
 #include <vector>
-#include <memory>
-#include <cmath>
-#include <cassert>
 
 #define EPS_OFFSET 1e-6
 #define PI 3.14159265
-
 
 namespace gm {
     class Point {
@@ -53,7 +53,6 @@ namespace gm {
         [[nodiscard]] Point createPoint(double direction, double dest) const;
 
         void movePoint(double direction, double dest);
-
     };
 
     class LineSegment {
@@ -85,7 +84,8 @@ namespace gm {
         // overload
         friend bool operator==(LineSegment &line1, LineSegment &line2);
 
-        friend std::ostream &operator<<(std::ostream &os, const LineSegment &lineSegment);
+        friend std::ostream &operator<<(std::ostream &os,
+                                        const LineSegment &lineSegment);
 
         // class method
         void moveLine(double dest);
@@ -103,8 +103,8 @@ namespace gm {
         std::vector<std::unique_ptr<Point>> *transects_ptr_;
 
         // constructor
-        BaselineSeg(double spacing, double offset, const Point &leftEdge, const Point &rightEdge,
-                    double spacing_leftover);
+        BaselineSeg(double spacing, double offset, const Point &leftEdge,
+                    const Point &rightEdge, double spacing_leftover);
 
         // default constructor
         BaselineSeg()
@@ -127,12 +127,13 @@ namespace gm {
         ~BaselineSeg() override { delete transects_ptr_; }
 
         // element accessing
-        const Point &operator[](const unsigned int n) const { return *transects_ptr_->at(n); }
+        const Point &operator[](const unsigned int n) const {
+            return *transects_ptr_->at(n);
+        }
 
         // element modifying
         Point &operator[](const unsigned int n) { return *transects_ptr_->at(n); }
     };
-
 
     class Shorelines {
     public:
@@ -142,15 +143,14 @@ namespace gm {
 
         std::vector<std::unique_ptr<Point>> *shore_ptr_;
 
-        std::vector<std::unique_ptr<LineSegment>> *shores_ = nullptr;
-
         [[nodiscard]] unsigned long size() const { return shore_ptr_->size(); }
 
         // default constructor
         Shorelines();
 
         // constructor
-        Shorelines(const std::vector<Point> &shore_points, int year, unsigned int shoreline_id = 0);
+        Shorelines(const std::vector<Point> &shore_points, int year,
+                   unsigned int shoreline_id = 0);
 
         // copy constructor
         Shorelines(const Shorelines &shorelines);
@@ -165,10 +165,7 @@ namespace gm {
         Shorelines &operator=(Shorelines &&shorelines) noexcept;
 
         // destructor
-        ~Shorelines() {
-            delete shore_ptr_;
-            delete shores_;
-        };
+        ~Shorelines() { delete shore_ptr_; };
 
         // element accessing
         const Point &operator[](unsigned int i) const { return *shore_ptr_->at(i); }
@@ -176,11 +173,16 @@ namespace gm {
         // element modifying
         Point &operator[](unsigned int i) { return *shore_ptr_->at(i); }
 
-        void pushBack(double x, double y) { shore_ptr_->push_back(std::make_unique<Point>(x, y)); }
+        void pushBack(double x, double y) {
+            shore_ptr_->push_back(std::make_unique<Point>(x, y));
+        }
 
-        void pushFront(double x, double y) { shore_ptr_->insert(shore_ptr_->begin(), std::make_unique<Point>(x, y)); }
+        void pushFront(double x, double y) {
+            shore_ptr_->insert(shore_ptr_->begin(), std::make_unique<Point>(x, y));
+        }
 
-        [[nodiscard]] std::vector<std::unique_ptr<LineSegment>> shores() const noexcept;
+        [[nodiscard]] std::vector<std::unique_ptr<LineSegment>>
+        shores() const noexcept;
     };
 
     class TransectLine : public LineSegment {
@@ -191,14 +193,18 @@ namespace gm {
 
         int transect_id_;
 
-        static LineSegment create_transect(gm::Point &transect_base, double baseline_orient, double transect_length);
+        static LineSegment create_transect(gm::Point &transect_base,
+                                           double baseline_orient,
+                                           double transect_length);
 
         // default constructor
         TransectLine()
-                : LineSegment(), transect_id_(0), transect_orient_(0), transect_length_(0), baseline_orient_(0), transect_base_() {}
+                : LineSegment(), transect_id_(0), transect_orient_(0),
+                  transect_length_(0), baseline_orient_(0), transect_base_() {}
 
         // constructor
-        TransectLine(Point &transect_base, double transect_length, double baseline_orient, int transect_id);
+        TransectLine(Point &transect_base, double transect_length,
+                     double baseline_orient, int transect_id);
 
         // copy constructor
         TransectLine(const TransectLine &transectLine) = default;
@@ -214,7 +220,6 @@ namespace gm {
 
         // destructor
         ~TransectLine() override = default;
-
     };
 
     class Baselines {
@@ -223,13 +228,15 @@ namespace gm {
         double spacing_;
         double offset_;
         int baseline_id;
-        std::vector<std::unique_ptr<Point>> *transects_; // vector to store transects base
-        std::vector<std::unique_ptr<TransectLine>> *transects_line_; // vector to transects
+        std::vector<std::unique_ptr<Point>>
+                *transects_; // vector to store transects base
+        std::vector<std::unique_ptr<TransectLine>>
+                *transects_line_;                                  // vector to transects
         std::vector<std::unique_ptr<BaselineSeg>> *baselines_; // vector to baselines
 
         // constructor 1
-        Baselines(std::vector<Point> &baseline_points, double transect_length, double spacing,
-                  int baseline_id, double offset);
+        Baselines(const Shorelines &shorelines, double transect_length,
+                  double spacing, int baseline_id, double offset, int smooth_factor);
 
         // default constructor
         Baselines()
@@ -259,31 +266,39 @@ namespace gm {
 
         [[nodiscard]] unsigned int size() const { return baselines_->size(); }
 
-        const BaselineSeg &operator[](unsigned int i) const { return *baselines_->at(i); }
+        const BaselineSeg &operator[](unsigned int i) const {
+            return *baselines_->at(i);
+        }
 
-        std::vector<std::unique_ptr<Point>> intersect_shorelines(Shorelines &shorelines) const;
-
-
+        std::vector<std::unique_ptr<Point>>
+        intersect_shorelines(Shorelines &shorelines) const;
     };
+
 
     class Intersections {
     public:
         int baseline_id_, transect_id_;
-        std::vector<std::pair<int, Point>> *intersects_;
-        double epr = 0.0, lrr = 0.0; // end point rate, linear regression rate
         TransectLine transectLine_;
+
+        std::unordered_map<int, std::pair<Point, double>> *year_distance_map_;
+        double epr = 0.0, lrr = 0.0; // end point rate, linear regression rate
+
+        // constructor
+        Intersections(int baselineId,
+                      const std::vector<std::vector<Shorelines>> &shores_inv,
+                      const TransectLine &transectLine);
+
         // default constructor
-        Intersections() : baseline_id_(0), transect_id_(0), intersects_(new std::vector<std::pair<int, Point>>()), transectLine_() {}
+        Intersections() = delete;
 
         // copy constructor
-        Intersections(const Intersections &intersections) : baseline_id_(intersections.baseline_id_),
-                                                            transect_id_(intersections.transect_id_),
-                                                            intersects_(new std::vector<std::pair<int, Point>>()),
-                                                            transectLine_(intersections.transectLine_){
-            for (const auto &pair: *intersections.intersects_) {
-                intersects_->push_back(pair);
-            }
-        }
+        Intersections(const Intersections &intersections)
+                : baseline_id_(intersections.baseline_id_),
+                  transect_id_(intersections.transect_id_),
+                  transectLine_(intersections.transectLine_),
+                  year_distance_map_(
+                          new std::unordered_map<int, std::pair<Point, double>>(
+                                  *intersections.year_distance_map_)) {}
 
         // copy operator
         Intersections &operator=(const Intersections &intersections) {
@@ -291,20 +306,21 @@ namespace gm {
                 baseline_id_ = intersections.baseline_id_;
                 transect_id_ = intersections.transect_id_;
                 transectLine_ = intersections.transectLine_;
-                delete intersects_;
-                for (const auto &pair: *intersections.intersects_) {
-                    intersects_->push_back(pair);
-                }
+                delete year_distance_map_;
+                year_distance_map_ =
+                        new std::unordered_map<int, std::pair<Point, double>>(
+                                *intersections.year_distance_map_);
             }
             return *this;
         }
 
         // move constructor
-        Intersections(Intersections &&intersections) noexcept: baseline_id_(intersections.baseline_id_),
-                                                               transect_id_(intersections.transect_id_),
-                                                               intersects_(intersections.intersects_),
-                                                               transectLine_(std::move(intersections.transectLine_)){
-            intersections.intersects_ = nullptr;
+        Intersections(Intersections &&intersections) noexcept
+                : baseline_id_(intersections.baseline_id_),
+                  transect_id_(intersections.transect_id_),
+                  transectLine_(std::move(intersections.transectLine_)),
+                  year_distance_map_(intersections.year_distance_map_) {
+            intersections.year_distance_map_ = nullptr;
         }
 
         // move operator
@@ -313,22 +329,27 @@ namespace gm {
                 baseline_id_ = intersections.baseline_id_;
                 transect_id_ = intersections.transect_id_;
                 transectLine_ = std::move(transectLine_);
-                delete intersects_;
-                intersects_ = intersections.intersects_;
-                intersections.intersects_ = nullptr;
+                delete year_distance_map_;
+                year_distance_map_ = intersections.year_distance_map_;
+                intersections.year_distance_map_ = nullptr;
             }
             return *this;
         }
 
         // destructor
-        ~Intersections() { delete intersects_; }
+        ~Intersections() {
+            delete year_distance_map_;
+            year_distance_map_ = nullptr;
+        }
 
         // calculate the linear regression rate
         void reg_rate();
 
-        //
+        // check if the year of intersect exist
+        [[nodiscard]] bool isYearExist(int year) const noexcept {
+            return year_distance_map_->find(year) != year_distance_map_->end();
+        }
     };
-}
+} // namespace gm
 
-
-#endif //SHORECALCULATOR_GEOMETRY_H
+#endif // SHORECALCULATOR_GEOMETRY_H
