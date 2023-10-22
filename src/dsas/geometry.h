@@ -52,9 +52,9 @@ namespace gm {
         }
 
         void move_point(std::pair<double, double> orient, T dest) {
-            double dist = orient.first * orient.first + orient.second * orient.second;
-            x += dest * orient.first / dist;
+            double dist = sqrt(orient.first * orient.first + orient.second * orient.second);
             y += dest * orient.first / dist;
+            x += dest * orient.second / dist;
         }
 
         Point<T> create_point(double direction, T dest) {
@@ -65,8 +65,8 @@ namespace gm {
 
         Point<T> create_point(std::pair<double, double> orient, T dest) {
             double dist = orient.first * orient.first + orient.second * orient.second;
-            double x_new = x + dest * orient.first / dist;
-            double y_new = y + dest * orient.second / dist;
+            double y_new = y + dest * orient.first / dist;
+            double x_new = x + dest * orient.second / dist;
             return {x_new, y_new};
         }
     };
@@ -75,6 +75,7 @@ namespace gm {
         Point<> leftEdge_, rightEdge_;
         double slope_, intercept_, orient_;
         static int num_lines;
+        std::pair<double, double> slope_vector_, normal_vector_;
 
         // delete default constructor
         LineSegment() = delete;
@@ -104,12 +105,12 @@ namespace gm {
 
     struct BaselineSeg : public LineSegment {
         using TransectBasePoint = Point<>;
-        double spacing_, offset_, spacing_leftover_;
+        double spacing_, offset_;
+        static double cumulative_transects_distance, cumulative_segment_distance; // cumulative distance
         std::vector<TransectBasePoint> transects_base_points_;
 
         // constructor
-        BaselineSeg(double spacing, double offset, const Point<> &leftEdge,
-                    const Point<> &rightEdge, double spacing_leftover);
+        BaselineSeg(double spacing, double offset, const Point<> &leftEdge, const Point<> &rightEdge);
 
         // element accessing
         const TransectBasePoint &operator[](const unsigned int n) const {
@@ -119,17 +120,18 @@ namespace gm {
     };
 
     struct TransectLine : public LineSegment {
-        Point<> transect_base_point_;
-        double transect_length_, baseline_orient_, transect_orient_;
+        Point<double> transect_base_point_; // point to generate transect
+        Point<double> transect_ref_point_; // point to calculate the erosion
         int transect_id_;
 
-        TransectLine(Point<> &transect_base, double transect_length, double baseline_orient, int transect_id)
-                : LineSegment(create_transect(transect_base, baseline_orient, transect_length)),
-                  transect_base_point_(transect_base), transect_orient_(baseline_orient + PI / 2),
-                  transect_length_(transect_length), baseline_orient_(baseline_orient),
+        TransectLine(Point<> &transect_base, double transect_length, std::pair<double, double> baseline_normal_vector,
+                     int transect_id)
+                : LineSegment(create_transect(transect_base, baseline_normal_vector, transect_length)),
+                  transect_base_point_(transect_base), transect_ref_point_(LineSegment::rightEdge_),
                   transect_id_(transect_id) {}
 
-        static LineSegment create_transect(Point<> &transect_base, double baseline_orient, double transect_length);
+        static LineSegment create_transect(Point<> &transect_base, std::pair<double, double> baseline_normal_vector,
+                                           double transect_length);
     };
 
     struct Baseline : public MultiLine<Point<double>> {
@@ -139,18 +141,18 @@ namespace gm {
         double spacing_;
         double offset_;
         int baseline_id_;
-        std::vector<Point<double>> transects_base_pints_;
+        std::vector<Point<double>> transects_base_points_;
         std::vector<TransectLine> transects_lines_;
 
         Baseline(const std::vector<BaselinesVertex> &points, double transect_length,
-                 double spacing, int baseline_id, double offset, int smooth_factor);
+                 double spacing, int baseline_id, double offset);
 
         [[nodiscard]] const size_t size() const override {
-            return transects_base_pints_.size();
+            return transects_base_points_.size();
         };
 
         [[nodiscard]] const BaselinesVertex &operator[](size_t i) const override {
-            return transects_base_pints_[i];
+            return transects_base_points_[i];
         }
 
     };

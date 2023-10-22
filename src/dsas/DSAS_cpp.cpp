@@ -74,7 +74,7 @@ namespace dsas {
         std::vector<gm::Baseline> baselines;
         int baseline_id{};
         for(const auto& shoreline: shorelines){
-            baselines.emplace_back(shoreline, 1000, 100, baseline_id++, 100, 50);
+            baselines.emplace_back(shoreline, 1000, 10, baseline_id++, 0);
         }
         return baselines;
     }

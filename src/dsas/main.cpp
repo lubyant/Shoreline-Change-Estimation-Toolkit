@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
 //    }
 
     using namespace std;
-    filesystem::path image_path = "/home/lby/Desktop/DSAS_cpp/img/final_raster/4108603/4108603_2018.tif";
+    filesystem::path image_path = "/home/lby/Desktop/shorecalculator/img/final_raster/4108603/4108603_2018.tif";
 //    filesystem::path image_path{"/home/lby/Desktop/DSAS_cpp/img/ExamplePNGs/5_5_m_4708733_ne_16_h_20160725.png"};
     filesystem::path output_path{"baseline1.shp"};
     auto *img = new dsas::Image(image_path);
