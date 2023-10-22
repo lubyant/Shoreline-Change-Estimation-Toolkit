@@ -1,9 +1,16 @@
-cmake_minimum_required(VERSION 3.22)
-project(shorecalculator)
+cmake_minimum_required(VERSION 3.25)
+project(DSAS_cpp)
 
 set(CMAKE_CXX_STANDARD 17)
-add_subdirectory(matplotplusplus)
 
+# opencv
+find_package(OpenCV CONFIG REQUIRED)
+include_directories( ${OpenCV_INCLUDE_DIRS} )
+
+# gtest
+add_subdirectory(lib/googletest)
+
+# gdal
 find_path(GDAL_INCLUDE_DIR gdal.h PATH_SUFFIXES gdal)
 find_library(GDAL_LIBRARY NAMES gdal)
 include(FindPackageHandleStandardArgs)
@@ -14,15 +21,14 @@ if(GDAL_FOUND)
 else()
     message(FATAL_ERROR "GDAL not found!")
 endif()
-# include GDAL
 include_directories(${GDAL_INCLUDE_DIRS})
 
-# open cv
-find_package(OpenCV CONFIG REQUIRED)
-include_directories( ${OpenCV_INCLUDE_DIRS} )
+# matplotplusplus
+add_subdirectory(lib/matplotplusplus)
 
-add_executable(shorecalculator main.cpp geometry.cpp geometry.h image.cpp image.h)
-target_link_libraries(shorecalculator PRIVATE ${OpenCV_LIBS})
-target_link_libraries(shorecalculator PUBLIC matplot cimg)
-target_link_libraries(shorecalculator PRIVATE ${GDAL_LIBRARIES})
+# executable
+add_subdirectory(src/dsas)
+
+# testing
+add_subdirectory(src/test)
 
