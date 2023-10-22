@@ -140,61 +140,6 @@ namespace im {
         return intersections_vec;
     }
 
-    template<typename T>
-    void save_shp(std::vector<T> &shapes, const char *output_path) {
-        // Step 1: Initialize GDAL
-        GDALAllRegister();
 
-        // Step 2: Get the shapefile driver
-        GDALDriver *driver =
-                GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
-
-        // Step 3: Create a new shapefile
-        GDALDataset *dataset =
-                driver->Create(output_path, 0, 0, 0, GDT_Unknown, NULL);
-
-        if (std::is_base_of<T, gm::LineSegment>::value) {
-            // Step 4: Create a layer for the shapefile
-            OGRLayer *layer = dataset->CreateLayer("line", NULL, wkbLineString, NULL);
-
-            // Step 5: Create a new feature
-            OGRFeature *feature = OGRFeature::CreateFeature(layer->GetLayerDefn());
-
-            // Step 6: Create a line geometry and add points to it
-            OGRLineString line;
-            for (const auto &shape: shapes) {
-                line.addPoint(shape.leftEdge.x, shape.rightEdge.y);
-            }
-
-            // Step 7: Add the geometry to the feature
-            feature->SetGeometry(&line);
-
-            // Step 8: Add the feature to the layer
-            layer->CreateFeature(feature);
-            OGRFeature::DestroyFeature(feature);
-        } else if (std::is_base_of<T, gm::Point>::value) {
-            // Step 4: Create a layer for the shapefile
-            OGRLayer *layer = dataset->CreateLayer("pointLayer", NULL, wkbPoint, NULL);
-
-            // Step 5: Create a new feature
-            OGRFeature *feature = OGRFeature::CreateFeature(layer->GetLayerDefn());
-
-            // Step 6: Create a line geometry and add points to it
-            OGRPoint point;
-            for (const auto &shape: shapes) {
-                point.setX(shape.x);
-                point.setY(shape.y);
-            }
-
-            // Step 7: Add the geometry to the feature
-            feature->SetGeometry(&point);
-            OGRFeature::DestroyFeature(feature);
-        } else {
-            exit(1);
-        }
-
-        // Clean up
-        GDALClose(dataset);
-    }
 
 } // namespace im
