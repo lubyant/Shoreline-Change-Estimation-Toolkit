@@ -4,63 +4,65 @@
 
 #include "image.h"
 
-dsas::Image::Image(std::filesystem::path image_path) :
-        image_path_(std::move(image_path)) {
-    // file name
-    auto image_name = image_path_.stem().string();
+dsas::Image::Image(std::filesystem::path image_path)
+    : image_path_(std::move(image_path)) {
+  // file name
+  auto image_name = image_path_.stem().string();
 
-    // extract the year from the name
-    year_ = std::stoi(image_name.substr(image_name.size() - 8, 8));
+  // extract the year from the name
+  year_ = std::stoi(image_name.substr(image_name.size() - 8, 8));
 
-    // extract the contour
-    extract_contours(10);
+  // extract the contour
+  extract_contours(10);
 
-    // extract the shorelines
-    extract_shorelines();
+  // extract the shorelines
+  extract_shorelines();
 }
 
 void dsas::Image::extract_contours(size_t threshold) {
-    // read the image
-    cv::Mat img = cv::imread(image_path_);
-    rows_ = img.rows;
-    cols_ = img.cols;
+  // read the image
+  cv::Mat img = cv::imread(image_path_);
+  rows_ = img.rows;
+  cols_ = img.cols;
 
-    // grey scale
-    cv::Mat gray;
-    cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
+  // grey scale
+  cv::Mat gray;
+  cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
 
-    // threshold
-    cv::Mat thresh;
-    cv::threshold(gray, thresh, 1, 255, cv::THRESH_BINARY);
+  // threshold
+  cv::Mat thresh;
+  cv::threshold(gray, thresh, 1, 255, cv::THRESH_BINARY);
 
-    // contour
-    cv::findContours(thresh, contours_, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+  // contour
+  cv::findContours(thresh, contours_, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
-    // remove contours is closure that not touch the edge
-    contours_.erase(std::remove_if(contours_.begin(), contours_.end(),
-                                   [this](const std::vector<cv::Point> &contour) {
-                                       return this->is_closure(contour);
-                                   }), contours_.end());
+  // remove contours is closure that not touch the edge
+  contours_.erase(std::remove_if(contours_.begin(), contours_.end(),
+                                 [this](const std::vector<cv::Point> &contour) {
+                                   return this->is_closure(contour);
+                                 }),
+                  contours_.end());
 
-    // remove contours that is too short
-    contours_.erase(std::remove_if(contours_.begin(), contours_.end(),
-                                   [threshold](const std::vector<cv::Point> &contour) {
-                                       return contour.size() < threshold;
-                                   }), contours_.end());
+  // remove contours that is too short
+  contours_.erase(
+      std::remove_if(contours_.begin(), contours_.end(),
+                     [threshold](const std::vector<cv::Point> &contour) {
+                       return contour.size() < threshold;
+                     }),
+      contours_.end());
 }
 
 void dsas::Image::extract_shorelines() {
-    Shorelines shorelines{};
-    for (const auto &contour: contours_) {
-        Shoreline points{};
-        for (const auto &point: contour) {
-            auto x = point.x, y = point.y;
-            if (!is_edge(x, y)) {
-                points.emplace_back(x, y);
-            }
-        }
-        shorelines.push_back(points);
+  Shorelines shorelines{};
+  for (const auto &contour : contours_) {
+    Shoreline points{};
+    for (const auto &point : contour) {
+      auto x = point.x, y = point.y;
+      if (!is_edge(x, y)) {
+        points.emplace_back(x, y);
+      }
     }
-    shorelines_ = std::move(shorelines);
+    shorelines.push_back(points);
+  }
+  shorelines_ = std::move(shorelines);
 }
-
