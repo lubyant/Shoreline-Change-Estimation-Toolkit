@@ -115,31 +115,32 @@ namespace gm {
 
     LineSegment TransectLine::create_transect(Point<> &transect_base, std::pair<double, double> baseline_normal_vector,
                                               double transect_length) {
-        gm::Point leftEdge =
+        auto leftEdge =
                 transect_base.create_point(baseline_normal_vector, transect_length / 2);
-        gm::Point rightEdge =
+        auto rightEdge =
                 transect_base.create_point(baseline_normal_vector, -transect_length / 2);
 
         return {leftEdge, rightEdge};
     }
 
     Baseline::Baseline(const std::vector<BaselinesVertex> &points, double transect_length, double spacing,
-                       int baseline_id, double offset) :
+                       int baseline_id,
+                       double offset, int smooth_factor) :
             baseline_id_(baseline_id), spacing_(spacing), transect_length_(transect_length), offset_(offset) {
         // create the baselineSeq
         size_t num_lines{points.size() - 1};
         int transect_id{0};
 
-        for (size_t i = 0; i < num_lines; i++) {
-            BaselineSeg baselineSeg{spacing_, offset_, points[i], points[i + 1]};
+        for (size_t i = 0; i < num_lines; i += smooth_factor) {
+            BaselineSeg baselineSeg{spacing_, offset_, points[i], points[i + smooth_factor]};
             if (i == 0) {
                 transects_base_points_.push_back(baselineSeg.leftEdge_);
-                transects_lines_.emplace_back(baselineSeg.leftEdge_, transect_length, baselineSeg.normal_vector_,
+                transects_lines_.emplace_back(baselineSeg.leftEdge_, transect_length_, baselineSeg.normal_vector_,
                                               transect_id++);
             }
             for (auto &point: baselineSeg.transects_base_points_) {
                 transects_base_points_.push_back(point);
-                transects_lines_.emplace_back(point, transect_length, baselineSeg.normal_vector_, transect_id++);
+                transects_lines_.emplace_back(point, transect_length_, baselineSeg.normal_vector_, transect_id++);
             }
         }
 

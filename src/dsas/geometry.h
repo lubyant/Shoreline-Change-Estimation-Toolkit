@@ -46,25 +46,14 @@ namespace gm {
             return sqrt(pow(x - point.x, 2) + pow(y - point.y, 2));
         }
 
-        void move_point(double direction, T dest) {
-            x += dest * cos(direction);
-            y += dest * sin(direction);
-        }
-
         void move_point(std::pair<double, double> orient, T dest) {
             double dist = sqrt(orient.first * orient.first + orient.second * orient.second);
-            y += dest * orient.first / dist;
-            x += dest * orient.second / dist;
-        }
-
-        Point<T> create_point(double direction, T dest) {
-            double x_new = x + dest * cos(direction);
-            double y_new = y + dest * sin(direction);
-            return {x_new, y_new};
+            y += (T)(dest * orient.first / dist);
+            x += (T)(dest * orient.second / dist);
         }
 
         Point<T> create_point(std::pair<double, double> orient, T dest) {
-            double dist = orient.first * orient.first + orient.second * orient.second;
+            double dist = sqrt(orient.first * orient.first + orient.second * orient.second);
             double y_new = y + dest * orient.first / dist;
             double x_new = x + dest * orient.second / dist;
             return {x_new, y_new};
@@ -75,7 +64,7 @@ namespace gm {
         Point<> leftEdge_, rightEdge_;
         double slope_, intercept_, orient_;
         static int num_lines;
-        std::pair<double, double> slope_vector_, normal_vector_;
+        std::pair<double, double> slope_vector_, normal_vector_; // {y, x}
 
         // delete default constructor
         LineSegment() = delete;
@@ -119,7 +108,7 @@ namespace gm {
 
     };
 
-    struct TransectLine : public LineSegment {
+    struct TransectLine : public LineSegment, MultiLine<Point<double>> {
         Point<double> transect_base_point_; // point to generate transect
         Point<double> transect_ref_point_; // point to calculate the erosion
         int transect_id_;
@@ -132,6 +121,25 @@ namespace gm {
 
         static LineSegment create_transect(Point<> &transect_base, std::pair<double, double> baseline_normal_vector,
                                            double transect_length);
+
+        [[nodiscard]] const size_t size() const override{
+            return 3;
+        }
+
+        [[nodiscard]] const Point<double> &operator[](size_t i) const override{
+            switch (i) {
+                case 0:
+                    return leftEdge_;
+                case 1:
+                    return transect_ref_point_;
+                case 2:
+                    return rightEdge_;
+                default:
+                    throw std::runtime_error("Not a valid index");
+            }    
+        }
+        
+        
     };
 
     struct Baseline : public MultiLine<Point<double>> {
@@ -144,8 +152,8 @@ namespace gm {
         std::vector<Point<double>> transects_base_points_;
         std::vector<TransectLine> transects_lines_;
 
-        Baseline(const std::vector<BaselinesVertex> &points, double transect_length,
-                 double spacing, int baseline_id, double offset);
+        Baseline(const std::vector<BaselinesVertex> &points, double transect_length, double spacing, int baseline_id,
+                 double offset, int smooth_factor=5);
 
         [[nodiscard]] const size_t size() const override {
             return transects_base_points_.size();
@@ -155,6 +163,13 @@ namespace gm {
             return transects_base_points_[i];
         }
 
+    };
+
+    struct IntersectPoint{
+        Point<double> intersect_point_;
+        int baseline_id;
+        int shoreline_id;
+        int year_;
     };
 }
 

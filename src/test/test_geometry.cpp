@@ -53,7 +53,7 @@ TEST(BaselineSegTest, test_offset) {
     ASSERT_NEAR(baselineSeg.rightEdge_.y, 1, TOL);
 }
 
-TEST(BaselineSegTest, test_transects1) {
+TEST(BaselineSegTest, test_transects) {
     {
         Point<double> left{0, 0};
         Point<double> right{10, 0};
@@ -63,9 +63,6 @@ TEST(BaselineSegTest, test_transects1) {
 
         ASSERT_EQ(transects_base_points.size(), 10);
     }
-}
-
-TEST(BaselineSeqTest, test_transects2) {
     {
         Point<double> left{0, 0};
         Point<double> right{10, 10};
@@ -118,6 +115,7 @@ TEST(BaselineSeqTest, test_transects2) {
 class BaselineTest : public ::testing::Test {
 protected:
     std::unique_ptr<Baseline> baseline;
+
     void SetUp() override {
         BaselineSeg::cumulative_segment_distance = 0;
         BaselineSeg::cumulative_transects_distance = 0;
@@ -136,7 +134,7 @@ TEST_F(BaselineTest, test_baseline_transect_points1) {
                                       {0, 1},
                                       {1, 1},
                                       {1, 0}};
-    baseline = std::make_unique<Baseline>(points, 10, 0.5, 0, 0);
+    baseline = std::make_unique<Baseline>(points, 10, 0.5, 0, 0, 1);
     auto transects_points = baseline->transects_base_points_;
 
     ASSERT_EQ(transects_points.size(), 7);
@@ -156,7 +154,7 @@ TEST_F(BaselineTest, test_baseline_transect_points2) {
                                       {0, 1},
                                       {1, 1},
                                       {1, 0}};
-    baseline = std::make_unique<Baseline>(points, 10, 1.5, 0, 0);
+    baseline = std::make_unique<Baseline>(points, 10, 1.5, 0, 0, 1);
     auto transects_points = baseline->transects_base_points_;
 
     ASSERT_EQ(transects_points.size(), 3);
@@ -173,7 +171,7 @@ TEST_F(BaselineTest, test_baseline_transect_lines) {
                                       {0, 1},
                                       {1, 1},
                                       {1, 0}};
-    baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0);
+    baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1);
     auto transects_lines = baseline->transects_lines_;
 
     ASSERT_EQ(transects_lines.size(), 7);
@@ -184,5 +182,67 @@ TEST_F(BaselineTest, test_baseline_transect_lines) {
         std::cout << i << std::endl;
         ASSERT_NEAR(x[i], transects_lines[i].transect_ref_point_.x, TOL);
         ASSERT_NEAR(y[i], transects_lines[i].transect_ref_point_.y, TOL);
+    }
+}
+
+TEST_F(BaselineTest, test_baseline_transect_lines_right) {
+    std::vector<Point<double>> points{{0, 0},
+                                      {0, 1},
+                                      {1, 1},
+                                      {1, 0}};
+    baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1);
+    auto transects_lines = baseline->transects_lines_;
+
+    ASSERT_EQ(transects_lines.size(), 7);
+    double x[]{0.5, 0.5, 0.5, 0.5, 1, 0.5, 0.5};
+    double y[]{0, 0.5, 1, 0.5, 0.5, 0.5, 0};
+
+    for (size_t i = 0; i < transects_lines.size(); i++) {
+        std::cout << i << std::endl;
+        ASSERT_NEAR(x[i], transects_lines[i].rightEdge_.x, TOL);
+        ASSERT_NEAR(y[i], transects_lines[i].rightEdge_.y, TOL);
+    }
+}
+
+TEST_F(BaselineTest, test_baseline_transect_lines_left) {
+    std::vector<Point<double>> points{{0, 0},
+                                      {0, 1},
+                                      {1, 1},
+                                      {1, 0}};
+    baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1);
+    auto transects_lines = baseline->transects_lines_;
+
+    ASSERT_EQ(transects_lines.size(), 7);
+    double x[]{-0.5, -0.5, -0.5, 0.5, 1, 1.5, 1.5};
+    double y[]{0, 0.5, 1, 1.5, 1.5, 0.5, 0};
+
+    for (size_t i = 0; i < transects_lines.size(); i++) {
+        std::cout << i << std::endl;
+        ASSERT_NEAR(x[i], transects_lines[i].leftEdge_.x, TOL);
+        ASSERT_NEAR(y[i], transects_lines[i].leftEdge_.y, TOL);
+    }
+}
+
+TEST_F(BaselineTest, test_baseline_transect_length1) {
+    std::vector<Point<double>> points{{0, 0},
+                                      {0, 1},
+                                      {1, 1},
+                                      {1, 0}};
+    baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1);
+    auto transects_lines = baseline->transects_lines_;
+    for (const auto &transect: transects_lines) {
+        ASSERT_NEAR(transect.leftEdge_.distance_to_point(transect.rightEdge_), 1, TOL);
+    }
+}
+
+TEST_F(BaselineTest, test_baseline_transect_length2) {
+    std::vector<Point<double>> points{{0, 0},
+                                      {1, 1},
+                                      {2, 0},
+                                      {3, 1}};
+    baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1);
+    auto transects_lines = baseline->transects_lines_;
+    for (const auto &transect: transects_lines) {
+        ASSERT_NEAR(transect.leftEdge_.distance_to_point(transect.rightEdge_), 1, TOL);
     }
 }

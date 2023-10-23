@@ -55,17 +55,19 @@ namespace dsas {
             images.emplace_back(std::make_unique<Image>(path));
         }
 
+        // generate the baselines
+        auto baselines = generate_baselines(images);
 
-        // calculate the erosion
-        auto baselines = generate_baseline(images);
+        // generate the transects
+        auto transects = generate_transects(baselines);
 
-        // save as tiff file
+        // genreate the intersections
 
     }
 
-    std::vector<gm::Baseline> generate_baseline(const std::vector<std::unique_ptr<Image>> &images) {
+    Baselines generate_baselines(const std::vector<std::unique_ptr<Image>> &images) {
         // using the nearest the image as the baseline, since it is most eroded
-        const auto img = std::max_element(images.begin(), images.end(), [](const auto& image1, const auto& image2){
+        const auto img = std::max_element(images.begin(), images.end(), [](const auto &image1, const auto &image2) {
             return image1->year_ > image2->year_;
         });
 
@@ -73,9 +75,21 @@ namespace dsas {
 
         std::vector<gm::Baseline> baselines;
         int baseline_id{};
-        for(const auto& shoreline: shorelines){
-            baselines.emplace_back(shoreline, 1000, 10, baseline_id++, 0);
+        for (const auto &shoreline: shorelines) {
+            baselines.emplace_back(shoreline, 1000, 100, baseline_id++, 0);
         }
         return baselines;
+    }
+
+    TransectGroups generate_transects(const Baselines &baselines) {
+        TransectGroups transectGroups{};
+        for (auto &baseline: baselines) {
+            Transects transects{
+                baseline.baseline_id_,
+                baseline.transects_lines_
+            };
+            transectGroups.push_back(transects);
+        }
+        return transectGroups;
     }
 }

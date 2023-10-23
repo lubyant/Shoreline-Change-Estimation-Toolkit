@@ -27,8 +27,7 @@ int main(int argc, char **argv) {
 
     using namespace std;
     filesystem::path image_path = "/home/lby/Desktop/shorecalculator/img/final_raster/4108603/4108603_2018.tif";
-//    filesystem::path image_path{"/home/lby/Desktop/DSAS_cpp/img/ExamplePNGs/5_5_m_4708733_ne_16_h_20160725.png"};
-    filesystem::path output_path{"baseline1.shp"};
+    filesystem::path output_path{"shoreline.shp"};
     auto *img = new dsas::Image(image_path);
     std::vector<std::vector<gm::Point<int>>> lines;
     for(auto& contour: img->shorelines_){
@@ -36,16 +35,22 @@ int main(int argc, char **argv) {
         for(auto& point: contour){
             line.emplace_back(point.x, point.y);
         }
-//        line.emplace_back(contour[0].x, contour[0].y);
         lines.push_back(line);
     }
-//    util::save_lines<std::vector<gm::Point<int>>>(lines, output_path);
+    util::save_lines<std::vector<gm::Point<int>>>(lines, output_path);
 
     std::vector<std::unique_ptr<dsas::Image>> images;
     images.push_back(make_unique<dsas::Image>(*img));
-    auto baselines = dsas::generate_baseline(images);
+    auto baselines = dsas::generate_baselines(images);
 
+    filesystem::path output_path_1{"baseline.shp"};
     util::save_lines<gm::Baseline>(baselines, output_path);
+
+    filesystem::path output_path_2{"transects1.shp"};
+    auto transect_groups = dsas::generate_transects(baselines);
+    for(auto &transects : transect_groups){
+        util::save_lines<gm::TransectLine>(transects.transects_, output_path_2);
+    }
 
     delete img;
     return 0;
