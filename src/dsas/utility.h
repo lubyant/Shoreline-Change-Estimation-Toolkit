@@ -84,8 +84,7 @@ bool isTwoSegmentIntersected(const gm::Point<T> &p1, const gm::Point<T> &p2,
   }
 }
 
-double linearRegressRate(const std::vector<double> &years,
-                         const std::vector<double> &distances);
+double linearRegressRate(const std::vector<gm::IntersectPoint> &intersections);
 
 template <typename T>
 gm::Point<T> computeIntersectPoint(const gm::Point<T> &p1,
@@ -132,11 +131,11 @@ class ThreadPool {
   void init_workers();
 };
 
-void save_points(std::vector<gm::Point<double>> &shapes,
-                 std::filesystem::path &output_path);
+void save_points(const std::vector<gm::IntersectPoint> &shapes,
+                 const std::filesystem::path &output_path);
 
 template <typename T>
-void save_lines(std::vector<T> &lines, std::filesystem::path &output_path) {
+void save_lines(std::vector<T> &lines, const std::filesystem::path &output_path) {
   // Step 1: Initialize GDAL
   GDALAllRegister();
 
@@ -171,10 +170,16 @@ void save_lines(std::vector<T> &lines, std::filesystem::path &output_path) {
     }
 
     // Step 7: Add the geometry to the feature
-    feature->SetGeometry(&line);
+    auto err = feature->SetGeometry(&line);
+    if (err != OGRERR_NONE) {
+      throw std::runtime_error("Failed to set geometry");
+    }
 
     // Step 8: Add the feature to the layer
-    layer->CreateFeature(feature);
+    err = layer->CreateFeature(feature);
+    if (err != OGRERR_NONE) {
+      throw std::runtime_error("Failed to set geometry");
+    }
     OGRFeature::DestroyFeature(feature);
   }
 

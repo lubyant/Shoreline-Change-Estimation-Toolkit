@@ -64,7 +64,34 @@ void controller(const std::vector<Path> &paths, const Path &output_path) {
   // generate the transects
   auto transects = generate_transects(baselines);
 
-  // genreate the intersections
+  // generate the intersections
+  auto intersection_map = generate_intersections(images, transects);
+
+  // compute the regression rate
+  compute_rate(intersection_map, transects);
+
+  // save the intersections to shp
+  umap<int, std::vector<gm::IntersectPoint>> points_map;
+  for(auto& kv1: intersection_map){
+    for(auto& kv2: kv1.second){
+      for(auto& point: kv2.second){
+        points_map[point.year_].push_back(std::move(point));
+      }
+    }
+  }
+  for(const auto &kv: points_map){
+    const std::string year{static_cast<char>(kv.first)};
+    util::save_points(kv.second, year);
+  }
+
+  // save the transects to shp
+  std::vector<gm::TransectLine> output_file;
+  for(auto& transect: transects){
+    for(auto& transect_line: transect.transects_){
+      output_file.push_back(std::move(transect_line));
+    }
+  }
+  util::save_lines<gm::TransectLine>(output_file, "transect");
 }
 
 Baselines generate_baselines(
@@ -80,7 +107,8 @@ Baselines generate_baselines(
   std::vector<gm::Baseline> baselines;
   int baseline_id{};
   for (const auto &shoreline : shorelines) {
-    baselines.emplace_back(shoreline, 1000, 100, baseline_id++, 0);
+    baselines.emplace_back(shoreline.shoreline_vertices_, 1000, 100,
+                           baseline_id++, 0);
   }
   return baselines;
 }
@@ -92,5 +120,63 @@ TransectGroups generate_transects(const Baselines &baselines) {
     transectGroups.push_back(transects);
   }
   return transectGroups;
+}
+
+umap<int, umap<int, std::vector<gm::IntersectPoint>>>
+generate_intersections(const std::vector<std::unique_ptr<Image>> &images,
+                       const TransectGroups &transectGroups) {
+  umap<int, std::vector<gm::IntersectPoint>> tid_points;
+  umap<int, decltype(tid_points)> bid_tid_points;
+  for (const auto &image : images) {
+    auto shorelines = image->shorelines_;
+    auto intersections = generate_intersection(shorelines, transectGroups);
+    for (const auto &intersect : intersections) {
+      int baseline_id = intersect.baseline_id_;
+      int transect_id = intersect.transect_id_;
+      bid_tid_points[baseline_id][transect_id].push_back(intersect);
+    }
+  }
+  return bid_tid_points;
+}
+
+std::vector<gm::IntersectPoint> generate_intersection(
+    const std::vector<gm::Shoreline> &shorelines,
+    const TransectGroups &transect_groups) {
+  std::vector<gm::IntersectPoint> intersections;
+  for (const auto &transects : transect_groups) {
+    for (const auto &transectLine : transects.transects_) {
+      for (const auto &shoreline : shorelines) {
+        auto ret = transectLine.intersection(shoreline);
+        if (ret.has_value()) {
+          intersections.push_back(ret.value());
+        }
+      }
+    }
+  }
+  return intersections;
+}
+void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
+                      &intersection_maps,
+                  TransectGroups &transect_groups) {
+  // baseline_id <-> vector index
+  umap<int, size_t> id_map;
+  for (size_t i = 0; i < transect_groups.size(); i++) {
+    id_map[transect_groups[i].baseline_id_] = i;
+  }
+  for (const auto &kv_baseline : intersection_maps) {
+    for (const auto &kv_transect : kv_baseline.second) {
+      // calculate the shoreline rate
+      double reg_rate = util::linearRegressRate(kv_transect.second);
+
+      // assign the rate to the transect
+      auto it = std::find_if(
+          transect_groups[id_map[kv_baseline.first]].transects_.begin(),
+          transect_groups[id_map[kv_baseline.first]].transects_.end(),
+          [&](const gm::TransectLine &a) {
+            return a.transect_id_ == kv_transect.first;
+          });
+      it->change_rate = reg_rate;
+    }
+  }
 }
 }  // namespace dsas

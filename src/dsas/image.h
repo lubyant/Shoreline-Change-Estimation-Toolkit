@@ -10,6 +10,7 @@
 #include <string>
 
 #include "utility.h"
+#include "geometry.h"
 
 #define IsEdge(x_cor, y_cor, x_lim, y_lim) \
   ((x_cor) == 0 || (x_cor) == x_lim || (y_cor) == 0 || (y_cor) == y_lim)
@@ -17,8 +18,7 @@
 namespace dsas {
 
 struct Image {
-  using Shoreline = std::vector<gm::Point<double>>;
-  using Shorelines = std::vector<Shoreline>;
+  using Shorelines = std::vector<gm::Shoreline>;
 
   // attributes
   std::filesystem::path image_path_;              // image path

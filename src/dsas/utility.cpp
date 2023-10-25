@@ -71,31 +71,59 @@ auto ThreadPool::enqueue(F &&f, Args &&...args)
   return res;
 }
 
-double linearRegressRate(const std::vector<double> &years,
-                         const std::vector<double> &distances) {
-  u_long n = years.size();
-  double mean_year =
-      std::accumulate(years.begin(), years.end(), 0.0) / (double)years.size();
-  double mean_dis =
-      std::accumulate(years.begin(), years.end(), 0.0) / (double)years.size();
-
-  // Calculating cross-deviation and deviation of x
-  double num = 0.0, den = 0.0;
-  for (int i = 0; i < n; i++) {
-    num += (years[i] - mean_year) * (distances[i] - mean_dis);
-    den += (years[i] - mean_year) * (years[i] - mean_year);
+double linearRegressRate(const std::vector<gm::IntersectPoint> &intersections) {
+  // if no intersection
+  if (intersections.empty()) {
+    throw std::runtime_error("It should not empty");
   }
-  return num / den;
-}
 
-void save_points(std::vector<gm::Point<double>> &shapes,
-                 std::filesystem::path &output_path) {
+  // if only one intersection
+  if (intersections.size() == 1) {
+    return 0;
+  }
+
+  // sort the vector
+  std::vector<gm::IntersectPoint> copy = intersections;
+  std::sort(copy.begin(), copy.end(),
+            [](const gm::IntersectPoint &a, const gm::IntersectPoint &b) {
+              return a.year_ < b.year_;
+            });
+
+  // if two intersections
+  if (copy.size() == 2) {
+    double d_distance = copy[1].distance_to_ref_ - copy[0].distance_to_ref_;
+    double d_year = copy[1].year_ - copy[0].year_;
+    return d_distance / d_year;
+  }
+
+  // if more than two intersections
+  // Compute the rates for consecutive years
+  double totalRate = 0;
+  for (size_t i = 1; i < copy.size(); ++i) {
+    double distanceChange =
+        copy[i].distance_to_ref_ - copy[i - 1].distance_to_ref_;
+    int yearChange = copy[i].year_ - copy[i - 1].year_;
+
+    if (yearChange == 0) {
+      // Prevent division by zero
+      continue;
+    }
+
+    totalRate += distanceChange / yearChange;
+  }
+  return totalRate / (double)(copy.size() - 1);
+}
+void save_points(const std::vector<gm::IntersectPoint> &shapes,
+                 const std::filesystem::path &output_path) {
   // Step 1: Initialize GDAL
   GDALAllRegister();
 
   // Step 2: Get the shapefile driver
   GDALDriver *driver =
       GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
+  if (driver == nullptr) {
+    throw std::runtime_error("Unable to get ESRI Shapefile driver");
+  }
 
   // Step 3: Create a new shapefile
   GDALDataset *dataset =
@@ -104,21 +132,36 @@ void save_points(std::vector<gm::Point<double>> &shapes,
   // Step 4: Create a layer for the shapefile
   OGRLayer *layer = dataset->CreateLayer("pointLayer", NULL, wkbPoint, NULL);
 
-  // Step 5: Create a new feature
-  OGRFeature *feature = OGRFeature::CreateFeature(layer->GetLayerDefn());
-
-  // Step 6: Create a line geometry and add points to it
-  OGRPoint point;
-  for (const auto &shape : shapes) {
-    point.setX(shape.x);
-    point.setY(shape.y);
+  // define attributes
+  OGRFieldDefn baseline_id("Baseline_id", OFTInteger);
+  if (layer->CreateField(&baseline_id) != OGRERR_NONE) {
+    std::cerr << "Failed to create Name field" << std::endl;
+    exit(1);
+  }
+  OGRFieldDefn transect_id("Transect_id", OFTInteger);
+  if (layer->CreateField(&transect_id) != OGRERR_NONE) {
+    std::cerr << "Failed to create Name field" << std::endl;
+    exit(1);
   }
 
-  // Step 7: Add the geometry to the feature
-  feature->SetGeometry(&point);
-  OGRFeature::DestroyFeature(feature);
+
+  // Step 6: Create a line geometry and add points to it
+  for (const auto &shape : shapes) {
+    // Step 5: Create a new feature
+    OGRFeature *feature = OGRFeature::CreateFeature(layer->GetLayerDefn());
+    // Step 7: Add the geometry to the feature
+    OGRPoint point;
+    point.setX(shape.x);
+    point.setY(shape.y);
+    feature->SetGeometry(&point);
+    feature->SetField("Baseline_id", shape.baseline_id_);
+    feature->SetField("Transect_id", shape.transect_id_);
+    OGRFeature::DestroyFeature(feature);
+  }
+
 
   // Clean up
   GDALClose(dataset);
 }
+
 }  // namespace util

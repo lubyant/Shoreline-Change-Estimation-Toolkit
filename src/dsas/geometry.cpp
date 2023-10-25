@@ -3,6 +3,7 @@
 //
 #include "geometry.h"
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 
@@ -44,12 +45,14 @@ void LineSegment::move_line(double dest) {
   }
 }
 
-bool LineSegment::is_intersect(Point<> &point1, Point<> &point2) const {
+bool LineSegment::is_intersect(const Point<> &point1,
+                               const Point<> &point2) const {
   return util::isTwoSegmentIntersected<>(leftEdge_, rightEdge_, point1, point2);
 }
 
-Point<> LineSegment::find_intersection(Point<> &point1, Point<> &point2) const {
-  if (is_intersect(point1, point2)) throw std::runtime_error("Not intersect");
+Point<> LineSegment::find_intersection(const Point<> &point1,
+                                       const Point<> &point2) const {
+  if (!is_intersect(point1, point2)) throw std::runtime_error("Not intersect");
   return util::computeIntersectPoint<double>(leftEdge_, rightEdge_, point1,
                                              point2);
 }
@@ -125,6 +128,46 @@ LineSegment TransectLine::create_transect(
   return {leftEdge, rightEdge};
 }
 
+std::optional<IntersectPoint> TransectLine::intersection(
+    const Shoreline &shoreline) const {
+  std::vector<IntersectPoint> intersections;
+
+  // find out all the available intersection
+  for (size_t i = 0; i < shoreline.size() - 1; i++) {
+    if (is_intersect(shoreline[i], shoreline[i + 1])) {
+      auto point = find_intersection(shoreline[i], shoreline[i + 1]);
+      auto distance = distance2ref(point);
+      IntersectPoint intersect_point{
+          point,        transect_id_,    shoreline.shoreline_id_,
+          baseline_id_, shoreline.year_, distance};
+      intersections.push_back(intersect_point);
+    }
+  }
+
+  // if no intersection
+  if (intersections.empty()) {
+    return std::nullopt;
+  }
+
+  // if only one intersection
+  if (intersections.size() == 1) {
+    return intersections[0];
+  }
+
+  // if more than two intersections, pick one base on the intersection mode
+  std::sort(intersections.begin(), intersections.end(),
+            [](const IntersectPoint &a, const IntersectPoint &b) {
+              return a.distance_to_ref_ < b.distance_to_ref_;
+            });
+
+  if (mode_ ==
+      IntersectionMode::Farthest) {  // farthest mode return farthest distance
+    return intersections[intersections.size() - 1];
+  } else {                           // close mode return smallest dis
+    return intersections[0];
+  }
+}
+
 Baseline::Baseline(const std::vector<BaselinesVertex> &points,
                    double transect_length, double spacing, int baseline_id,
                    double offset, int smooth_factor)
@@ -142,12 +185,14 @@ Baseline::Baseline(const std::vector<BaselinesVertex> &points,
     if (i == 0) {
       transects_base_points_.push_back(baselineSeg.leftEdge_);
       transects_lines_.emplace_back(baselineSeg.leftEdge_, transect_length_,
-                                    baselineSeg.normal_vector_, transect_id++);
+                                    baselineSeg.normal_vector_, transect_id++,
+                                    baseline_id_);
     }
     for (auto &point : baselineSeg.transects_base_points_) {
       transects_base_points_.push_back(point);
       transects_lines_.emplace_back(point, transect_length_,
-                                    baselineSeg.normal_vector_, transect_id++);
+                                    baselineSeg.normal_vector_, transect_id++,
+                                    baseline_id_);
     }
   }
 }

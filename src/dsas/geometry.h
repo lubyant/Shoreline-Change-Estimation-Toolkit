@@ -10,6 +10,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <optional>
 #include <vector>
 
 // classes
@@ -17,6 +18,9 @@ namespace gm {
 
 template <typename T = double>
 struct Point;
+
+struct Shoreline;
+struct IntersectPoint;
 
 template <typename T>
 std::ostream &operator<<(std::ostream &os, const Point<T> &point);
@@ -27,6 +31,9 @@ struct MultiLine {
 
   [[nodiscard]] virtual const T &operator[](size_t i) const = 0;
 };
+
+enum class IntersectionMode { Closest, Farthest };
+
 
 template <typename T>
 struct Point {
@@ -62,9 +69,6 @@ struct LineSegment {
   static int num_lines;
   std::pair<double, double> slope_vector_, normal_vector_;  // {y, x}
 
-  // delete default constructor
-  LineSegment() = delete;
-
   // constructor
   LineSegment(Point<> leftEdge, Point<> rightEdge);
 
@@ -82,9 +86,11 @@ struct LineSegment {
   // move the current line by distant in normal direction
   void move_line(double dest);
 
-  bool is_intersect(Point<> &point1, Point<> &point2) const;
+  [[nodiscard]] bool is_intersect(const Point<> &point1,
+                                  const Point<> &point2) const;
 
-  Point<> find_intersection(Point<> &point1, Point<> &point2) const;
+  [[nodiscard]] Point<> find_intersection(const Point<> &point1,
+                                          const Point<> &point2) const;
 };
 
 struct BaselineSeg : public LineSegment {
@@ -108,19 +114,32 @@ struct TransectLine : public LineSegment, MultiLine<Point<double>> {
   Point<double> transect_base_point_;  // point to generate transect
   Point<double> transect_ref_point_;   // point to calculate the erosion
   int transect_id_;
+  int baseline_id_;
+  double change_rate{};  // change rate for all the intersections
+  IntersectionMode mode_;
 
   TransectLine(Point<> &transect_base, double transect_length,
                std::pair<double, double> baseline_normal_vector,
-               int transect_id)
+               int transect_id, int baseline_id,
+               IntersectionMode mode = IntersectionMode::Closest)
       : LineSegment(create_transect(transect_base, baseline_normal_vector,
                                     transect_length)),
         transect_base_point_(transect_base),
         transect_ref_point_(LineSegment::rightEdge_),
-        transect_id_(transect_id) {}
+        transect_id_(transect_id),
+        baseline_id_(baseline_id),
+        mode_(mode) {}
 
   static LineSegment create_transect(
       Point<> &transect_base, std::pair<double, double> baseline_normal_vector,
       double transect_length);
+
+  [[nodiscard]] std::optional<IntersectPoint> intersection(
+      const Shoreline &shoreline) const;
+
+  double distance2ref(Point<double> &point) const {
+    return transect_ref_point_.distance_to_point(point);
+  }
 
   [[nodiscard]] const size_t size() const override { return 3; }
 
@@ -161,12 +180,37 @@ struct Baseline : public MultiLine<Point<double>> {
   }
 };
 
-struct IntersectPoint {
-  Point<double> intersect_point_;
-  int baseline_id;
-  int shoreline_id;
-  int year_;
+struct Shoreline : public MultiLine<Point<double>> {
+  std::vector<gm::Point<double>> shoreline_vertices_;  // shoreline vertices
+  int shoreline_id_;                                   // shoreline id
+  int year_;                                           // shoreline year
+
+  [[nodiscard]] const size_t size() const override {
+    return shoreline_vertices_.size();
+  }
+
+  [[nodiscard]] const Point<double> &operator[](size_t i) const override {
+    return shoreline_vertices_[i];
+  }
 };
+
+struct IntersectPoint : public Point<double> {
+  int transect_id_;
+  int shoreline_id_;
+  int baseline_id_;
+  int year_;
+  double distance_to_ref_;
+
+  IntersectPoint(Point<double> point, int transect_id, int shoreline_id,
+                 int baseline_id, int year, double distance_to_ref)
+      : Point<double>(point),
+        transect_id_(transect_id),
+        shoreline_id_(shoreline_id),
+        baseline_id_(baseline_id),
+        year_(year),
+        distance_to_ref_(distance_to_ref) {}
+};
+
 }  // namespace gm
 
 #endif  // DSAS_CPP_GEOMETRY_H
