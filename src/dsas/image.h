@@ -38,7 +38,7 @@ struct Image {
   // extract the shorelines from the edges
   void extract_shorelines();
 
-  // geotranfrom
+  // geo-transform
   void transform_coordinates();
 
   // check if the point is in edge

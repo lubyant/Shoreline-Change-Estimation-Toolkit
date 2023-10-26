@@ -2,11 +2,11 @@
 // Created by lby on 10/12/23.
 //
 #include "DSAS_cpp.h"
-#include "../include/dsas.h"
 
 #include <algorithm>
 #include <iostream>
 
+#include "../include/dsas.h"
 #include "geometry.h"
 
 namespace dsas {
@@ -21,7 +21,6 @@ void digital_shoreline_analysis_system(const Path &folder,
       for (const auto &entry : std::filesystem::directory_iterator(folder)) {
         if (std::filesystem::is_regular_file(entry.path())) {
           paths.push_back(entry.path());
-          std::cout << entry.path() << "\n";
         }
       }
     } else {
@@ -31,9 +30,9 @@ void digital_shoreline_analysis_system(const Path &folder,
     std::cerr << "Error: " << err.what() << "\n";
   }
   // check the prefix
-  std::string file_name_prefix = paths[0].filename().string().substr(0, 6);
+  std::string file_name_prefix = paths[0].filename().string().substr(0, 7);
   for (const auto &path : paths) {
-    if (path.filename().string().substr(0, 6) != file_name_prefix) {
+    if (path.filename().string().substr(0, 7) != file_name_prefix) {
       throw std::runtime_error("Files are not the same image!");
     }
   }
@@ -52,7 +51,7 @@ void digital_shoreline_analysis_system(const Path &folder,
 void digital_shoreline_analysis_system(const std::vector<Path> &paths,
                                        const Path &output_path) {
   // check the input
-  std::string file_name_prefix = paths[0].filename().string().substr(0, 6);
+  std::string file_name_prefix = paths[0].filename().string().substr(0, 7);
   try {
     for (const auto &path : paths) {
       if (!std::filesystem::exists(path) ||
@@ -60,9 +59,9 @@ void digital_shoreline_analysis_system(const std::vector<Path> &paths,
         std::cerr << "Path: " << path << "not exist or not a file!\n";
       }
       // check filename has the same prefix
-      if (file_name_prefix != path.filename().string().substr(0, 6)) {
+      if (file_name_prefix != path.filename().string().substr(0, 7)) {
         std::cerr << "Files are not the same image!" << file_name_prefix << ":"
-                  << path.filename().string().substr(0, 6);
+                  << path.filename().string().substr(0, 7);
       }
     }
   } catch (std::filesystem::filesystem_error &err) {
@@ -79,6 +78,23 @@ void digital_shoreline_analysis_system(const std::vector<Path> &paths,
   }
 
   controller(paths, output_folder);
+}
+
+void dsas(const std::vector<Path> &folders, const Path &output_path) {
+  util::ThreadPool thread_pool;
+  std::vector<std::future<std::string>> futures;
+  for (const auto &folder : folders) {
+    auto ret = thread_pool.enqueue(
+        [](const Path &folder, const Path &output) {
+          dsas::digital_shoreline_analysis_system(folder, output);
+          return folder.string();
+        },
+        folder, output_path);
+    futures.push_back(std::move(ret));
+  }
+  for (auto &future : futures) {
+    std::cout << "Task: " << future.get() << "\" complete.\n";
+  }
 }
 
 void controller(const std::vector<Path> &paths, const Path &output_folder) {

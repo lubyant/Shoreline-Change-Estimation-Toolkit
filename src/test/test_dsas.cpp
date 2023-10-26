@@ -4,6 +4,4 @@
 #include "../dsas/DSAS_cpp.h"
 #include "gtest/gtest.h"
 
-TEST(TestDsas, TestLoad){
-
-}
+TEST(TestDsas, TestLoad) {}
