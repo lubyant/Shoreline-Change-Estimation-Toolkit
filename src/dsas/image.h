@@ -38,6 +38,9 @@ struct Image {
   // extract the shorelines from the edges
   void extract_shorelines();
 
+  // geotranfrom
+  void transform_coordinates();
+
   // check if the point is in edge
   [[nodiscard]] bool is_edge(const int x_cor, const int y_cor) const {
     return (x_cor == 0 || x_cor == rows_ || y_cor == 0 || y_cor == cols_);
@@ -49,7 +52,6 @@ struct Image {
                           return this->is_edge(point.x, point.y);
                         });
   }
-
 };
 }  // namespace dsas
 #endif  // DSAS_CPP_IMAGE_H

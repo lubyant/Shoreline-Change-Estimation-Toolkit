@@ -17,6 +17,9 @@ dsas::Image::Image(std::filesystem::path image_path)
 
   // extract the shorelines
   extract_shorelines();
+
+  // transform the geosystem
+  transform_coordinates();
 }
 
 void dsas::Image::extract_contours(size_t threshold) {
@@ -68,4 +71,36 @@ void dsas::Image::extract_shorelines() {
     shorelines.push_back(points);
   }
   shorelines_ = std::move(shorelines);
+}
+void dsas::Image::transform_coordinates() {
+  GDALAllRegister();
+
+  GDALDataset *poDataset =
+      (GDALDataset *)GDALOpen(image_path_.c_str(), GA_ReadOnly);
+  if (poDataset == nullptr) {
+    std::cerr << "Error opening dataset." << std::endl;
+    exit(1);
+  }
+
+  double adfGeoTransform[6];
+  if (poDataset->GetGeoTransform(adfGeoTransform) != CE_None) {
+    std::cerr << "No geotransform found." << std::endl;
+    exit(1);
+  }
+
+  for (auto &shoreline : shorelines_) {
+    std::transform(
+        shoreline.shoreline_vertices_.begin(),
+        shoreline.shoreline_vertices_.end(),
+        shoreline.shoreline_vertices_.begin(),
+        [adfGeoTransform](gm::Point<> &point) {
+          double i = point.x, j = point.y;
+          double X_geo = adfGeoTransform[0] + i * adfGeoTransform[1] +
+                         j * adfGeoTransform[2];
+          double Y_geo = adfGeoTransform[3] + i * adfGeoTransform[4] +
+                         j * adfGeoTransform[5];
+          return gm::Point<double>(X_geo, Y_geo);
+        });
+  }
+  GDALClose(poDataset);
 }

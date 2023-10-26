@@ -29,29 +29,58 @@ void digital_shoreline_analysis_system(const Path &folder,
   } catch (std::filesystem::filesystem_error &err) {
     std::cerr << "Error: " << err.what() << "\n";
   }
-
+  // check the prefix
+  std::string file_name_prefix = paths[0].filename().string().substr(0, 6);
+  for (const auto &path : paths) {
+    if (path.filename().string().substr(0, 6) != file_name_prefix) {
+      throw std::runtime_error("Files are not the same image!");
+    }
+  }
+  // create an output folder
+  Path output_folder = output_path / Path(file_name_prefix);
+  if (!std::filesystem::exists(output_folder)) {
+    if (!std::filesystem::create_directories(output_folder)) {
+      std::cerr << "cannot create the folder\n";
+      exit(1);
+    }
+  }
   // start to analysis
-  controller(paths, output_path);
+  controller(paths, output_folder);
 }
 
 void digital_shoreline_analysis_system(const std::vector<Path> &paths,
                                        const Path &output_path) {
   // check the input
+  std::string file_name_prefix = paths[0].filename().string().substr(0, 6);
   try {
     for (const auto &path : paths) {
       if (!std::filesystem::exists(path) ||
           !std::filesystem::is_regular_file(path)) {
         std::cerr << "Path: " << path << "not exist or not a file!\n";
       }
+      // check filename has the same prefix
+      if (file_name_prefix != path.filename().string().substr(0, 6)) {
+        std::cerr << "Files are not the same image!" << file_name_prefix << ":"
+                  << path.filename().string().substr(0, 6);
+      }
     }
   } catch (std::filesystem::filesystem_error &err) {
     std::cerr << "Error: " << err.what() << "\n";
   }
 
-  controller(paths, output_path);
+  // create an output folder
+  Path output_folder = output_path / Path(file_name_prefix);
+  if (!std::filesystem::exists(output_folder)) {
+    if (!std::filesystem::create_directories(output_folder)) {
+      std::cerr << "cannot create the folder\n";
+      exit(1);
+    }
+  }
+
+  controller(paths, output_folder);
 }
 
-void controller(const std::vector<Path> &paths, const Path &output_path) {
+void controller(const std::vector<Path> &paths, const Path &output_folder) {
   // read the image
   std::vector<std::unique_ptr<Image>> images;
   for (const auto &path : paths) {
@@ -80,8 +109,9 @@ void controller(const std::vector<Path> &paths, const Path &output_path) {
     }
   }
   for (const auto &kv : points_map) {
-    const std::string year = std::to_string(kv.first) + std::string(".shp");
-    util::save_points(kv.second, year);
+    const std::string year = std::to_string(kv.first);
+    const Path output_file = output_folder / Path(year + "intersection.shp");
+    util::save_points(kv.second, output_file);
   }
 
   // save the transects to shp
@@ -91,13 +121,18 @@ void controller(const std::vector<Path> &paths, const Path &output_path) {
       output_file.push_back(std::move(transect_line));
     }
   }
-  util::save_lines<gm::TransectLine>(output_file, "transect.shp");
+  util::save_lines<gm::TransectLine>(output_file,
+                                     output_folder / "transect.shp");
 
+  // save the shoreline to shp
   for (const auto &image : images) {
     util::save_lines<gm::Shoreline>(
-        image->shorelines_, std::to_string(image->year_) + "shoreline.shp");
+        image->shorelines_,
+        output_folder / Path(std::to_string(image->year_) + "shoreline.shp"));
   }
-  util::save_lines<gm::Baseline>(baselines, "baseline.shp");
+
+  // save the baseline to shp
+  util::save_lines<gm::Baseline>(baselines, output_folder / "baseline.shp");
 }
 
 Baselines generate_baselines(

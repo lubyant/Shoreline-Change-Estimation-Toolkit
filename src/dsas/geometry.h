@@ -29,11 +29,9 @@ std::ostream &operator<<(std::ostream &os, const Point<T> &point);
 
 template <typename T>
 struct MultiLine {
-
   [[nodiscard]] virtual const size_t size() const = 0;
 
   [[nodiscard]] virtual const T &operator[](size_t i) const = 0;
-
 };
 
 enum class IntersectionMode { Closest, Farthest };

@@ -58,13 +58,17 @@ int main(int argc, char **argv) {
   //  delete img;
 
   using namespace std;
+  auto start = std::chrono::high_resolution_clock::now();
   std::vector<filesystem::path> paths{
-      "/home/lby/Desktop/shorecalculator/img/final_raster/4108603/"
-      "4108603_2018.tif",
-      "/home/lby/Desktop/shorecalculator/img/final_raster/4108603/"
-      "4108603_2020.tif"};
-  filesystem::path output{"hhh"};
+      "/home/lby/Desktop/shorecalculator/img/final_raster/4108730/"
+      "4108730_2018.tif",
+      "/home/lby/Desktop/shorecalculator/img/final_raster/4108730/"
+      "4108730_2020.tif"};
+  filesystem::path output{"result"};
   dsas::digital_shoreline_analysis_system(paths, output);
+  auto end = std::chrono::high_resolution_clock::now();
+  auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(end - start);
 
+  std::cout << "Elapsed time: " << elapsed.count() << " seconds." << std::endl;
   return 0;
 }

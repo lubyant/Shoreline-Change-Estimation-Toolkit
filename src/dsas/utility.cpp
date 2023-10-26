@@ -126,11 +126,12 @@ void save_points(const std::vector<gm::IntersectPoint> &shapes,
   }
 
   // Create a new shapefile
-  GDALDataset *dataset =
-      driver->Create(output_path.string().c_str(), 0, 0, 0, GDT_Unknown, NULL);
+  GDALDataset *dataset = driver->Create(output_path.string().c_str(), 0, 0, 0,
+                                        GDT_Unknown, nullptr);
 
   // Step 4: Create a layer for the shapefile
-  OGRLayer *layer = dataset->CreateLayer("pointLayer", NULL, wkbPoint, NULL);
+  OGRLayer *layer =
+      dataset->CreateLayer("pointLayer", nullptr, wkbPoint, nullptr);
 
   // define attributes
   OGRFieldDefn baseline_id("BaselineId", OFTInteger);
@@ -167,7 +168,7 @@ void save_points(const std::vector<gm::IntersectPoint> &shapes,
   // Clean up
   GDALClose(dataset);
 }
-template<>
+template <>
 void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
                                   const std::filesystem::path &output_path) {
   GDALAllRegister();
