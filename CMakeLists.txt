@@ -31,8 +31,6 @@ else()
 endif()
 include_directories(${GDAL_INCLUDE_DIRS})
 
-# matplotplusplus
-add_subdirectory(lib/matplotplusplus)
 
 # final executable
 add_executable(${PROJECT_NAME} main.cpp)
