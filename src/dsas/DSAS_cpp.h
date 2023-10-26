@@ -24,11 +24,6 @@ using TransectGroups = std::vector<Transects>;
 template <typename Key, typename Value>
 using umap = std::unordered_map<Key, Value>;
 
-void digital_shoreline_analysis_system(const Path &folder,
-                                       const Path &output_path);
-
-void digital_shoreline_analysis_system(const std::vector<Path> &paths,
-                                       const Path &output_path);
 
 void controller(const std::vector<Path> &paths, const Path &output_path);
 

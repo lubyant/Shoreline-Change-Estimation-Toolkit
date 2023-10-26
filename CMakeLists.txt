@@ -3,13 +3,21 @@ project(DSAS_cpp)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# opencv
-find_package(OpenCV CONFIG REQUIRED)
-include_directories( ${OpenCV_INCLUDE_DIRS} )
+# include directory
+include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/src)
+include_directories(${CMAKE_SOURCE_DIR}/lib)
+# add subdirectory
+add_subdirectory(src/dsas)
+add_subdirectory(src/test)
+
 
 # gtest
 add_subdirectory(lib/googletest)
 
+# opencv
+find_package(OpenCV CONFIG REQUIRED)
+include_directories( ${OpenCV_INCLUDE_DIRS} )
 # gdal
 find_path(GDAL_INCLUDE_DIR gdal.h PATH_SUFFIXES gdal)
 find_library(GDAL_LIBRARY NAMES gdal)
@@ -26,9 +34,6 @@ include_directories(${GDAL_INCLUDE_DIRS})
 # matplotplusplus
 add_subdirectory(lib/matplotplusplus)
 
-# executable
-add_subdirectory(src/dsas)
-
-# testing
-add_subdirectory(src/test)
-
+# final executable
+add_executable(${PROJECT_NAME} main.cpp)
+target_link_libraries(${PROJECT_NAME} dsas_lib)

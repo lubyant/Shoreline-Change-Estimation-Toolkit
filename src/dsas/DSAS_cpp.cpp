@@ -2,6 +2,7 @@
 // Created by lby on 10/12/23.
 //
 #include "DSAS_cpp.h"
+#include "../include/dsas.h"
 
 #include <algorithm>
 #include <iostream>

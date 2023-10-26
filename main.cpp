@@ -1,7 +1,5 @@
 #include <iostream>
-
-#include "DSAS_cpp.h"
-#include "image.h"
+#include "dsas.h"
 int main(int argc, char **argv) {
   //    using namespace dsas;
   //    // no input
