@@ -10,7 +10,7 @@ dsas::Image::Image(std::filesystem::path image_path)
   auto image_name = image_path_.stem().string();
 
   // extract the year from the name
-  year_ = std::stoi(image_name.substr(image_name.size() - 8, 8));
+  year_ = std::stoi(image_name.substr(image_name.size() - 4, 4));
 
   // extract the contour
   extract_contours(10);

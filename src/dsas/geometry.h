@@ -8,6 +8,8 @@
 #define EPS_OFFSET 1e-6
 #define PI 3.1415926
 
+#include <ogr_core.h>
+
 #include <cmath>
 #include <iostream>
 #include <optional>
@@ -27,13 +29,14 @@ std::ostream &operator<<(std::ostream &os, const Point<T> &point);
 
 template <typename T>
 struct MultiLine {
+
   [[nodiscard]] virtual const size_t size() const = 0;
 
   [[nodiscard]] virtual const T &operator[](size_t i) const = 0;
+
 };
 
 enum class IntersectionMode { Closest, Farthest };
-
 
 template <typename T>
 struct Point {

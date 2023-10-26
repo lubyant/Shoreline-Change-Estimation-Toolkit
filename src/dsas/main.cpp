@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
       "4108603_2018.tif",
       "/home/lby/Desktop/shorecalculator/img/final_raster/4108603/"
       "4108603_2020.tif"};
-  filesystem::path output {"hhh"};
+  filesystem::path output{"hhh"};
   dsas::digital_shoreline_analysis_system(paths, output);
 
   return 0;

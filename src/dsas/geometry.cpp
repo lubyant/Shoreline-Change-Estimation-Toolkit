@@ -179,7 +179,7 @@ Baseline::Baseline(const std::vector<BaselinesVertex> &points,
   size_t num_lines{points.size() - 1};
   int transect_id{0};
 
-  for (size_t i = 0; i < num_lines; i += smooth_factor) {
+  for (size_t i = 0; i < num_lines - smooth_factor; i += smooth_factor) {
     BaselineSeg baselineSeg{spacing_, offset_, points[i],
                             points[i + smooth_factor]};
     if (i == 0) {

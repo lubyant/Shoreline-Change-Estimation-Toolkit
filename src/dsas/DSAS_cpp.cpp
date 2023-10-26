@@ -72,26 +72,32 @@ void controller(const std::vector<Path> &paths, const Path &output_path) {
 
   // save the intersections to shp
   umap<int, std::vector<gm::IntersectPoint>> points_map;
-  for(auto& kv1: intersection_map){
-    for(auto& kv2: kv1.second){
-      for(auto& point: kv2.second){
-        points_map[point.year_].push_back(std::move(point));
+  for (auto &kv1 : intersection_map) {
+    for (auto &kv2 : kv1.second) {
+      for (auto &point : kv2.second) {
+        points_map[point.year_].push_back(point);
       }
     }
   }
-  for(const auto &kv: points_map){
-    const std::string year{static_cast<char>(kv.first)};
+  for (const auto &kv : points_map) {
+    const std::string year = std::to_string(kv.first) + std::string(".shp");
     util::save_points(kv.second, year);
   }
 
   // save the transects to shp
   std::vector<gm::TransectLine> output_file;
-  for(auto& transect: transects){
-    for(auto& transect_line: transect.transects_){
+  for (auto &transect : transects) {
+    for (auto &transect_line : transect.transects_) {
       output_file.push_back(std::move(transect_line));
     }
   }
-  util::save_lines<gm::TransectLine>(output_file, "transect");
+  util::save_lines<gm::TransectLine>(output_file, "transect.shp");
+
+  for (const auto &image : images) {
+    util::save_lines<gm::Shoreline>(
+        image->shorelines_, std::to_string(image->year_) + "shoreline.shp");
+  }
+  util::save_lines<gm::Baseline>(baselines, "baseline.shp");
 }
 
 Baselines generate_baselines(
@@ -108,7 +114,7 @@ Baselines generate_baselines(
   int baseline_id{};
   for (const auto &shoreline : shorelines) {
     baselines.emplace_back(shoreline.shoreline_vertices_, 1000, 100,
-                           baseline_id++, 0);
+                           baseline_id++, 0, 10);
   }
   return baselines;
 }
@@ -122,9 +128,9 @@ TransectGroups generate_transects(const Baselines &baselines) {
   return transectGroups;
 }
 
-umap<int, umap<int, std::vector<gm::IntersectPoint>>>
-generate_intersections(const std::vector<std::unique_ptr<Image>> &images,
-                       const TransectGroups &transectGroups) {
+umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
+    const std::vector<std::unique_ptr<Image>> &images,
+    const TransectGroups &transectGroups) {
   umap<int, std::vector<gm::IntersectPoint>> tid_points;
   umap<int, decltype(tid_points)> bid_tid_points;
   for (const auto &image : images) {

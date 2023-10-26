@@ -36,9 +36,9 @@ Baselines generate_baselines(const std::vector<std::unique_ptr<Image>> &images);
 
 TransectGroups generate_transects(const Baselines &baselines);
 
-umap<int, umap<int, std::vector<gm::IntersectPoint>>>
-generate_intersections(const std::vector<std::unique_ptr<Image>> &images,
-                       const TransectGroups &TransectGroups);
+umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
+    const std::vector<std::unique_ptr<Image>> &images,
+    const TransectGroups &TransectGroups);
 
 std::vector<gm::IntersectPoint> generate_intersection(
     const std::vector<gm::Shoreline> &shorelines,

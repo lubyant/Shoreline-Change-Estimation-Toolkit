@@ -135,7 +135,8 @@ void save_points(const std::vector<gm::IntersectPoint> &shapes,
                  const std::filesystem::path &output_path);
 
 template <typename T>
-void save_lines(std::vector<T> &lines, const std::filesystem::path &output_path) {
+void save_lines(std::vector<T> &lines,
+                const std::filesystem::path &output_path) {
   // Step 1: Initialize GDAL
   GDALAllRegister();
 
@@ -144,14 +145,15 @@ void save_lines(std::vector<T> &lines, const std::filesystem::path &output_path)
       GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
 
   // Step 3: Create a new shapefile
-  GDALDataset *dataset =
-      driver->Create(output_path.string().c_str(), 0, 0, 0, GDT_Unknown, NULL);
+  GDALDataset *dataset = driver->Create(output_path.string().c_str(), 0, 0, 0,
+                                        GDT_Unknown, nullptr);
   if (!dataset) {
     throw std::runtime_error("Failed to create dataset");
   }
 
   // Step 4: Create a layer for the shapefile
-  OGRLayer *layer = dataset->CreateLayer("line", NULL, wkbLineString, NULL);
+  OGRLayer *layer =
+      dataset->CreateLayer("line", nullptr, wkbLineString, nullptr);
   if (!layer) {
     throw std::runtime_error("Failed to create layer");
   }
@@ -186,5 +188,9 @@ void save_lines(std::vector<T> &lines, const std::filesystem::path &output_path)
   // Clean up
   GDALClose(dataset);
 }
+template <>
+void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
+                                  const std::filesystem::path &output_path);
+
 }  // namespace util
 #endif  // DSAS_CPP_UTILITY_H

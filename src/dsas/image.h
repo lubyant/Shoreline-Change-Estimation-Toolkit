@@ -9,8 +9,8 @@
 #include <opencv2/opencv.hpp>
 #include <string>
 
-#include "utility.h"
 #include "geometry.h"
+#include "utility.h"
 
 #define IsEdge(x_cor, y_cor, x_lim, y_lim) \
   ((x_cor) == 0 || (x_cor) == x_lim || (y_cor) == 0 || (y_cor) == y_lim)
@@ -49,6 +49,7 @@ struct Image {
                           return this->is_edge(point.x, point.y);
                         });
   }
+
 };
 }  // namespace dsas
 #endif  // DSAS_CPP_IMAGE_H

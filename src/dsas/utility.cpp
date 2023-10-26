@@ -115,17 +115,17 @@ double linearRegressRate(const std::vector<gm::IntersectPoint> &intersections) {
 }
 void save_points(const std::vector<gm::IntersectPoint> &shapes,
                  const std::filesystem::path &output_path) {
-  // Step 1: Initialize GDAL
+  // Initialize GDAL
   GDALAllRegister();
 
-  // Step 2: Get the shapefile driver
+  // Get the shapefile driver
   GDALDriver *driver =
       GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
   if (driver == nullptr) {
     throw std::runtime_error("Unable to get ESRI Shapefile driver");
   }
 
-  // Step 3: Create a new shapefile
+  // Create a new shapefile
   GDALDataset *dataset =
       driver->Create(output_path.string().c_str(), 0, 0, 0, GDT_Unknown, NULL);
 
@@ -133,17 +133,16 @@ void save_points(const std::vector<gm::IntersectPoint> &shapes,
   OGRLayer *layer = dataset->CreateLayer("pointLayer", NULL, wkbPoint, NULL);
 
   // define attributes
-  OGRFieldDefn baseline_id("Baseline_id", OFTInteger);
+  OGRFieldDefn baseline_id("BaselineId", OFTInteger);
   if (layer->CreateField(&baseline_id) != OGRERR_NONE) {
     std::cerr << "Failed to create Name field" << std::endl;
     exit(1);
   }
-  OGRFieldDefn transect_id("Transect_id", OFTInteger);
+  OGRFieldDefn transect_id("TransectId", OFTInteger);
   if (layer->CreateField(&transect_id) != OGRERR_NONE) {
     std::cerr << "Failed to create Name field" << std::endl;
     exit(1);
   }
-
 
   // Step 6: Create a line geometry and add points to it
   for (const auto &shape : shapes) {
@@ -154,14 +153,88 @@ void save_points(const std::vector<gm::IntersectPoint> &shapes,
     point.setX(shape.x);
     point.setY(shape.y);
     feature->SetGeometry(&point);
-    feature->SetField("Baseline_id", shape.baseline_id_);
-    feature->SetField("Transect_id", shape.transect_id_);
+    feature->SetField("BaselineId", shape.baseline_id_);
+    feature->SetField("TransectId", shape.transect_id_);
+
+    if (layer->CreateFeature(feature) != OGRERR_NONE) {
+      std::cerr << "Failed to create feature in shapefile!" << std::endl;
+      exit(1);
+    }
+
     OGRFeature::DestroyFeature(feature);
   }
-
 
   // Clean up
   GDALClose(dataset);
 }
+template<>
+void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
+                                  const std::filesystem::path &output_path) {
+  GDALAllRegister();
 
+  GDALDriver *driver =
+      GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
+
+  GDALDataset *dataset = driver->Create(output_path.string().c_str(), 0, 0, 0,
+                                        GDT_Unknown, nullptr);
+  if (!dataset) {
+    throw std::runtime_error("Failed to create dataset");
+  }
+
+  OGRLayer *layer =
+      dataset->CreateLayer("line", nullptr, wkbLineString, nullptr);
+  if (!layer) {
+    throw std::runtime_error("Failed to create layer");
+  }
+
+  OGRFieldDefn baseline_id("BaselineId", OFTInteger);
+  if (layer->CreateField(&baseline_id) != OGRERR_NONE) {
+    std::cerr << "Failed to create Name field" << std::endl;
+    exit(1);
+  }
+  OGRFieldDefn transect_id("TransectId", OFTInteger);
+  if (layer->CreateField(&transect_id) != OGRERR_NONE) {
+    std::cerr << "Failed to create Name field" << std::endl;
+    exit(1);
+  }
+  OGRFieldDefn change_rate("ChangeRate", OFTReal);
+  change_rate.SetWidth(8);
+  change_rate.SetPrecision(3);
+  if (layer->CreateField(&change_rate) != OGRERR_NONE) {
+    std::cerr << "Failed to create Name field" << std::endl;
+    exit(1);
+  }
+
+  for (const auto &shape : lines) {
+    OGRFeature *feature = OGRFeature::CreateFeature(layer->GetLayerDefn());
+    if (!feature) {
+      throw std::runtime_error("Failed to create feature");
+    }
+    OGRLineString line;
+
+    // Step 6: Create a line geometry and add points to it
+    for (size_t i = 0; i < shape.size(); i++) {
+      line.addPoint(shape[i].x, shape[i].y);
+    }
+
+    // Step 7: Add the geometry to the feature
+    auto err = feature->SetGeometry(&line);
+    if (err != OGRERR_NONE) {
+      throw std::runtime_error("Failed to set geometry");
+    }
+    feature->SetField("BaselineId", shape.baseline_id_);
+    feature->SetField("TransectId", shape.transect_id_);
+    feature->SetField("ChangeRate", shape.change_rate);
+
+    // Step 8: Add the feature to the layer
+    err = layer->CreateFeature(feature);
+    if (err != OGRERR_NONE) {
+      throw std::runtime_error("Failed to set geometry");
+    }
+    OGRFeature::DestroyFeature(feature);
+  }
+
+  // Clean up
+  GDALClose(dataset);
+}
 }  // namespace util
