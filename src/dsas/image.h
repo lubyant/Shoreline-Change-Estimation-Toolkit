@@ -43,7 +43,7 @@ struct Image {
 
   // check if the point is in edge
   [[nodiscard]] bool is_edge(const int x_cor, const int y_cor) const {
-    return (x_cor == 0 || x_cor == rows_ || y_cor == 0 || y_cor == cols_);
+    return (x_cor == 0 || x_cor == cols_ || y_cor == 0 || y_cor == rows_);
   }
 
   [[nodiscard]] bool is_closure(const std::vector<cv::Point> &contour) const {

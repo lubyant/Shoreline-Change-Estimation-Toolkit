@@ -170,7 +170,7 @@ struct Baseline : public MultiLine<Point<double>> {
 
   Baseline(const std::vector<BaselinesVertex> &points, double transect_length,
            double spacing, int baseline_id, double offset,
-           int smooth_factor = 5);
+           int smooth_factor = 1);
 
   [[nodiscard]] const size_t size() const override {
     return transects_base_points_.size();

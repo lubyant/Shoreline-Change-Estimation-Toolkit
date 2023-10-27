@@ -165,8 +165,12 @@ Baselines generate_baselines(
   std::vector<gm::Baseline> baselines;
   int baseline_id{};
   for (const auto &shoreline : shorelines) {
-    baselines.emplace_back(shoreline.shoreline_vertices_, 1000, 100,
-                           baseline_id++, 0, 10);
+    double transect_length{1000};
+    double spacing{100};
+    double offset{0};
+    double smooth_factor{10};
+    baselines.emplace_back(shoreline.shoreline_vertices_, transect_length,
+                           spacing, baseline_id++, offset, smooth_factor);
   }
   return baselines;
 }
