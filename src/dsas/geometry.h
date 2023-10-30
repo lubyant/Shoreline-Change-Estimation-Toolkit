@@ -32,6 +32,8 @@ struct MultiLine {
   [[nodiscard]] virtual const size_t size() const = 0;
 
   [[nodiscard]] virtual const T &operator[](size_t i) const = 0;
+
+  virtual ~MultiLine() = default;
 };
 
 enum class IntersectionMode { Closest, Farthest };
