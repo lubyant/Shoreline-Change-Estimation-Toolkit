@@ -5,6 +5,7 @@
 
 #include <functional>
 #include <iostream>
+#include <tuple>
 
 namespace util {
 
@@ -13,7 +14,7 @@ ThreadPool::ThreadPool()
   init_workers();
 }
 
-ThreadPool::ThreadPool(uint32_t num_threads)
+[[maybe_unused]] ThreadPool::ThreadPool(uint32_t num_threads)
     : num_threads_(num_threads), stop_(false) {
   init_workers();
 }
@@ -113,15 +114,13 @@ void save_points(const std::vector<gm::IntersectPoint> &shapes,
       dataset->CreateLayer("pointLayer", nullptr, wkbPoint, nullptr);
 
   // define attributes
-  OGRFieldDefn baseline_id("BaselineId", OFTInteger);
-  if (layer->CreateField(&baseline_id) != OGRERR_NONE) {
-    std::cerr << "Failed to create Name field" << std::endl;
-    exit(1);
-  }
-  OGRFieldDefn transect_id("TransectId", OFTInteger);
-  if (layer->CreateField(&transect_id) != OGRERR_NONE) {
-    std::cerr << "Failed to create Name field" << std::endl;
-    exit(1);
+  for (size_t i = 0; i < shapes[0].get_names().size(); i++) {
+    OGRFieldDefn field(shapes[0].get_names()[i].c_str(),
+                       shapes[0].get_types()[i]);
+    if (layer->CreateField(&field) != OGRERR_NONE) {
+      std::cerr << "Failed to create Name field" << std::endl;
+      exit(1);
+    }
   }
 
   // Step 6: Create a line geometry and add points to it
@@ -133,8 +132,8 @@ void save_points(const std::vector<gm::IntersectPoint> &shapes,
     point.setX(shape.x);
     point.setY(shape.y);
     feature->SetGeometry(&point);
-    feature->SetField("BaselineId", shape.baseline_id_);
-    feature->SetField("TransectId", shape.transect_id_);
+
+    set_ogr_feature(shape.get_names(), shape.get_values(), *feature);
 
     if (layer->CreateFeature(feature) != OGRERR_NONE) {
       std::cerr << "Failed to create feature in shapefile!" << std::endl;

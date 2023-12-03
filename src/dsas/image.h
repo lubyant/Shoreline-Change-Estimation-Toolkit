@@ -23,6 +23,7 @@ struct Image {
   // attributes
   std::filesystem::path image_path_;              // image path
   int year_{};                                    // image year
+  std::string file_name_;                         // file name
   int rows_{}, cols_{};                           // image size x,y
   cv::Mat img_;                                   // image pixel vals
   std::vector<std::vector<cv::Point>> contours_;  // image edge contours

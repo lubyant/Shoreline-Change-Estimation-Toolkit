@@ -17,7 +17,6 @@ LineSegment::LineSegment(Point<> leftEdge, Point<> rightEdge)
   num_lines++;
   double dx = rightEdge.x - leftEdge.x, dy = rightEdge.y - leftEdge.y;
   slope_ = dy / (dx + EPS_OFFSET);
-  intercept_ = this->leftEdge_.y - slope_ * this->leftEdge_.x;
   slope_vector_.first = dy;
   slope_vector_.second = dx;
 
@@ -163,7 +162,7 @@ std::optional<IntersectPoint> TransectLine::intersection(
   if (mode_ ==
       IntersectionMode::Farthest) {  // farthest mode return farthest distance
     return intersections[intersections.size() - 1];
-  } else {                           // close mode return smallest dis
+  } else {  // close mode return smallest dis
     return intersections[0];
   }
 }

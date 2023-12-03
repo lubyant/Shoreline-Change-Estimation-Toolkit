@@ -117,19 +117,17 @@ void controller(const std::vector<Path> &paths, const Path &output_folder) {
   compute_rate(intersection_map, transects);
 
   // save the intersections to shp
-  umap<int, std::vector<gm::IntersectPoint>> points_map;
+  std::vector<gm::IntersectPoint> intersections;
   for (auto &kv1 : intersection_map) {
     for (auto &kv2 : kv1.second) {
       for (auto &point : kv2.second) {
-        points_map[point.year_].push_back(point);
+        intersections.push_back(point);
       }
     }
   }
-  for (const auto &kv : points_map) {
-    const std::string year = std::to_string(kv.first);
-    const Path output_file = output_folder / Path(year + "intersection.shp");
-    util::save_points(kv.second, output_file);
-  }
+  const Path output_file_intersection =
+      output_folder / Path(images[0]->file_name_ + "intersection.shp");
+  util::save_points(intersections, output_file_intersection);
 
   // save the transects to shp
   std::vector<gm::TransectLine> output_file;
@@ -138,18 +136,23 @@ void controller(const std::vector<Path> &paths, const Path &output_folder) {
       output_file.push_back(std::move(transect_line));
     }
   }
-  util::save_lines<gm::TransectLine>(output_file,
-                                     output_folder / "transect.shp");
+  util::save_lines<gm::TransectLine>(
+      output_file, output_folder / (images[0]->file_name_ + "transect.shp"));
 
   // save the shoreline to shp
+  std::vector<gm::Shoreline> shorelines;
   for (const auto &image : images) {
-    util::save_lines<gm::Shoreline>(
-        image->shorelines_,
-        output_folder / Path(std::to_string(image->year_) + "shoreline.shp"));
+    for (const auto &shoreline : image->shorelines_) {
+      shorelines.push_back(shoreline);
+    }
   }
 
+  util::save_lines<gm::Shoreline>(
+      shorelines, output_folder / (images[0]->file_name_ + "shoreline.shp"));
+
   // save the baseline to shp
-  util::save_lines<gm::Baseline>(baselines, output_folder / "baseline.shp");
+  util::save_lines<gm::Baseline>(
+      baselines, output_folder / (images[0]->file_name_ + "baseline.shp"));
 }
 
 Baselines generate_baselines(

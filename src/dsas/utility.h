@@ -112,7 +112,7 @@ class ThreadPool {
  public:
   ThreadPool();
 
-  explicit ThreadPool(uint32_t num_threads);
+  [[maybe_unused]] explicit ThreadPool(uint32_t num_threads);
 
   ~ThreadPool();
 
@@ -149,6 +149,18 @@ class ThreadPool {
   void init_workers();
 };
 
+template <size_t I = 0, typename... Args>
+typename std::enable_if<I == sizeof...(Args), void>::type set_ogr_feature(
+    const std::vector<std::string> &, const std::tuple<Args...> &,
+    OGRFeature &) {}
+template <size_t I = 0, typename... Args>
+typename std::enable_if<I != sizeof...(Args), void>::type set_ogr_feature(
+    const std::vector<std::string> &names, const std::tuple<Args...> &values,
+    OGRFeature &ogr_feature) {
+  ogr_feature.SetField(names[I].c_str(), std::get<I>(values));
+  set_ogr_feature<I + 1, Args...>(names, values, ogr_feature);
+}
+
 void save_points(const std::vector<gm::IntersectPoint> &shapes,
                  const std::filesystem::path &output_path);
 
@@ -176,6 +188,16 @@ void save_lines(std::vector<T> &lines,
     throw std::runtime_error("Failed to create layer");
   }
 
+  // define attributes
+  for (size_t i = 0; i < lines[0].get_names().size(); i++) {
+    OGRFieldDefn field(lines[0].get_names()[i].c_str(),
+                       lines[0].get_types()[i]);
+    if (layer->CreateField(&field) != OGRERR_NONE) {
+      std::cerr << "Failed to create Name field" << std::endl;
+      exit(1);
+    }
+  }
+
   for (const auto &shape : lines) {
     // Step 5: Create a new feature
     OGRFeature *feature = OGRFeature::CreateFeature(layer->GetLayerDefn());
@@ -188,6 +210,8 @@ void save_lines(std::vector<T> &lines,
     for (size_t i = 0; i < shape.size(); i++) {
       line.addPoint(shape[i].x, shape[i].y);
     }
+
+    set_ogr_feature(shape.get_names(), shape.get_values(), *feature);
 
     // Step 7: Add the geometry to the feature
     auto err = feature->SetGeometry(&line);

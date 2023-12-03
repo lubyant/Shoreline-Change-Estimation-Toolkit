@@ -12,6 +12,9 @@ dsas::Image::Image(std::filesystem::path image_path)
   // extract the year from the name
   year_ = std::stoi(image_name.substr(image_name.size() - 4, 4));
 
+  // extract the file_name
+  file_name_ = image_name.substr(0, image_name.size()-4);
+
   // extract the contour
   extract_contours(10);
 
@@ -75,8 +78,7 @@ void dsas::Image::extract_shorelines() {
 void dsas::Image::transform_coordinates() {
   GDALAllRegister();
 
-  GDALDataset *poDataset =
-      (GDALDataset *)GDALOpen(image_path_.c_str(), GA_ReadOnly);
+  auto *poDataset = (GDALDataset *)GDALOpen(image_path_.c_str(), GA_ReadOnly);
   if (poDataset == nullptr) {
     std::cerr << "Error opening dataset." << std::endl;
     exit(1);
