@@ -16,7 +16,7 @@ dsas::Image::Image(std::filesystem::path image_path)
   file_name_ = image_name.substr(0, image_name.size()-4);
 
   // extract the contour
-  extract_contours(10);
+  extract_contours(20);
 
   // extract the shorelines
   extract_shorelines();
@@ -37,11 +37,10 @@ void dsas::Image::extract_contours(size_t threshold) {
 
   // threshold
   cv::Mat thresh;
-  cv::threshold(gray, thresh, 1, 255, cv::THRESH_BINARY);
+  cv::threshold(gray, thresh, 1, 255, 0);
 
   // contour
   cv::findContours(thresh, contours_, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
-
   // remove contours is closure that not touch the edge
   contours_.erase(std::remove_if(contours_.begin(), contours_.end(),
                                  [this](const std::vector<cv::Point> &contour) {

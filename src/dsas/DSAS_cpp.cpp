@@ -158,9 +158,9 @@ void controller(const std::vector<Path> &paths, const Path &output_folder) {
 Baselines generate_baselines(
     const std::vector<std::unique_ptr<Image>> &images) {
   // using the nearest the image as the baseline, since it is most eroded
-  const auto img = std::max_element(images.begin(), images.end(),
+  const auto& img = std::max_element(images.begin(), images.end(),
                                     [](const auto &image1, const auto &image2) {
-                                      return image1->year_ > image2->year_;
+                                      return image1->year_ < image2->year_;
                                     });
 
   auto shorelines = img->get()->shorelines_;
@@ -168,12 +168,15 @@ Baselines generate_baselines(
   std::vector<gm::Baseline> baselines;
   int baseline_id{};
   for (const auto &shoreline : shorelines) {
-    double transect_length{1000};
-    double spacing{100};
+    double transect_length{500};
+    double spacing{30};
     double offset{0};
-    double smooth_factor{10};
+    int smooth_factor{10};
+    printf("%ld", shoreline.shoreline_vertices_.size());
     baselines.emplace_back(shoreline.shoreline_vertices_, transect_length,
                            spacing, baseline_id++, offset, smooth_factor);
+    printf("%ld", baselines.end()->transects_base_points_.size());
+
   }
   return baselines;
 }

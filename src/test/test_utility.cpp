@@ -16,12 +16,22 @@ TEST(UtilityTest, TestCrossProduct) {
 
 TEST(UtilityTest, TestIntersect) {
   using namespace gm;
-  Point<double> p1{0, 0};
-  Point<double> p2{1, 1};
-  Point<double> p3{0, 1};
-  Point<double> p4{1, 0};
+  {
+    Point<double> p1{0, 0};
+    Point<double> p2{1, 1};
+    Point<double> p3{0, 1};
+    Point<double> p4{1, 0};
 
-  ASSERT_TRUE(util::isTwoSegmentIntersected<double>(p1, p2, p3, p4));
+    ASSERT_TRUE(util::isTwoSegmentIntersected<double>(p1, p2, p3, p4));
+  }
+  {
+    Point<double> p1{0, 0};
+    Point<double> p2{2, 0};
+    Point<double> p3{1, -1};
+    Point<double> p4{1, 1};
+
+    ASSERT_TRUE(util::isTwoSegmentIntersected<double>(p1, p2, p3, p4));
+  }
 }
 
 TEST(UtilityTest, TestIntersectPoint) {

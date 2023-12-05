@@ -26,6 +26,10 @@
 #define MAX(A, B) ((A) < (B) ? (B) : (A))
 #endif
 
+#ifndef RMS
+#define RMS(x, y) sqrt((x)*(x) + (y)*(y))
+#endif
+
 namespace util {
 
 template <typename T>
@@ -61,7 +65,7 @@ bool testRectangularOfIntersection(const gm::Point<T> &p1,
   T l_y_min = MIN(p1.y, p2.y);
   T l_y_max = MAX(p1.y, p2.y);
   T r_y_min = MIN(p3.y, p4.y);
-  T r_y_max = MIN(p3.y, p4.y);
+  T r_y_max = MAX(p3.y, p4.y);
   return (l_x_max >= r_x_min) && (r_x_max >= l_x_min) && (r_y_max >= l_y_min) &&
          (l_y_max >= r_y_min);
 }
