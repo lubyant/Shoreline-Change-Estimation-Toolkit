@@ -175,6 +175,7 @@ struct Baseline : public MultiLine<Point<double>>, GDALShpSaver<int> {
   double offset_;
   int baseline_id_;
   std::vector<Point<double>> transects_base_points_;
+  std::vector<BaselinesVertex> baseline_vertices_;
   std::vector<TransectLine> transects_lines_;
 
   Baseline(const std::vector<BaselinesVertex> &points, double transect_length,
@@ -182,11 +183,11 @@ struct Baseline : public MultiLine<Point<double>>, GDALShpSaver<int> {
            int smooth_factor = 1);
 
   [[nodiscard]] size_t size() const override {
-    return transects_base_points_.size();
+    return baseline_vertices_.size();
   };
 
   [[nodiscard]] const BaselinesVertex &operator[](size_t i) const override {
-    return transects_base_points_[i];
+    return baseline_vertices_.at(i);
   }
 
   [[nodiscard]] std::vector<std::string> get_names() const override {

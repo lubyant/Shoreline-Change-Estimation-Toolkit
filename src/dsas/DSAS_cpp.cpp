@@ -163,7 +163,7 @@ Baselines generate_baselines(
                                       return image1->year_ < image2->year_;
                                     });
 
-  auto shorelines = img->get()->shorelines_;
+  auto &shorelines = img->get()->shorelines_;
 
   std::vector<gm::Baseline> baselines;
   int baseline_id{};
@@ -171,11 +171,9 @@ Baselines generate_baselines(
     double transect_length{500};
     double spacing{30};
     double offset{0};
-    int smooth_factor{10};
-    printf("%ld", shoreline.shoreline_vertices_.size());
+    int smooth_factor{1};
     baselines.emplace_back(shoreline.shoreline_vertices_, transect_length,
                            spacing, baseline_id++, offset, smooth_factor);
-    printf("%ld", baselines.end()->transects_base_points_.size());
 
   }
   return baselines;

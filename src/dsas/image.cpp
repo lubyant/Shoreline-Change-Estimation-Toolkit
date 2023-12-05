@@ -66,9 +66,7 @@ void dsas::Image::extract_shorelines() {
     points.year_ = year_;
     for (const auto &point : contour) {
       auto x = point.x, y = point.y;
-      if (!is_edge(x, y)) {
-        points.shoreline_vertices_.emplace_back(x, y);
-      }
+      points.shoreline_vertices_.emplace_back(x, y);
     }
     shorelines.push_back(points);
   }
