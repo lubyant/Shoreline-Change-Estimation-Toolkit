@@ -9,12 +9,15 @@
 namespace dsas {
 using Path = std::filesystem::path;
 
-void dsas(const std::vector<Path> &folders, const Path &output_path);
+void dsas(const std::vector<Path> &folders, const Path &output_path,
+          const Options &options);
 
 void digital_shoreline_analysis_system(const Path &folder,
-                                       const Path &output_path);
+                                       const Path &output_path,
+                                       const Options &options);
 
 void digital_shoreline_analysis_system(const std::vector<Path> &paths,
-                                       const Path &output_path);
+                                       const Path &output_path,
+                                       const Options &options);
 }  // namespace dsas
 #endif  // DSAS_CPP_INCLUDE_DSAS_H_

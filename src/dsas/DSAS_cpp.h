@@ -24,9 +24,11 @@ using TransectGroups = std::vector<Transects>;
 template <typename Key, typename Value>
 using umap = std::unordered_map<Key, Value>;
 
-void controller(const std::vector<Path> &paths, const Path &output_path);
+void controller(const std::vector<Path> &paths, const Path &output_path,
+                const Options &options);
 
-Baselines generate_baselines(const std::vector<std::unique_ptr<Image>> &images);
+Baselines generate_baselines(const std::vector<std::unique_ptr<Image>> &images,
+                             const Options &options);
 
 TransectGroups generate_transects(const Baselines &baselines);
 

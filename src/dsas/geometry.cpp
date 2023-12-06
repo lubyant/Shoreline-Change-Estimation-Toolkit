@@ -169,7 +169,7 @@ std::optional<IntersectPoint> TransectLine::intersection(
 
 Baseline::Baseline(const std::vector<BaselinesVertex> &points,
                    double transect_length, double spacing, int baseline_id,
-                   double offset, int smooth_factor)
+                   double offset, int smooth_factor, gm::IntersectionMode mode)
     : baseline_id_(baseline_id),
       spacing_(spacing),
       transect_length_(transect_length),
@@ -186,7 +186,7 @@ Baseline::Baseline(const std::vector<BaselinesVertex> &points,
       transects_base_points_.push_back(baselineSeg.leftEdge_);
       transects_lines_.emplace_back(baselineSeg.leftEdge_, transect_length_,
                                     baselineSeg.normal_vector_, transect_id++,
-                                    baseline_id_);
+                                    baseline_id_, mode);
       baseline_vertices_.push_back(baselineSeg.leftEdge_);
     }
     baseline_vertices_.push_back(baselineSeg.rightEdge_);

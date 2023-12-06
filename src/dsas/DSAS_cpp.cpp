@@ -12,7 +12,8 @@
 namespace dsas {
 
 void digital_shoreline_analysis_system(const Path &folder,
-                                       const Path &output_path) {
+                                       const Path &output_path,
+                                       const Options &options) {
   // check the input
   std::vector<Path> paths;
   try {
@@ -45,11 +46,12 @@ void digital_shoreline_analysis_system(const Path &folder,
     }
   }
   // start to analysis
-  controller(paths, output_folder);
+  controller(paths, output_folder, options);
 }
 
 void digital_shoreline_analysis_system(const std::vector<Path> &paths,
-                                       const Path &output_path) {
+                                       const Path &output_path,
+                                       const Options &options) {
   // check the input
   std::string file_name_prefix = paths[0].filename().string().substr(0, 7);
   try {
@@ -77,16 +79,17 @@ void digital_shoreline_analysis_system(const std::vector<Path> &paths,
     }
   }
 
-  controller(paths, output_folder);
+  controller(paths, output_folder, options);
 }
 
-void dsas(const std::vector<Path> &folders, const Path &output_path) {
+void dsas(const std::vector<Path> &folders, const Path &output_path,
+          const Options &options) {
   util::ThreadPool thread_pool;
   std::vector<std::future<std::string>> futures;
   for (const auto &folder : folders) {
     auto ret = thread_pool.enqueue(
-        [](const Path &folder, const Path &output) {
-          dsas::digital_shoreline_analysis_system(folder, output);
+        [&options](const Path &folder, const Path &output) {
+          dsas::digital_shoreline_analysis_system(folder, output, options);
           return folder.string();
         },
         folder, output_path);
@@ -97,15 +100,16 @@ void dsas(const std::vector<Path> &folders, const Path &output_path) {
   }
 }
 
-void controller(const std::vector<Path> &paths, const Path &output_folder) {
+void controller(const std::vector<Path> &paths, const Path &output_folder,
+                const Options &options) {
   // read the image
   std::vector<std::unique_ptr<Image>> images;
   for (const auto &path : paths) {
-    images.emplace_back(std::make_unique<Image>(path));
+    images.emplace_back(std::make_unique<Image>(path, options));
   }
 
   // generate the baselines
-  auto baselines = generate_baselines(images);
+  auto baselines = generate_baselines(images, options);
 
   // generate the transects
   auto transects = generate_transects(baselines);
@@ -155,29 +159,29 @@ void controller(const std::vector<Path> &paths, const Path &output_folder) {
       baselines, output_folder / (images[0]->file_name_ + "baseline.shp"));
 }
 
-Baselines generate_baselines(
-    const std::vector<std::unique_ptr<Image>> &images) {
+Baselines generate_baselines(const std::vector<std::unique_ptr<Image>> &images,
+                             const Options &options) {
   // using the nearest the image as the baseline, since it is most eroded
-  const auto& img = std::max_element(images.begin(), images.end(),
-                                    [](const auto &image1, const auto &image2) {
-                                      return image1->year_ < image2->year_;
-                                    });
+  const auto &img = std::max_element(
+      images.begin(), images.end(), [](const auto &image1, const auto &image2) {
+        return image1->year_ < image2->year_;
+      });
 
   auto &shorelines = img->get()->shorelines_;
 
   std::vector<gm::Baseline> baselines;
   int baseline_id{};
   for (const auto &shoreline : shorelines) {
-    if(shoreline.shoreline_vertices_.empty()){
+    if (shoreline.shoreline_vertices_.empty()) {
       continue;
     }
-    double transect_length{500};
-    double spacing{30};
-    double offset{0};
-    int smooth_factor{1};
+    double transect_length{options.transect_length};
+    double spacing{options.transect_spacing};
+    double offset{options.transect_offset};
+    int smooth_factor{options.smooth_factor};
+    gm::IntersectionMode mode{options.intersection_mode};
     baselines.emplace_back(shoreline.shoreline_vertices_, transect_length,
-                           spacing, baseline_id++, offset, smooth_factor);
-
+                           spacing, baseline_id++, offset, smooth_factor, mode);
   }
   return baselines;
 }

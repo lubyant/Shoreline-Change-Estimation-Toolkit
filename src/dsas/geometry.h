@@ -180,7 +180,7 @@ struct Baseline : public MultiLine<Point<double>>, GDALShpSaver<int> {
 
   Baseline(const std::vector<BaselinesVertex> &points, double transect_length,
            double spacing, int baseline_id, double offset,
-           int smooth_factor = 1);
+           int smooth_factor, gm::IntersectionMode mode);
 
   [[nodiscard]] size_t size() const override {
     return baseline_vertices_.size();

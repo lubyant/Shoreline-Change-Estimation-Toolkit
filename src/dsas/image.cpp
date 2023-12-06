@@ -4,8 +4,10 @@
 
 #include "image.h"
 namespace dsas {
-Image::Image(std::filesystem::path image_path)
-    : image_path_(std::move(image_path)) {
+Image::Image(std::filesystem::path image_path, const Options &options)
+    : image_path_(std::move(image_path)),
+      edge_distance_(options.edge_distance),
+      least_factor_(options.shoreline_least_factor) {
   // file name
   auto image_name = image_path_.stem().string();
 
@@ -24,7 +26,7 @@ Image::Image(std::filesystem::path image_path)
   // process the shoreline
   process_shorelines();
 
-  // transform the geosystem
+  // transform the geospatial coordinate system
   transform_coordinates();
 }
 
@@ -44,6 +46,7 @@ void Image::extract_contours() {
 
   // contour
   cv::findContours(thresh, contours_, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+
   // remove contours is closure that not touch the edge
   contours_.erase(std::remove_if(contours_.begin(), contours_.end(),
                                  [this](const std::vector<cv::Point> &contour) {
@@ -64,9 +67,12 @@ void Image::extract_shorelines() {
       auto x = point.x, y = point.y;
       if (is_edge(x, y)) {
         if (!temp.empty()) {
-          points.shoreline_vertices_ = std::move(temp);
+          std::move(temp.begin(), temp.end(),
+                    std::back_inserter(points.shoreline_vertices_));
+
+          points.shoreline_vertices_ = temp;
           shorelines.push_back(std::move(points));
-          gm::Shoreline points{};
+          points = gm::Shoreline();
           points.shoreline_id_ = shoreline_id++;
           points.year_ = year_;
           temp.clear();
@@ -75,8 +81,9 @@ void Image::extract_shorelines() {
       }
       temp.emplace_back(x, y);
     }
-    if(!temp.empty()){
-      points.shoreline_vertices_ = std::move(temp);
+    if (!temp.empty()) {
+      std::move(temp.begin(), temp.end(),
+                std::back_inserter(points.shoreline_vertices_));
       shorelines.push_back(points);
     }
   }
@@ -84,15 +91,16 @@ void Image::extract_shorelines() {
 }
 
 void Image::process_shorelines() {
-  // remove shorelines that is too short
+  // find out the maximum shoreline length
   auto max_num = std::max_element(
-    shorelines_.begin(),
-    shorelines_.end(),
-    [](const auto &a, const auto &b){
-      return a.size() < b.size();
-    }
-  );
-  size_t threshold = max_num->size() * 0.5;
+      shorelines_.begin(), shorelines_.end(),
+      [](const auto &a, const auto &b) { return a.size() < b.size(); });
+
+  // threshold = max * least_factor
+  auto threshold =
+      (size_t) (least_factor_ * static_cast<double>(max_num->size()));
+
+  // remove shorelines that is too short
   shorelines_.erase(
       std::remove_if(shorelines_.begin(), shorelines_.end(),
                      [threshold](const auto &shoreline) {
