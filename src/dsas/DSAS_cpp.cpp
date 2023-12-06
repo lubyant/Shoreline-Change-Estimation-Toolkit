@@ -168,6 +168,9 @@ Baselines generate_baselines(
   std::vector<gm::Baseline> baselines;
   int baseline_id{};
   for (const auto &shoreline : shorelines) {
+    if(shoreline.shoreline_vertices_.empty()){
+      continue;
+    }
     double transect_length{500};
     double spacing{30};
     double offset{0};

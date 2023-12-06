@@ -34,17 +34,20 @@ struct Image {
   explicit Image(std::filesystem::path image_path);
 
   // extract the contours edges
-  void extract_contours(size_t threshold);
+  void extract_contours();
 
   // extract the shorelines from the edges
   void extract_shorelines();
+
+  // post-process the shoreline
+  void process_shorelines();
 
   // geo-transform
   void transform_coordinates();
 
   // check if the point is in edge
   [[nodiscard]] bool is_edge(const int x_cor, const int y_cor) const {
-    int num = 1;
+    int num = 100;
     return (x_cor <= num || x_cor >= cols_-num || y_cor <= num || y_cor >= rows_-num);
   }
 

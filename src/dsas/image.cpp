@@ -3,8 +3,8 @@
 //
 
 #include "image.h"
-
-dsas::Image::Image(std::filesystem::path image_path)
+namespace dsas {
+Image::Image(std::filesystem::path image_path)
     : image_path_(std::move(image_path)) {
   // file name
   auto image_name = image_path_.stem().string();
@@ -13,19 +13,22 @@ dsas::Image::Image(std::filesystem::path image_path)
   year_ = std::stoi(image_name.substr(image_name.size() - 4, 4));
 
   // extract the file_name
-  file_name_ = image_name.substr(0, image_name.size()-4);
+  file_name_ = image_name.substr(0, image_name.size() - 4);
 
   // extract the contour
-  extract_contours(20);
+  extract_contours();
 
   // extract the shorelines
   extract_shorelines();
+
+  // process the shoreline
+  process_shorelines();
 
   // transform the geosystem
   transform_coordinates();
 }
 
-void dsas::Image::extract_contours(size_t threshold) {
+void Image::extract_contours() {
   // read the image
   cv::Mat img = cv::imread(image_path_);
   rows_ = img.rows;
@@ -47,32 +50,58 @@ void dsas::Image::extract_contours(size_t threshold) {
                                    return this->is_closure(contour);
                                  }),
                   contours_.end());
-
-  // remove contours that is too short
-  contours_.erase(
-      std::remove_if(contours_.begin(), contours_.end(),
-                     [threshold](const std::vector<cv::Point> &contour) {
-                       return contour.size() < threshold;
-                     }),
-      contours_.end());
 }
 
-void dsas::Image::extract_shorelines() {
+void Image::extract_shorelines() {
   Shorelines shorelines{};
-  int shoreline_id{};
+  int shoreline_id{0};
+  std::vector<gm::Point<double>> temp;
   for (const auto &contour : contours_) {
     gm::Shoreline points{};
     points.shoreline_id_ = shoreline_id++;
     points.year_ = year_;
     for (const auto &point : contour) {
       auto x = point.x, y = point.y;
-      points.shoreline_vertices_.emplace_back(x, y);
+      if (is_edge(x, y)) {
+        if (!temp.empty()) {
+          points.shoreline_vertices_ = std::move(temp);
+          shorelines.push_back(std::move(points));
+          gm::Shoreline points{};
+          points.shoreline_id_ = shoreline_id++;
+          points.year_ = year_;
+          temp.clear();
+        }
+        continue;
+      }
+      temp.emplace_back(x, y);
     }
-    shorelines.push_back(points);
+    if(!temp.empty()){
+      points.shoreline_vertices_ = std::move(temp);
+      shorelines.push_back(points);
+    }
   }
   shorelines_ = std::move(shorelines);
 }
-void dsas::Image::transform_coordinates() {
+
+void Image::process_shorelines() {
+  // remove shorelines that is too short
+  auto max_num = std::max_element(
+    shorelines_.begin(),
+    shorelines_.end(),
+    [](const auto &a, const auto &b){
+      return a.size() < b.size();
+    }
+  );
+  size_t threshold = max_num->size() * 0.5;
+  shorelines_.erase(
+      std::remove_if(shorelines_.begin(), shorelines_.end(),
+                     [threshold](const auto &shoreline) {
+                       return shoreline.shoreline_vertices_.size() < threshold;
+                     }),
+      shorelines_.end());
+}
+
+void Image::transform_coordinates() {
   GDALAllRegister();
 
   auto *poDataset = (GDALDataset *)GDALOpen(image_path_.c_str(), GA_ReadOnly);
@@ -103,3 +132,4 @@ void dsas::Image::transform_coordinates() {
   }
   GDALClose(poDataset);
 }
+}  // namespace dsas
