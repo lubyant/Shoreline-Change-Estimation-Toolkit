@@ -106,7 +106,8 @@ class BaselineTest : public ::testing::Test {
 
 TEST_F(BaselineTest, test_baseline_transect_points1) {
   std::vector<Point<double>> points{{0, 0}, {0, 1}, {1, 1}, {1, 0}};
-  baseline = std::make_unique<Baseline>(points, 10, 0.5, 0, 0, 1);
+  gm::IntersectionMode mode {gm::IntersectionMode::Closest};
+  baseline = std::make_unique<Baseline>(points, 10, 0.5, 0, 0, 1, mode);
   auto transects_points = baseline->transects_base_points_;
 
   ASSERT_EQ(transects_points.size(), 7);
@@ -120,8 +121,9 @@ TEST_F(BaselineTest, test_baseline_transect_points1) {
 }
 
 TEST_F(BaselineTest, test_baseline_transect_points2) {
+  gm::IntersectionMode mode {gm::IntersectionMode::Closest};
   std::vector<Point<double>> points{{0, 0}, {0, 1}, {1, 1}, {1, 0}};
-  baseline = std::make_unique<Baseline>(points, 10, 1.5, 0, 0, 1);
+  baseline = std::make_unique<Baseline>(points, 10, 1.5, 0, 0, 1, mode);
   auto transects_points = baseline->transects_base_points_;
 
   ASSERT_EQ(transects_points.size(), 3);
@@ -135,7 +137,8 @@ TEST_F(BaselineTest, test_baseline_transect_points2) {
 
 TEST_F(BaselineTest, test_baseline_transect_lines) {
   std::vector<Point<double>> points{{0, 0}, {0, 1}, {1, 1}, {1, 0}};
-  baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1);
+  gm::IntersectionMode mode {gm::IntersectionMode::Closest};
+  baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1, mode);
   auto transects_lines = baseline->transects_lines_;
 
   ASSERT_EQ(transects_lines.size(), 7);
@@ -150,7 +153,8 @@ TEST_F(BaselineTest, test_baseline_transect_lines) {
 
 TEST_F(BaselineTest, test_baseline_transect_lines_right) {
   std::vector<Point<double>> points{{0, 0}, {0, 1}, {1, 1}, {1, 0}};
-  baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1);
+  gm::IntersectionMode mode {gm::IntersectionMode::Closest};
+  baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1, mode);
   auto transects_lines = baseline->transects_lines_;
 
   ASSERT_EQ(transects_lines.size(), 7);
@@ -165,7 +169,8 @@ TEST_F(BaselineTest, test_baseline_transect_lines_right) {
 
 TEST_F(BaselineTest, test_baseline_transect_lines_left) {
   std::vector<Point<double>> points{{0, 0}, {0, 1}, {1, 1}, {1, 0}};
-  baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1);
+  gm::IntersectionMode mode {gm::IntersectionMode::Closest};
+  baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1, mode);
   auto transects_lines = baseline->transects_lines_;
 
   ASSERT_EQ(transects_lines.size(), 7);
@@ -180,7 +185,8 @@ TEST_F(BaselineTest, test_baseline_transect_lines_left) {
 
 TEST_F(BaselineTest, test_baseline_transect_length1) {
   std::vector<Point<double>> points{{0, 0}, {0, 1}, {1, 1}, {1, 0}};
-  baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1);
+  gm::IntersectionMode mode {gm::IntersectionMode::Closest};
+  baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1, mode);
   auto transects_lines = baseline->transects_lines_;
   for (const auto &transect : transects_lines) {
     ASSERT_NEAR(transect.leftEdge_.distance_to_point(transect.rightEdge_), 1,
@@ -190,7 +196,8 @@ TEST_F(BaselineTest, test_baseline_transect_length1) {
 
 TEST_F(BaselineTest, test_baseline_transect_length2) {
   std::vector<Point<double>> points{{0, 0}, {1, 1}, {2, 0}, {3, 1}};
-  baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1);
+  gm::IntersectionMode mode {gm::IntersectionMode::Closest};
+  baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1, mode);
   auto transects_lines = baseline->transects_lines_;
   for (const auto &transect : transects_lines) {
     ASSERT_NEAR(transect.leftEdge_.distance_to_point(transect.rightEdge_), 1,
