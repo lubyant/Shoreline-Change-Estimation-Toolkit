@@ -9,7 +9,6 @@ include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/lib)
 # add subdirectory
 add_subdirectory(src/dsas)
-add_subdirectory(src/test)
 
 
 # gtest
@@ -36,3 +35,6 @@ include_directories(${GDAL_INCLUDE_DIRS})
 add_executable(${PROJECT_NAME} main.cpp)
 target_link_libraries(${PROJECT_NAME} dsas_lib)
 target_link_libraries(${PROJECT_NAME} pthread)
+
+enable_testing()
+add_subdirectory(src/test)

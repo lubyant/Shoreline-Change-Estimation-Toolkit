@@ -114,7 +114,6 @@ TEST_F(BaselineTest, test_baseline_transect_points1) {
   double y[]{0, 0.5, 1, 1, 1, 0.5, 0};
 
   for (size_t i = 0; i < transects_points.size(); i++) {
-    std::cout << i << std::endl;
     ASSERT_NEAR(x[i], transects_points[i].x, TOL);
     ASSERT_NEAR(y[i], transects_points[i].y, TOL);
   }
@@ -144,7 +143,6 @@ TEST_F(BaselineTest, test_baseline_transect_lines) {
   double y[]{0, 0.5, 1, 0.5, 0.5, 0.5, 0};
 
   for (size_t i = 0; i < transects_lines.size(); i++) {
-    std::cout << i << std::endl;
     ASSERT_NEAR(x[i], transects_lines[i].transect_ref_point_.x, TOL);
     ASSERT_NEAR(y[i], transects_lines[i].transect_ref_point_.y, TOL);
   }
@@ -160,7 +158,6 @@ TEST_F(BaselineTest, test_baseline_transect_lines_right) {
   double y[]{0, 0.5, 1, 0.5, 0.5, 0.5, 0};
 
   for (size_t i = 0; i < transects_lines.size(); i++) {
-    std::cout << i << std::endl;
     ASSERT_NEAR(x[i], transects_lines[i].rightEdge_.x, TOL);
     ASSERT_NEAR(y[i], transects_lines[i].rightEdge_.y, TOL);
   }
@@ -176,7 +173,6 @@ TEST_F(BaselineTest, test_baseline_transect_lines_left) {
   double y[]{0, 0.5, 1, 1.5, 1.5, 0.5, 0};
 
   for (size_t i = 0; i < transects_lines.size(); i++) {
-    std::cout << i << std::endl;
     ASSERT_NEAR(x[i], transects_lines[i].leftEdge_.x, TOL);
     ASSERT_NEAR(y[i], transects_lines[i].leftEdge_.y, TOL);
   }

@@ -1,7 +1,10 @@
 # 'Google_test' is the subproject name
-project(test)
-
-add_executable(test test_utility.cpp test_image.cpp test_dsas.cpp test_geometry.cpp)
+Project(dsas_tests)
+add_executable(dsas_tests
+test_utility.cpp 
+test_image.cpp 
+test_dsas.cpp 
+test_geometry.cpp)
 
 # Link Google Test and main project's source files to the test executable
 # opencv
@@ -19,10 +22,9 @@ else ()
     message(FATAL_ERROR "GDAL not found!")
 endif ()
 include_directories(${GDAL_INCLUDE_DIRS})
-target_link_libraries(test gtest gtest_main)
-target_link_libraries(test ${OpenCV_LIBS})
-target_link_libraries(test ${GDAL_LIBRARIES})
-target_link_libraries(test dsas_lib)
+target_link_libraries(dsas_tests gtest gtest_main)
+target_link_libraries(dsas_tests ${OpenCV_LIBS})
+target_link_libraries(dsas_tests ${GDAL_LIBRARIES})
+target_link_libraries(dsas_tests dsas_lib)
 
-enable_testing()
-add_test(NAME dsas_tests COMMAND tests)
+add_test(NAME DsasTests COMMAND dsas_tests)
