@@ -3,8 +3,11 @@
 //
 #include "DSAS_cpp.h"
 
+#include <unistd.h>
+
 #include <algorithm>
 #include <iostream>
+#include <unordered_set>
 
 #include "../include/dsas.h"
 #include "geometry.h"
@@ -46,7 +49,11 @@ void digital_shoreline_analysis_system(const Path &folder,
     }
   }
   // start to analysis
-  controller(paths, output_folder, options);
+  try {
+    controller(paths, output_folder, options);
+  } catch (std::runtime_error &e) {
+    std::cerr << e.what() << " " << folder.string() << "\n";
+  }
 }
 
 void digital_shoreline_analysis_system(const std::vector<Path> &paths,
@@ -78,25 +85,59 @@ void digital_shoreline_analysis_system(const std::vector<Path> &paths,
       exit(1);
     }
   }
-
-  controller(paths, output_folder, options);
+  try {
+    controller(paths, output_folder, options);
+  } catch (std::runtime_error &e) {
+    std::cerr << e.what() << " " << paths[0].string() << "\n";
+  }
 }
 
 void dsas(const std::vector<Path> &folders, const Path &output_path,
           const Options &options) {
-  util::ThreadPool thread_pool;
+  util::ThreadPool thread_pool(options.thread_num);
+
   std::vector<std::future<std::string>> futures;
   for (const auto &folder : folders) {
     auto ret = thread_pool.enqueue(
-        [&options](const Path &folder, const Path &output) {
+        [](const Path &folder, const Path &output, const Options &options) {
           dsas::digital_shoreline_analysis_system(folder, output, options);
           return folder.string();
         },
-        folder, output_path);
+        folder, output_path, options);
     futures.push_back(std::move(ret));
+    std::cout << "Task enqueue: " << folder.string() << "\n";
   }
-  for (auto &future : futures) {
-    std::cout << "Task: " << future.get() << "\" complete.\n";
+
+  size_t volatile total_tasks{futures.size()};
+  size_t volatile finished_tasks{0};
+  std::unordered_set<size_t> complete_tasks_ids;
+  while (1) {
+    sleep(30);
+    if (finished_tasks == total_tasks) {
+      break;
+    }
+    for (size_t i = 0; i < futures.size(); i++) {
+      auto &future = futures.at(i);
+      if (complete_tasks_ids.find(i) == complete_tasks_ids.end() &&
+          future.wait_for(std::chrono::seconds(0)) ==
+              std::future_status::ready) {
+        try {
+          auto res{future.get()};
+          finished_tasks++;
+          complete_tasks_ids.insert(i);
+          std::cout << finished_tasks << "/" << total_tasks << ", Task: " << res
+                    << "\" complete.\n";
+        } catch (const std::runtime_error &e) {
+          std::cerr << e.what() << '\n';
+          finished_tasks++;
+          complete_tasks_ids.insert(i);
+        } catch (const std::exception &e) {
+          std::cerr << "Unexpected err: " << e.what() << '\n';
+          finished_tasks++;
+          complete_tasks_ids.insert(i);
+        }
+      }
+    }
   }
 }
 
@@ -105,9 +146,18 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
   // read the image
   std::vector<std::unique_ptr<Image>> images;
   for (const auto &path : paths) {
-    images.emplace_back(std::make_unique<Image>(path, options));
+    try {
+      images.emplace_back(std::make_unique<Image>(path, options));
+    } catch (const std::runtime_error &e) {
+      std::cerr << e.what() << "\n";
+    } catch (const std::exception &e) {
+      std::cerr << e.what() << "\n";
+      exit(1);
+    }
   }
-
+  if (images.size() <= 1) {
+    throw std::runtime_error("Too few images to process: ");
+  }
   // generate the baselines
   auto baselines = generate_baselines(images, options);
 

@@ -23,6 +23,7 @@ struct Options {
   double transect_length{500};
   double transect_spacing{30};
   double transect_offset{0};
+  size_t thread_num{};
   gm::IntersectionMode intersection_mode{gm::IntersectionMode::Closest};
 };
 
@@ -37,7 +38,7 @@ struct Image {
   cv::Mat img_;                                   // image pixel vals
   std::vector<std::vector<cv::Point>> contours_;  // image edge contours
   Shorelines shorelines_;                         // shoreline contour
-  int edge_distance_;   // outside (ed, rows-ed) is edge
+  int edge_distance_;    // outside (ed, rows-ed) is edge
   double least_factor_;  // shoreline.size() < factor * max_size, remove
 
   Image() = delete;

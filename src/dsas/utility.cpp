@@ -9,12 +9,7 @@
 
 namespace util {
 
-ThreadPool::ThreadPool()
-    : num_threads_(std::thread::hardware_concurrency()), stop_(false) {
-  init_workers();
-}
-
-[[maybe_unused]] ThreadPool::ThreadPool(uint32_t num_threads)
+ThreadPool::ThreadPool(uint32_t num_threads)
     : num_threads_(num_threads), stop_(false) {
   init_workers();
 }

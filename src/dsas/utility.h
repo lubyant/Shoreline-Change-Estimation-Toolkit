@@ -27,7 +27,7 @@
 #endif
 
 #ifndef RMS
-#define RMS(x, y) sqrt((x)*(x) + (y)*(y))
+#define RMS(x, y) sqrt((x) * (x) + (y) * (y))
 #endif
 
 namespace util {
@@ -114,9 +114,8 @@ gm::Point<T> computeIntersectPoint(const gm::Point<T> &p1,
 
 class ThreadPool {
  public:
-  ThreadPool();
-
-  [[maybe_unused]] explicit ThreadPool(uint32_t num_threads);
+  explicit ThreadPool(
+      uint32_t num_threads = std::thread::hardware_concurrency());
 
   ~ThreadPool();
 
