@@ -112,7 +112,7 @@ void dsas(const std::vector<Path> &folders, const Path &output_path,
   size_t volatile finished_tasks{0};
   std::unordered_set<size_t> complete_tasks_ids;
   while (1) {
-    sleep(30);
+    sleep(10);
     if (finished_tasks == total_tasks) {
       break;
     }
@@ -128,12 +128,15 @@ void dsas(const std::vector<Path> &folders, const Path &output_path,
           std::cout << finished_tasks << "/" << total_tasks << ", Task: " << res
                     << "\" complete.\n";
         } catch (const std::runtime_error &e) {
-          std::cerr << e.what() << '\n';
           finished_tasks++;
+          std::cerr << finished_tasks << "/" << total_tasks << e.what() << ", "
+                    << folders[i] << '\n';
           complete_tasks_ids.insert(i);
         } catch (const std::exception &e) {
-          std::cerr << "Unexpected err: " << e.what() << '\n';
           finished_tasks++;
+          std::cerr << finished_tasks << "/" << total_tasks
+                    << "Unexpected err: " << e.what() << ", " << folders[i]
+                    << '\n';
           complete_tasks_ids.insert(i);
         }
       }
