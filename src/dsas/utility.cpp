@@ -89,9 +89,14 @@ double linearRegressRate(const std::vector<gm::IntersectPoint> &intersections) {
   return totalRate / (double)(copy.size() - 1);
 }
 void save_points(const std::vector<gm::IntersectPoint> &shapes,
+                 const char *pszProj,
                  const std::filesystem::path &output_path) {
   // Initialize GDAL
   GDALAllRegister();
+  OGRSpatialReference oSRS;
+  if (oSRS.importFromWkt(&pszProj) != OGRERR_NONE) {
+    throw std::runtime_error("Projection setting fail!");
+  }
 
   // Get the shapefile driver
   GDALDriver *driver =
@@ -106,7 +111,10 @@ void save_points(const std::vector<gm::IntersectPoint> &shapes,
 
   // Step 4: Create a layer for the shapefile
   OGRLayer *layer =
-      dataset->CreateLayer("pointLayer", nullptr, wkbPoint, nullptr);
+      dataset->CreateLayer("pointLayer", &oSRS, wkbPoint, nullptr);
+  if (layer == nullptr) {
+    throw std::runtime_error("Layer is not created!");
+  }
 
   // define attributes
   for (size_t i = 0; i < shapes[0].get_names().size(); i++) {
@@ -143,8 +151,13 @@ void save_points(const std::vector<gm::IntersectPoint> &shapes,
 }
 template <>
 void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
+                                  const char *pszProj,
                                   const std::filesystem::path &output_path) {
   GDALAllRegister();
+  OGRSpatialReference oSRS;
+  if (oSRS.importFromWkt(&pszProj) != OGRERR_NONE) {
+    throw std::runtime_error("Projection setting fail!");
+  }
 
   GDALDriver *driver =
       GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
@@ -155,8 +168,7 @@ void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
     throw std::runtime_error("Failed to create dataset");
   }
 
-  OGRLayer *layer =
-      dataset->CreateLayer("line", nullptr, wkbLineString, nullptr);
+  OGRLayer *layer = dataset->CreateLayer("line", &oSRS, wkbLineString, nullptr);
   if (!layer) {
     throw std::runtime_error("Failed to create layer");
   }

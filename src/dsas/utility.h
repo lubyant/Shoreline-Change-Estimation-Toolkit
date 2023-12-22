@@ -165,13 +165,17 @@ typename std::enable_if<I != sizeof...(Args), void>::type set_ogr_feature(
 }
 
 void save_points(const std::vector<gm::IntersectPoint> &shapes,
-                 const std::filesystem::path &output_path);
+                 const char *pszProj, const std::filesystem::path &output_path);
 
 template <typename T>
-void save_lines(std::vector<T> &lines,
+void save_lines(std::vector<T> &lines, const char *pszProj,
                 const std::filesystem::path &output_path) {
   // Step 1: Initialize GDAL
   GDALAllRegister();
+  OGRSpatialReference oSRS;
+  if (oSRS.importFromWkt(&pszProj) != OGRERR_NONE) {
+    throw std::runtime_error("Projection setting fail!");
+  }
 
   // Step 2: Get the shapefile driver
   GDALDriver *driver =
@@ -185,9 +189,8 @@ void save_lines(std::vector<T> &lines,
   }
 
   // Step 4: Create a layer for the shapefile
-  OGRLayer *layer =
-      dataset->CreateLayer("line", nullptr, wkbLineString, nullptr);
-  if (!layer) {
+  OGRLayer *layer = dataset->CreateLayer("line", &oSRS, wkbLineString, nullptr);
+  if (layer == nullptr) {
     throw std::runtime_error("Failed to create layer");
   }
 
@@ -235,6 +238,7 @@ void save_lines(std::vector<T> &lines,
 }
 template <>
 void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
+                                  const char *pszProj,
                                   const std::filesystem::path &output_path);
 
 }  // namespace util

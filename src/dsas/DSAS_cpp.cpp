@@ -184,7 +184,8 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
   }
   const Path output_file_intersection =
       output_folder / Path(images[0]->file_name_ + "intersection.shp");
-  util::save_points(intersections, output_file_intersection);
+  util::save_points(intersections, images[0]->psz_prj_,
+                    output_file_intersection);
 
   // save the transects to shp
   std::vector<gm::TransectLine> output_file;
@@ -194,7 +195,8 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
     }
   }
   util::save_lines<gm::TransectLine>(
-      output_file, output_folder / (images[0]->file_name_ + "transect.shp"));
+      output_file, images[0]->psz_prj_,
+      output_folder / (images[0]->file_name_ + "transect.shp"));
 
   // save the shoreline to shp
   std::vector<gm::Shoreline> shorelines;
@@ -205,11 +207,13 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
   }
 
   util::save_lines<gm::Shoreline>(
-      shorelines, output_folder / (images[0]->file_name_ + "shoreline.shp"));
+      shorelines, images[0]->psz_prj_,
+      output_folder / (images[0]->file_name_ + "shoreline.shp"));
 
   // save the baseline to shp
   util::save_lines<gm::Baseline>(
-      baselines, output_folder / (images[0]->file_name_ + "baseline.shp"));
+      baselines, images[0]->psz_prj_,
+      output_folder / (images[0]->file_name_ + "baseline.shp"));
 }
 
 Baselines generate_baselines(const std::vector<std::unique_ptr<Image>> &images,

@@ -7,7 +7,8 @@ namespace dsas {
 Image::Image(std::filesystem::path image_path, const Options &options)
     : image_path_(std::move(image_path)),
       edge_distance_(options.edge_distance),
-      least_factor_(options.shoreline_least_factor) {
+      least_factor_(options.shoreline_least_factor),
+      psz_prj_(set_proj()) {
   // file name
   auto image_name = image_path_.stem().string();
 
@@ -47,7 +48,7 @@ void Image::extract_contours() {
   // contour
   cv::findContours(thresh, contours_, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
-  if(contours_.empty()){
+  if (contours_.empty()) {
     throw std::runtime_error("No contours in images: " + image_path_.string());
   }
 
@@ -57,8 +58,9 @@ void Image::extract_contours() {
                                    return this->is_closure(contour);
                                  }),
                   contours_.end());
-  if(contours_.empty()){
-    throw std::runtime_error("No edge contours in images" + image_path_.string());
+  if (contours_.empty()) {
+    throw std::runtime_error("No edge contours in images" +
+                             image_path_.string());
   }
 }
 
@@ -94,8 +96,9 @@ void Image::extract_shorelines() {
       shorelines.push_back(points);
     }
   }
-  if(shorelines.empty()){
-    throw std::runtime_error("No shorelines from contours" + image_path_.string());
+  if (shorelines.empty()) {
+    throw std::runtime_error("No shorelines from contours" +
+                             image_path_.string());
   }
   shorelines_ = std::move(shorelines);
 }
@@ -105,13 +108,13 @@ void Image::process_shorelines() {
   auto max_num = std::max_element(
       shorelines_.begin(), shorelines_.end(),
       [](const auto &a, const auto &b) { return a.size() < b.size(); });
-  if(max_num == shorelines_.end()){
+  if (max_num == shorelines_.end()) {
     throw std::runtime_error("No shorelines available.");
   }
 
   // threshold = max * least_factor
   auto threshold =
-      (size_t) (least_factor_ * static_cast<double>(max_num->size()));
+      (size_t)(least_factor_ * static_cast<double>(max_num->size()));
 
   // remove shorelines that is too short
   shorelines_.erase(

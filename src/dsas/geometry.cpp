@@ -176,10 +176,10 @@ Baseline::Baseline(const std::vector<BaselinesVertex> &points,
       offset_(offset) {
   // create the baselineSeq
   int transect_id{0};
-  if(smooth_factor < 1){
+  if (smooth_factor < 1) {
     throw std::runtime_error("smooth factor should no less than 1");
   }
-  for (size_t i = 0; i < points.size() - smooth_factor; i+= smooth_factor) {
+  for (size_t i = 0; i < points.size() - smooth_factor; i += smooth_factor) {
     BaselineSeg baselineSeg{spacing_, offset_, points.at(i),
                             points.at(i + smooth_factor)};
     if (i == 0) {
