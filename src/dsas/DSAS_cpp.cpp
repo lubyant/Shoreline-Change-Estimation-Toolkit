@@ -225,6 +225,7 @@ Baselines generate_baselines(const std::vector<std::unique_ptr<Image>> &images,
       });
 
   auto &shorelines = img->get()->shorelines_;
+  int image_id = std::stoi(img->get()->file_name_);
 
   std::vector<gm::Baseline> baselines;
   int baseline_id{};
@@ -238,7 +239,8 @@ Baselines generate_baselines(const std::vector<std::unique_ptr<Image>> &images,
     int smooth_factor{options.smooth_factor};
     gm::IntersectionMode mode{options.intersection_mode};
     baselines.emplace_back(shoreline.shoreline_vertices_, transect_length,
-                           spacing, baseline_id++, offset, smooth_factor, mode);
+                           spacing, baseline_id++, image_id, offset,
+                           smooth_factor, mode);
   }
   return baselines;
 }
@@ -246,7 +248,8 @@ Baselines generate_baselines(const std::vector<std::unique_ptr<Image>> &images,
 TransectGroups generate_transects(const Baselines &baselines) {
   TransectGroups transectGroups{};
   for (auto &baseline : baselines) {
-    Transects transects{baseline.baseline_id_, baseline.transects_lines_};
+    Transects transects{baseline.baseline_id_, baseline.image_id_,
+                        baseline.transects_lines_};
     transectGroups.push_back(transects);
   }
   return transectGroups;

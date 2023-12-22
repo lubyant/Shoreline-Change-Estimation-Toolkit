@@ -14,6 +14,7 @@
 namespace dsas {
 struct Transects {
   int baseline_id_;
+  int image_id_;
   std::vector<gm::TransectLine> transects_;
 };
 

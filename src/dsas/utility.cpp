@@ -183,6 +183,11 @@ void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
     std::cerr << "Failed to create Name field" << std::endl;
     exit(1);
   }
+  OGRFieldDefn image_id("ImageId", OFTInteger);
+  if (layer->CreateField(&image_id) != OGRERR_NONE) {
+    std::cerr << "Failed to create Name field" << std::endl;
+    exit(1);
+  }
   OGRFieldDefn change_rate("ChangeRate", OFTReal);
   change_rate.SetWidth(8);
   change_rate.SetPrecision(3);
@@ -210,6 +215,7 @@ void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
     }
     feature->SetField("BaselineId", shape.baseline_id_);
     feature->SetField("TransectId", shape.transect_id_);
+    feature->SetField("ImageId", shape.image_id_);
     feature->SetField("ChangeRate", shape.change_rate);
 
     // Step 8: Add the feature to the layer

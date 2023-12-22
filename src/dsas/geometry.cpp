@@ -137,8 +137,9 @@ std::optional<IntersectPoint> TransectLine::intersection(
       auto point = find_intersection(shoreline[i], shoreline[i + 1]);
       auto distance = distance2ref(point);
       IntersectPoint intersect_point{
-          point,        transect_id_,    shoreline.shoreline_id_,
-          baseline_id_, shoreline.year_, distance};
+          point,        transect_id_, shoreline.shoreline_id_,
+          baseline_id_, image_id_,    shoreline.year_,
+          distance};
       intersections.push_back(intersect_point);
     }
   }
@@ -169,8 +170,10 @@ std::optional<IntersectPoint> TransectLine::intersection(
 
 Baseline::Baseline(const std::vector<BaselinesVertex> &points,
                    double transect_length, double spacing, int baseline_id,
-                   double offset, int smooth_factor, gm::IntersectionMode mode)
+                   int image_id, double offset, int smooth_factor,
+                   gm::IntersectionMode mode)
     : baseline_id_(baseline_id),
+      image_id_(image_id),
       spacing_(spacing),
       transect_length_(transect_length),
       offset_(offset) {
@@ -186,7 +189,7 @@ Baseline::Baseline(const std::vector<BaselinesVertex> &points,
       transects_base_points_.push_back(baselineSeg.leftEdge_);
       transects_lines_.emplace_back(baselineSeg.leftEdge_, transect_length_,
                                     baselineSeg.normal_vector_, transect_id++,
-                                    baseline_id_, mode);
+                                    baseline_id_, image_id_, mode);
       baseline_vertices_.push_back(baselineSeg.leftEdge_);
     }
     baseline_vertices_.push_back(baselineSeg.rightEdge_);
@@ -194,7 +197,7 @@ Baseline::Baseline(const std::vector<BaselinesVertex> &points,
       transects_base_points_.push_back(point);
       transects_lines_.emplace_back(point, transect_length_,
                                     baselineSeg.normal_vector_, transect_id++,
-                                    baseline_id_);
+                                    baseline_id_, image_id_, mode);
     }
   }
 }
