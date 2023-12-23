@@ -241,5 +241,7 @@ void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
                                   const char *pszProj,
                                   const std::filesystem::path &output_path);
 
+double least_square(std::vector<double> &x, std::vector<double> &y);
+
 }  // namespace util
 #endif  // DSAS_CPP_UTILITY_H

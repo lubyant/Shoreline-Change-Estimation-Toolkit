@@ -73,10 +73,9 @@ double linearRegressRate(const std::vector<gm::IntersectPoint> &intersections) {
 
   // if more than two intersections
   // Compute the rates for consecutive years
-  double totalRate = 0;
+  std::vector<double> y;
+  std::vector<double> x;
   for (size_t i = 1; i < copy.size(); ++i) {
-    double distanceChange =
-        copy[i].distance_to_ref_ - copy[i - 1].distance_to_ref_;
     int yearChange = copy[i].year_ - copy[i - 1].year_;
 
     if (yearChange == 0) {
@@ -84,9 +83,10 @@ double linearRegressRate(const std::vector<gm::IntersectPoint> &intersections) {
       continue;
     }
 
-    totalRate += distanceChange / yearChange;
+    x.push_back(copy[i].year_);
+    y.push_back(copy[i].distance_to_ref_);
   }
-  return totalRate / (double)(copy.size() - 1);
+  return least_square(x, y);
 }
 void save_points(const std::vector<gm::IntersectPoint> &shapes,
                  const char *pszProj,
@@ -148,6 +148,31 @@ void save_points(const std::vector<gm::IntersectPoint> &shapes,
 
   // Clean up
   GDALClose(dataset);
+}
+double least_square(std::vector<double> &x, std::vector<double> &y) {
+  if (x.size() != y.size()) {
+    throw std::runtime_error("x, y need to have the same size!");
+  }
+  if (x.size() == 0 || y.size() == 0) {
+    return -999.99;
+  }
+  double mean_x = 0, mean_y = 0, sum_x = 0, sum_y = 0;
+  for (size_t i = 0; i < x.size(); i++) {
+    sum_x += x[i];
+    sum_y += y[i];
+  }
+  mean_x = sum_x / x.size();
+  mean_y = sum_y / y.size();
+
+  double var = 0, co_var = 0;
+  for (size_t i = 0; i < x.size(); i++) {
+    var += (x[i] - mean_x) * (x[i] - mean_x);
+    co_var += (x[i] - mean_x) * (y[i] - mean_y);
+  }
+  if (var == 0) {
+    return -999.99;
+  }
+  return co_var / var;
 }
 template <>
 void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
@@ -229,4 +254,5 @@ void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
   // Clean up
   GDALClose(dataset);
 }
+
 }  // namespace util

@@ -4,6 +4,7 @@
 
 #include "../dsas/utility.h"
 #include "gtest/gtest.h"
+#define TOL 1e-4
 using namespace util;
 TEST(UtilityTest, TestCrossProduct) {
   std::vector<double> vec1{0.0, 1.0};
@@ -45,4 +46,26 @@ TEST(UtilityTest, TestIntersectPoint) {
 
   EXPECT_EQ(intersection.x, 0.5);
   EXPECT_EQ(intersection.y, 0.5);
+}
+TEST(UtilityTest, TestLeastSquare) {
+  {
+    std::vector<double> x{1, 2, 3, 4, 5};
+    std::vector<double> y{2, 4, 6, 8, 10};
+    ASSERT_NEAR(least_square(x, y), 2.0, TOL);
+  }
+  {
+    std::vector<double> x{1, 2, 3, 4, 5};
+    std::vector<double> y{0, 0, 0, 0, 0};
+    ASSERT_NEAR(least_square(x, y), 0, TOL);
+  }
+  {
+    std::vector<double> x{1, 2, 3, 4, 5};
+    std::vector<double> y{10, 8, 6, 4, 2};
+    ASSERT_NEAR(least_square(x, y), -2.0, TOL);
+  }
+  {
+    std::vector<double> x{0, 0, 0, 0, 0};
+    std::vector<double> y{0, 0, 0, 0, 0};
+    ASSERT_NEAR(least_square(x, y), -999.99, TOL);
+  }
 }
