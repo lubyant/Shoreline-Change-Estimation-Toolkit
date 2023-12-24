@@ -153,16 +153,16 @@ double least_square(std::vector<double> &x, std::vector<double> &y) {
   if (x.size() != y.size()) {
     throw std::runtime_error("x, y need to have the same size!");
   }
-  if (x.size() == 0 || y.size() == 0) {
+  if (x.empty() || y.empty()) {
     return -999.99;
   }
-  double mean_x = 0, mean_y = 0, sum_x = 0, sum_y = 0;
+  double mean_x, mean_y, sum_x = 0, sum_y = 0;
   for (size_t i = 0; i < x.size(); i++) {
     sum_x += x[i];
     sum_y += y[i];
   }
-  mean_x = sum_x / x.size();
-  mean_y = sum_y / y.size();
+  mean_x = sum_x / static_cast<double>(x.size());
+  mean_y = sum_y / static_cast<double>(y.size());
 
   double var = 0, co_var = 0;
   for (size_t i = 0; i < x.size(); i++) {

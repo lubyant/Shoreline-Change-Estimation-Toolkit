@@ -111,7 +111,7 @@ void dsas(const std::vector<Path> &folders, const Path &output_path,
   size_t volatile total_tasks{futures.size()};
   size_t volatile finished_tasks{0};
   std::unordered_set<size_t> complete_tasks_ids;
-  while (1) {
+  while (true) {
     sleep(10);
     if (finished_tasks == total_tasks) {
       break;
@@ -248,7 +248,7 @@ Baselines generate_baselines(const std::vector<std::unique_ptr<Image>> &images,
 TransectGroups generate_transects(const Baselines &baselines) {
   TransectGroups transectGroups{};
   for (auto &baseline : baselines) {
-    Transects transects{baseline.baseline_id_, baseline.image_id_,
+    Transects transects{baseline.baseline_id_,
                         baseline.transects_lines_};
     transectGroups.push_back(transects);
   }

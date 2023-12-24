@@ -72,9 +72,9 @@ struct Image {
                         });
   }
 
-  const char *set_proj() {
+  [[nodiscard]] const char *set_proj() const {
     GDALAllRegister();
-    GDALDataset *poTIFFDataset =
+    auto *poTIFFDataset =
         static_cast<GDALDataset *>(GDALOpen(image_path_.c_str(), GA_ReadOnly));
     if (poTIFFDataset == nullptr) {
       throw std::runtime_error("Not available tiff!");
