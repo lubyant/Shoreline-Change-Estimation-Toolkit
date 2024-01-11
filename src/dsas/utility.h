@@ -167,6 +167,9 @@ typename std::enable_if<I != sizeof...(Args), void>::type set_ogr_feature(
 void save_points(const std::vector<gm::IntersectPoint> &shapes,
                  const char *pszProj, const std::filesystem::path &output_path);
 
+void save_points(const std::vector<gm::TransectLine> &shapes,
+                const char *pszProj, const std::filesystem::path &output_path);
+
 template <typename T>
 void save_lines(std::vector<T> &lines, const char *pszProj,
                 const std::filesystem::path &output_path) {

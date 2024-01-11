@@ -122,8 +122,12 @@ struct BaselineSeg : public LineSegment {
   }
 };
 
-struct TransectLine : public LineSegment, MultiLine<Point<double>> {
-  Point<double> transect_ref_point_;  // point to calculate the erosion
+#define transect_t int, int, int, double
+struct TransectLine : public LineSegment,
+                      MultiLine<Point<double>>,
+                      GDALShpSaver<transect_t> {
+  Point<double> transect_ref_point_;   // point to calculate the erosion
+  Point<double> transect_base_point_;  // point to generate the shapefile
   int transect_id_;
   int baseline_id_;
   int image_id_;
@@ -134,8 +138,10 @@ struct TransectLine : public LineSegment, MultiLine<Point<double>> {
                std::pair<double, double> baseline_normal_vector,
                int transect_id, int baseline_id, int image_id,
                IntersectionMode mode = IntersectionMode::Closest)
-      : LineSegment(create_transect(transect_base, baseline_normal_vector,
+      : transect_base_point_(transect_base),
+        LineSegment(create_transect(transect_base, baseline_normal_vector,
                                     transect_length)),
+
         transect_ref_point_(rightEdge_),
         transect_id_(transect_id),
         baseline_id_(baseline_id),
@@ -166,6 +172,17 @@ struct TransectLine : public LineSegment, MultiLine<Point<double>> {
       default:
         throw std::runtime_error("Not a valid index");
     }
+  }
+
+  [[nodiscard]] std::vector<std::string> get_names() const override {
+    return {"TransectId", "BaselineId", "ImageId", "ChangeRate"};
+  }
+  [[nodiscard]] std::vector<OGRFieldType> get_types() const override {
+    return {OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
+            OGRFieldType::OFTInteger, OGRFieldType::OFTReal};
+  }
+  [[nodiscard]] std::tuple<transect_t> get_values() const override {
+    return {transect_id_, baseline_id_, image_id_, change_rate};
   }
 };
 

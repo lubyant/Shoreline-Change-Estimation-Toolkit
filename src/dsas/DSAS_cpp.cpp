@@ -194,9 +194,8 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
       output_file.push_back(std::move(transect_line));
     }
   }
-  util::save_lines<gm::TransectLine>(
-      output_file, images[0]->psz_prj_,
-      output_folder / (images[0]->file_name_ + "transect.shp"));
+  util::save_points(output_file, images[0]->psz_prj_,
+                    output_folder / (images[0]->file_name_ + "transect.shp"));
 
   // save the shoreline to shp
   std::vector<gm::Shoreline> shorelines;
@@ -248,8 +247,7 @@ Baselines generate_baselines(const std::vector<std::unique_ptr<Image>> &images,
 TransectGroups generate_transects(const Baselines &baselines) {
   TransectGroups transectGroups{};
   for (auto &baseline : baselines) {
-    Transects transects{baseline.baseline_id_,
-                        baseline.transects_lines_};
+    Transects transects{baseline.baseline_id_, baseline.transects_lines_};
     transectGroups.push_back(transects);
   }
   return transectGroups;
