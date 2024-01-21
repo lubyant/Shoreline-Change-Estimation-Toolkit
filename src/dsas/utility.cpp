@@ -93,7 +93,6 @@ void save_points(const std::vector<gm::IntersectPoint> &shapes,
                  const char *pszProj,
                  const std::filesystem::path &output_path) {
   // Initialize GDAL
-  GDALAllRegister();
   OGRSpatialReference oSRS;
   if (oSRS.importFromWkt(&pszProj) != OGRERR_NONE) {
     throw std::runtime_error("Projection setting fail!");
@@ -155,7 +154,6 @@ void save_points(const std::vector<gm::TransectLine> &shapes,
                  const char *pszProj,
                  const std::filesystem::path &output_path) {
   // Initialize GDAL
-  GDALAllRegister();
   OGRSpatialReference oSRS;
   if (oSRS.importFromWkt(&pszProj) != OGRERR_NONE) {
     throw std::runtime_error("Projection setting fail!");
@@ -211,8 +209,7 @@ void save_points(const std::vector<gm::TransectLine> &shapes,
 
   // Clean up
   GDALClose(dataset);
-
-                 }
+}
 
 double least_square(std::vector<double> &x, std::vector<double> &y) {
   if (x.size() != y.size()) {
@@ -239,11 +236,21 @@ double least_square(std::vector<double> &x, std::vector<double> &y) {
   }
   return co_var / var;
 }
+
+std::string get_proj(const char *path) {
+  auto *poTIFFDataset = static_cast<GDALDataset *>(GDALOpen(path, GA_ReadOnly));
+  if (poTIFFDataset == nullptr) {
+    throw std::runtime_error("Not available tiff!");
+  }
+  std::string psz_prj_ = std::string(poTIFFDataset->GetProjectionRef());
+  GDALClose(poTIFFDataset);
+  return psz_prj_;
+}
+
 template <>
 void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
                                   const char *pszProj,
                                   const std::filesystem::path &output_path) {
-  GDALAllRegister();
   OGRSpatialReference oSRS;
   if (oSRS.importFromWkt(&pszProj) != OGRERR_NONE) {
     throw std::runtime_error("Projection setting fail!");

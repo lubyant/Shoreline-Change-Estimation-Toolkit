@@ -40,7 +40,6 @@ struct Image {
   Shorelines shorelines_;                         // shoreline contour
   int edge_distance_;    // outside (ed, rows-ed) is edge
   double least_factor_;  // shoreline.size() < factor * max_size, remove
-  const char *psz_prj_;  // image projection
 
   Image() = delete;
 
@@ -70,16 +69,6 @@ struct Image {
                         [this](const cv::Point &point) {
                           return this->is_edge(point.x, point.y);
                         });
-  }
-
-  [[nodiscard]] const char *set_proj() const {
-    GDALAllRegister();
-    auto *poTIFFDataset =
-        static_cast<GDALDataset *>(GDALOpen(image_path_.c_str(), GA_ReadOnly));
-    if (poTIFFDataset == nullptr) {
-      throw std::runtime_error("Not available tiff!");
-    }
-    return poTIFFDataset->GetProjectionRef();
   }
 };
 }  // namespace dsas

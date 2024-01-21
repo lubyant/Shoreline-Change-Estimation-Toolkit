@@ -7,8 +7,7 @@ namespace dsas {
 Image::Image(std::filesystem::path image_path, const Options &options)
     : image_path_(std::move(image_path)),
       edge_distance_(options.edge_distance),
-      least_factor_(options.shoreline_least_factor),
-      psz_prj_(set_proj()) {
+      least_factor_(options.shoreline_least_factor) {
   // file name
   auto image_name = image_path_.stem().string();
 
@@ -126,8 +125,6 @@ void Image::process_shorelines() {
 }
 
 void Image::transform_coordinates() {
-  GDALAllRegister();
-
   auto *poDataset = (GDALDataset *)GDALOpen(image_path_.c_str(), GA_ReadOnly);
   if (poDataset == nullptr) {
     std::cerr << "Error opening dataset." << std::endl;

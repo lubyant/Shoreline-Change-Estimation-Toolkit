@@ -168,13 +168,12 @@ void save_points(const std::vector<gm::IntersectPoint> &shapes,
                  const char *pszProj, const std::filesystem::path &output_path);
 
 void save_points(const std::vector<gm::TransectLine> &shapes,
-                const char *pszProj, const std::filesystem::path &output_path);
+                 const char *pszProj, const std::filesystem::path &output_path);
 
 template <typename T>
 void save_lines(std::vector<T> &lines, const char *pszProj,
                 const std::filesystem::path &output_path) {
   // Step 1: Initialize GDAL
-  GDALAllRegister();
   OGRSpatialReference oSRS;
   if (oSRS.importFromWkt(&pszProj) != OGRERR_NONE) {
     throw std::runtime_error("Projection setting fail!");
@@ -245,6 +244,8 @@ void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
                                   const std::filesystem::path &output_path);
 
 double least_square(std::vector<double> &x, std::vector<double> &y);
+
+std::string get_proj(const char *path);
 
 }  // namespace util
 #endif  // DSAS_CPP_UTILITY_H

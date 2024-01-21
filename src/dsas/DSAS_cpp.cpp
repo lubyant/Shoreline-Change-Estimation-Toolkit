@@ -94,6 +94,7 @@ void digital_shoreline_analysis_system(const std::vector<Path> &paths,
 
 void dsas(const std::vector<Path> &folders, const Path &output_path,
           const Options &options) {
+  GDALAllRegister();
   util::ThreadPool thread_pool(options.thread_num);
 
   std::vector<std::future<std::string>> futures;
@@ -161,6 +162,10 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
   if (images.size() <= 1) {
     throw std::runtime_error("Too few images to process: ");
   }
+
+  // get image projection using the baseline
+  std::string psz_prj_ = util::get_proj(images[0]->image_path_.c_str());
+
   // generate the baselines
   auto baselines = generate_baselines(images, options);
 
@@ -184,8 +189,7 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
   }
   const Path output_file_intersection =
       output_folder / Path(images[0]->file_name_ + "intersection.shp");
-  util::save_points(intersections, images[0]->psz_prj_,
-                    output_file_intersection);
+  util::save_points(intersections, psz_prj_.c_str(), output_file_intersection);
 
   // save the transects to shp
   std::vector<gm::TransectLine> output_file;
@@ -194,8 +198,10 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
       output_file.push_back(std::move(transect_line));
     }
   }
-  util::save_points(output_file, images[0]->psz_prj_,
-                    output_folder / (images[0]->file_name_ + "transect.shp"));
+  util::save_lines(output_file, psz_prj_.c_str(),
+                   output_folder / (images[0]->file_name_ + "transect.shp"));
+  util::save_points(output_file, psz_prj_.c_str(),
+                    output_folder / (images[0]->file_name_ + "result.shp"));
 
   // save the shoreline to shp
   std::vector<gm::Shoreline> shorelines;
@@ -204,14 +210,13 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
       shorelines.push_back(shoreline);
     }
   }
-
   util::save_lines<gm::Shoreline>(
-      shorelines, images[0]->psz_prj_,
+      shorelines, psz_prj_.c_str(),
       output_folder / (images[0]->file_name_ + "shoreline.shp"));
 
   // save the baseline to shp
   util::save_lines<gm::Baseline>(
-      baselines, images[0]->psz_prj_,
+      baselines, psz_prj_.c_str(),
       output_folder / (images[0]->file_name_ + "baseline.shp"));
 }
 
