@@ -69,3 +69,11 @@ TEST(UtilityTest, TestLeastSquare) {
     ASSERT_NEAR(least_square(x, y), -999.99, TOL);
   }
 }
+TEST(UtilityTest, TestRemoveOutliers) {
+  std::vector<double> data = {1, 2, 3, 100, 5, 6, -20, 8, 9, 10};
+  std::vector<double> x = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+  util::remove_outliers(x, data, 2.0);
+
+  ASSERT_EQ(x.size(), 8);
+  ASSERT_EQ(data.size(), 8);
+}

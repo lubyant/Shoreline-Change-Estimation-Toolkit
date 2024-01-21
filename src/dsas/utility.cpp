@@ -327,4 +327,31 @@ void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
   GDALClose(dataset);
 }
 
+void remove_outliers(std::vector<double> &x, std::vector<double> &y,
+                     double thres) {
+  // check dimension
+  size_t nx = x.size(), ny = y.size();
+  if (nx != ny) {
+    throw std::runtime_error("x, y is not in the same size!");
+  }
+
+  // compute the standard deviation
+  double stdev = 0;
+  double mean = 0;
+  mean = std::accumulate(y.begin(), y.end(), 0.0) / y.size();
+  stdev = std::sqrt(std::accumulate(y.begin(), y.end(), 0.0,
+                                    [mean](double sum, double val) {
+                                      return sum + (val - mean) * (val - mean);
+                                    })) /
+          y.size();
+
+  // remove outlier
+  for(size_t i=0; i<ny; i++){
+    if(std::abs(y[i] - mean) > thres * stdev){
+      x.erase(x.begin() + i);
+      y.erase(y.begin() + i);
+      i--;
+    }
+  }
+}
 }  // namespace util

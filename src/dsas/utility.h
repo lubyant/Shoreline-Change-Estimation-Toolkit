@@ -247,5 +247,8 @@ double least_square(std::vector<double> &x, std::vector<double> &y);
 
 std::string get_proj(const char *path);
 
+void remove_outliers(std::vector<double> &x, std::vector<double> &y,
+                     double thres);
+
 }  // namespace util
 #endif  // DSAS_CPP_UTILITY_H
