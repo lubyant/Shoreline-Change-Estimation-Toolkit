@@ -89,7 +89,9 @@ bool isTwoSegmentIntersected(const gm::Point<T> &p1, const gm::Point<T> &p2,
   }
 }
 
-double linearRegressRate(const std::vector<gm::IntersectPoint> &intersections);
+void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
+                       gm::TransectLine &transect,
+                       double outlier_rate);
 
 template <typename T>
 gm::Point<T> computeIntersectPoint(const gm::Point<T> &p1,
@@ -243,7 +245,7 @@ void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
                                   const char *pszProj,
                                   const std::filesystem::path &output_path);
 
-double least_square(std::vector<double> &x, std::vector<double> &y);
+double least_square(const std::vector<double> &x, const std::vector<double> &y);
 
 std::string get_proj(const char *path);
 

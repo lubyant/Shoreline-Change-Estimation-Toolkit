@@ -42,7 +42,8 @@ std::vector<gm::IntersectPoint> generate_intersection(
 
 void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
                       &intersections_maps,
-                  TransectGroups &transect_groups);
+                  TransectGroups &transect_groups,
+                  double outlier_rate);
 
 }  // namespace dsas
 

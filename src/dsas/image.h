@@ -23,6 +23,7 @@ struct Options {
   double transect_length{500};
   double transect_spacing{30};
   double transect_offset{0};
+  double outlier_rate{3};
   size_t thread_num{std::thread::hardware_concurrency()};
   gm::IntersectionMode intersection_mode{gm::IntersectionMode::Closest};
 };

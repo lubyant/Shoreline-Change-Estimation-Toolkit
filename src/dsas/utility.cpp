@@ -46,7 +46,9 @@ ThreadPool::~ThreadPool() {
   }
 }
 
-double linearRegressRate(const std::vector<gm::IntersectPoint> &intersections) {
+void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
+                       gm::TransectLine &transect,
+                       double outlier_rate) {
   // if no intersection
   if (intersections.empty()) {
     throw std::runtime_error("It should not empty");
@@ -54,7 +56,10 @@ double linearRegressRate(const std::vector<gm::IntersectPoint> &intersections) {
 
   // if only one intersection
   if (intersections.size() == 1) {
-    return 0;
+    transect.num_intersect_ = 1;
+    transect.change_rate = 0;
+    transect.intersect_info_ = std::to_string(intersections[0].year_) + ", 0.";
+    return;
   }
 
   // sort the vector
@@ -68,13 +73,20 @@ double linearRegressRate(const std::vector<gm::IntersectPoint> &intersections) {
   if (copy.size() == 2) {
     double d_distance = copy[1].distance_to_ref_ - copy[0].distance_to_ref_;
     double d_year = copy[1].year_ - copy[0].year_;
-    return d_distance / d_year;
+    transect.change_rate = d_distance / d_year;
+    transect.num_intersect_ = 2;
+    std::stringstream ss;
+    ss << copy[0].year_ << ", " << copy[0].distance_to_ref_ << ". "
+       << copy[1].year_ << ", " << copy[1].distance_to_ref_ << ". ";
+    transect.intersect_info_ = ss.str();
   }
 
   // if more than two intersections
-  // Compute the rates for consecutive years
-  std::vector<double> y;
-  std::vector<double> x;
+  // firt remove outlier
+  // , then compute the rates for consecutive years
+  // and set the value to transect
+  std::vector<double> y{copy[0].distance_to_ref_};
+  std::vector<double> x{static_cast<double>(copy[0].year_)};
   for (size_t i = 1; i < copy.size(); ++i) {
     int yearChange = copy[i].year_ - copy[i - 1].year_;
 
@@ -86,7 +98,12 @@ double linearRegressRate(const std::vector<gm::IntersectPoint> &intersections) {
     x.push_back(copy[i].year_);
     y.push_back(copy[i].distance_to_ref_);
   }
-  return least_square(x, y);
+
+  // remove the outliers
+  remove_outliers(x, y, outlier_rate);
+
+  // chanage rate
+  transect.set_info(x, y);
 }
 
 void save_points(const std::vector<gm::IntersectPoint> &shapes,
@@ -211,7 +228,8 @@ void save_points(const std::vector<gm::TransectLine> &shapes,
   GDALClose(dataset);
 }
 
-double least_square(std::vector<double> &x, std::vector<double> &y) {
+double least_square(const std::vector<double> &x,
+                    const std::vector<double> &y) {
   if (x.size() != y.size()) {
     throw std::runtime_error("x, y need to have the same size!");
   }
@@ -346,8 +364,8 @@ void remove_outliers(std::vector<double> &x, std::vector<double> &y,
           y.size();
 
   // remove outlier
-  for(size_t i=0; i<ny; i++){
-    if(std::abs(y[i] - mean) > thres * stdev){
+  for (size_t i = 0; i < y.size(); i++) {
+    if (std::abs(y[i] - mean) > thres * stdev) {
       x.erase(x.begin() + i);
       y.erase(y.begin() + i);
       i--;

@@ -168,6 +168,24 @@ std::optional<IntersectPoint> TransectLine::intersection(
   }
 }
 
+void TransectLine::set_info(const std::vector<double> &years,
+                            const std::vector<double> &distances) {
+  if (years.size() != distances.size()) {
+    throw std::runtime_error("size is not the same!");
+  }
+
+  num_intersect_ = years.size();
+  std::stringstream ss;
+  for (size_t i = 0; i < num_intersect_; i++) {
+    ss << years[i] << ", " << distances[i] << ". ";
+    intersect_info_ = ss.str();
+    ss.clear();
+  }
+
+  // calculate the rate
+  change_rate = util::least_square(years, distances);
+}
+
 Baseline::Baseline(const std::vector<BaselinesVertex> &points,
                    double transect_length, double spacing, int baseline_id,
                    int image_id, double offset, int smooth_factor,

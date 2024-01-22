@@ -176,7 +176,7 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
   auto intersection_map = generate_intersections(images, transects);
 
   // compute the regression rate
-  compute_rate(intersection_map, transects);
+  compute_rate(intersection_map, transects, options.outlier_rate);
 
   // save the intersections to shp
   std::vector<gm::IntersectPoint> intersections;
@@ -293,7 +293,8 @@ std::vector<gm::IntersectPoint> generate_intersection(
 }
 void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
                       &intersection_maps,
-                  TransectGroups &transect_groups) {
+                  TransectGroups &transect_groups,
+                  double outlier_rate) {
   // baseline_id <-> vector index
   umap<int, size_t> id_map;
   for (size_t i = 0; i < transect_groups.size(); i++) {
@@ -301,9 +302,6 @@ void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
   }
   for (const auto &kv_baseline : intersection_maps) {
     for (const auto &kv_transect : kv_baseline.second) {
-      // calculate the shoreline rate
-      double reg_rate = util::linearRegressRate(kv_transect.second);
-
       // assign the rate to the transect
       auto it = std::find_if(
           transect_groups[id_map[kv_baseline.first]].transects_.begin(),
@@ -311,7 +309,8 @@ void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
           [&](const gm::TransectLine &a) {
             return a.transect_id_ == kv_transect.first;
           });
-      it->change_rate = reg_rate;
+      // calculate the shoreline rate
+      util::linearRegressRate(kv_transect.second, *it, outlier_rate);
     }
   }
 }

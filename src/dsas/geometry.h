@@ -122,7 +122,7 @@ struct BaselineSeg : public LineSegment {
   }
 };
 
-#define transect_t int, int, int, double
+#define transect_t int, int, int, double, int, const char*
 struct TransectLine : public LineSegment,
                       MultiLine<Point<double>>,
                       GDALShpSaver<transect_t> {
@@ -131,7 +131,9 @@ struct TransectLine : public LineSegment,
   int transect_id_;
   int baseline_id_;
   int image_id_;
-  double change_rate{};  // change rate for all the intersections
+  size_t num_intersect_{};        // number of intersections in this transect
+  std::string intersect_info_{};  // year, dist; year, dist;....
+  double change_rate{};           // change rate for all the intersections
   IntersectionMode mode_;
 
   TransectLine(Point<> &transect_base, double transect_length,
@@ -159,6 +161,9 @@ struct TransectLine : public LineSegment,
     return transect_ref_point_.distance_to_point(point);
   }
 
+  void set_info(const std::vector<double> &years,
+                const std::vector<double> &distances);
+
   [[nodiscard]] size_t size() const override { return 3; }
 
   [[nodiscard]] const Point<double> &operator[](size_t i) const override {
@@ -175,14 +180,17 @@ struct TransectLine : public LineSegment,
   }
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
-    return {"TransectId", "BaselineId", "ImageId", "ChangeRate"};
+    return {"TransectId", "BaselineId",   "ImageId",
+            "ChangeRate", "Nums", "Info"};
   }
   [[nodiscard]] std::vector<OGRFieldType> get_types() const override {
     return {OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
-            OGRFieldType::OFTInteger, OGRFieldType::OFTReal};
+            OGRFieldType::OFTInteger, OGRFieldType::OFTReal,
+            OGRFieldType::OFTInteger, OGRFieldType::OFTString};
   }
   [[nodiscard]] std::tuple<transect_t> get_values() const override {
-    return {transect_id_, baseline_id_, image_id_, change_rate};
+    return {transect_id_, baseline_id_,   image_id_,
+            change_rate,  num_intersect_, intersect_info_.c_str()};
   }
 };
 
