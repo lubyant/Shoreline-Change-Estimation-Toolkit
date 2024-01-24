@@ -12,7 +12,11 @@ Image::Image(std::filesystem::path image_path, const Options &options)
   auto image_name = image_path_.stem().string();
 
   // extract the year from the name
-  year_ = std::stoi(image_name.substr(image_name.size() - 4, 4));
+  try{
+    year_ = std::stoi(image_name.substr(image_name.size() - 4, 4));
+  } catch(std::exception &e){
+    throw std::runtime_error(image_name + e.what());
+  }
 
   // extract the file_name
   file_name_ = image_name.substr(0, image_name.size() - 4);

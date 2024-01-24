@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <stdexcept>
 #include <unordered_set>
 
 #include "../include/dsas.h"
@@ -229,7 +230,12 @@ Baselines generate_baselines(const std::vector<std::unique_ptr<Image>> &images,
       });
 
   auto &shorelines = img->get()->shorelines_;
-  int image_id = std::stoi(img->get()->file_name_);
+  int image_id = 0;
+  try {
+    image_id = std::stoi(img->get()->file_name_);
+  } catch (std::exception &e) {
+    throw std::runtime_error(image_id + e.what());
+  }
 
   std::vector<gm::Baseline> baselines;
   int baseline_id{};
@@ -293,8 +299,7 @@ std::vector<gm::IntersectPoint> generate_intersection(
 }
 void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
                       &intersection_maps,
-                  TransectGroups &transect_groups,
-                  double outlier_rate) {
+                  TransectGroups &transect_groups, double outlier_rate) {
   // baseline_id <-> vector index
   umap<int, size_t> id_map;
   for (size_t i = 0; i < transect_groups.size(); i++) {
