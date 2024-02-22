@@ -21,6 +21,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        # Fetches all submodules recursively. Replace 'recursive' with 'true' to fetch only first-level submodules.
+        submodules: recursive
     
     - name: Set up environment
       # Setup the necessary libaray
