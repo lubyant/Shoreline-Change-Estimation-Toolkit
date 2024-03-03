@@ -360,7 +360,7 @@ void remove_outliers(std::vector<double> &x, std::vector<double> &y,
   stdev = std::sqrt(std::accumulate(y.begin(), y.end(), 0.0,
                                     [mean](double sum, double val) {
                                       return sum + (val - mean) * (val - mean);
-                                    }) / y.size());
+                                    }) / (y.size()-1));
   std::cout << mean << " " << stdev << std::endl;
 
   // remove outlier
