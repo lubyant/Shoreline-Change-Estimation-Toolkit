@@ -12,10 +12,6 @@
 #include "image.h"
 
 namespace dsas {
-struct Transects {
-  int baseline_id_;
-  std::vector<gm::TransectLine> transects_;
-};
 
 
 template <typename Key, typename Value>

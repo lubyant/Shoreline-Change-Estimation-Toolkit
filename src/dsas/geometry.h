@@ -11,6 +11,7 @@
 #include <ogr_core.h>
 
 #include <cmath>
+#include <filesystem>
 #include <iostream>
 #include <optional>
 #include <tuple>
@@ -122,7 +123,7 @@ struct BaselineSeg : public LineSegment {
   }
 };
 
-#define transect_t int, int, int, double, int, const char*
+#define transect_t int, int, int, double, int, const char *
 struct TransectLine : public LineSegment,
                       MultiLine<Point<double>>,
                       GDALShpSaver<transect_t> {
@@ -180,8 +181,8 @@ struct TransectLine : public LineSegment,
   }
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
-    return {"TransectId", "BaselineId",   "ImageId",
-            "ChangeRate", "Nums", "Info"};
+    return {"TransectId", "BaselineId", "ImageId",
+            "ChangeRate", "Nums",       "Info"};
   }
   [[nodiscard]] std::vector<OGRFieldType> get_types() const override {
     return {OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
@@ -302,6 +303,7 @@ struct Transects {
 
 using Path = std::filesystem::path;
 using Baselines = std::vector<Baseline>;
+
 using TransectGroups = std::vector<Transects>;
 }  // namespace gm
 
