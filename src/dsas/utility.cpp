@@ -3,10 +3,6 @@
 //
 #include "utility.h"
 
-#include <functional>
-#include <iostream>
-#include <tuple>
-
 namespace util {
 
 ThreadPool::ThreadPool(uint32_t num_threads)
@@ -47,8 +43,7 @@ ThreadPool::~ThreadPool() {
 }
 
 void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
-                       gm::TransectLine &transect,
-                       double outlier_rate) {
+                       gm::TransectLine &transect, double outlier_rate) {
   // if no intersection
   if (intersections.empty()) {
     throw std::runtime_error("It should not empty");
@@ -360,7 +355,8 @@ void remove_outliers(std::vector<double> &x, std::vector<double> &y,
   stdev = std::sqrt(std::accumulate(y.begin(), y.end(), 0.0,
                                     [mean](double sum, double val) {
                                       return sum + (val - mean) * (val - mean);
-                                    }) / (y.size()-1));
+                                    }) /
+                    (y.size() - 1));
   std::cout << mean << " " << stdev << std::endl;
 
   // remove outlier
@@ -371,5 +367,64 @@ void remove_outliers(std::vector<double> &x, std::vector<double> &y,
       i--;
     }
   }
+}
+
+gm::Baselines load_baselines_shp(gm::Path &baseline_shp_path,
+                                 std::string &field_name,
+                                 dsas::Options &options) {
+  // Initialize GDAL
+  GDALAllRegister();
+
+  // Open the Shapefile
+  GDALDataset *poDS;
+  poDS = static_cast<GDALDataset *>(GDALOpenEx(
+      baseline_shp_path.c_str(), GDAL_OF_VECTOR, NULL, NULL, NULL));
+  if (poDS == NULL) {
+    std::cerr << "Open failed.\n";
+    exit(1);
+  }
+
+  // Get the Layer Containing the Line Features
+  OGRLayer *poLayer;
+  poLayer = poDS->GetLayer(0);
+
+  // Iterate Through the Features in the Layer and Access Points
+  OGRFeature *poFeature;
+  poLayer->ResetReading();
+  gm::Baselines baselines;
+  while ((poFeature = poLayer->GetNextFeature()) != NULL) {
+    OGRGeometry *poGeometry;
+    poGeometry = poFeature->GetGeometryRef();
+    if (poGeometry != NULL &&
+        wkbFlatten(poGeometry->getGeometryType()) == wkbLineString) {
+      OGRLineString *poLine = static_cast<OGRLineString *>(poGeometry);
+      int numPoints = poLine->getNumPoints();
+
+      std::vector<gm::Point<double>> baseline_vertices;
+      for (int i = 0; i < numPoints; i++) {
+        OGRPoint point;
+        poLine->getPoint(i, &point);
+        baseline_vertices.emplace_back(point.getX(), point.getY());
+      }
+      int baseline_id{poFeature->GetFieldAsInteger(field_name.c_str())};
+      gm::Baseline baseline{baseline_vertices,
+                            options.transect_length,
+                            options.transect_spacing,
+                            baseline_id,
+                            baseline_id,
+                            options.transect_offset,
+                            options.smooth_factor,
+                            options.intersection_mode};
+      baselines.push_back(std::move(baseline));
+    } else {
+      std::cout << "No geometry\n";
+    }
+    OGRFeature::DestroyFeature(poFeature);
+  }
+
+  // Cleanup
+  GDALClose(poDS);
+
+  return baselines;
 }
 }  // namespace util

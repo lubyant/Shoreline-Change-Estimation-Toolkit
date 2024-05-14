@@ -12,11 +12,14 @@
 #include <filesystem>
 #include <functional>
 #include <future>
+#include <iostream>
 #include <numeric>
 #include <queue>
+#include <tuple>
 #include <vector>
 
 #include "geometry.h"
+#include "options.h"
 
 #ifndef MIN
 #define MIN(A, B) ((A) < (B) ? (A) : (B))
@@ -90,8 +93,7 @@ bool isTwoSegmentIntersected(const gm::Point<T> &p1, const gm::Point<T> &p2,
 }
 
 void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
-                       gm::TransectLine &transect,
-                       double outlier_rate);
+                       gm::TransectLine &transect, double outlier_rate);
 
 template <typename T>
 gm::Point<T> computeIntersectPoint(const gm::Point<T> &p1,
@@ -251,6 +253,10 @@ std::string get_proj(const char *path);
 
 void remove_outliers(std::vector<double> &x, std::vector<double> &y,
                      double thres);
+
+gm::Baselines load_baselines_shp(gm::Path &baseline_shp_path,
+                                 std::string &field_name,
+                                 dsas::Options &options);
 
 }  // namespace util
 #endif  // DSAS_CPP_UTILITY_H
