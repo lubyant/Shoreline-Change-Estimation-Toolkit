@@ -17,12 +17,10 @@ struct Transects {
   std::vector<gm::TransectLine> transects_;
 };
 
-using Path = std::filesystem::path;
-using Baselines = std::vector<gm::Baseline>;
-using TransectGroups = std::vector<Transects>;
 
 template <typename Key, typename Value>
 using umap = std::unordered_map<Key, Value>;
+using namespace gm;
 
 void controller(const std::vector<Path> &paths, const Path &output_path,
                 const Options &options);

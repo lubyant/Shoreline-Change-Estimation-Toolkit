@@ -237,7 +237,7 @@ Baselines generate_baselines(const std::vector<std::unique_ptr<Image>> &images,
     throw std::runtime_error(image_id + e.what());
   }
 
-  std::vector<gm::Baseline> baselines;
+  Baselines baselines;
   int baseline_id{};
   for (const auto &shoreline : shorelines) {
     if (shoreline.shoreline_vertices_.empty()) {

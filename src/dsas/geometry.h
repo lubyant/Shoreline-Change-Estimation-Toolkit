@@ -295,6 +295,14 @@ struct IntersectPoint : public Point<double>,
   }
 };
 
+struct Transects {
+  int baseline_id_;
+  std::vector<TransectLine> transects_;
+};
+
+using Path = std::filesystem::path;
+using Baselines = std::vector<Baseline>;
+using TransectGroups = std::vector<Transects>;
 }  // namespace gm
 
 #endif  // DSAS_CPP_GEOMETRY_H
