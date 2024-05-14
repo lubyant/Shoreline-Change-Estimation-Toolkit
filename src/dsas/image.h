@@ -10,24 +10,13 @@
 #include <string>
 
 #include "geometry.h"
+#include "options.h"
 #include "utility.h"
 
 #define IsEdge(x_cor, y_cor, x_lim, y_lim) \
   ((x_cor) == 0 || (x_cor) == x_lim || (y_cor) == 0 || (y_cor) == y_lim)
 
 namespace dsas {
-struct Options {
-  int smooth_factor{1};
-  int edge_distance{100};
-  double shoreline_least_factor{0.5};
-  double transect_length{500};
-  double transect_spacing{30};
-  double transect_offset{0};
-  double outlier_rate{3};
-  size_t thread_num{std::thread::hardware_concurrency()};
-  gm::IntersectionMode intersection_mode{gm::IntersectionMode::Closest};
-};
-
 struct Image {
   using Shorelines = std::vector<gm::Shoreline>;
 

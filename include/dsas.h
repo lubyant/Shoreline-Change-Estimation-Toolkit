@@ -6,6 +6,7 @@
 #define DSAS_CPP_INCLUDE_DSAS_H_
 
 #include "../src/dsas/DSAS_cpp.h"
+#include "../src/dsas/options.h"
 namespace dsas {
 using Path = std::filesystem::path;
 
