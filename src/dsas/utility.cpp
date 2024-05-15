@@ -383,7 +383,6 @@ void remove_outliers(std::vector<double> &x, std::vector<double> &y,
                                   return sum + (val - mean) * (val - mean);
                                 }) /
                 static_cast<double>(y.size() - 1));
-  std::cout << mean << " " << standard_dev << std::endl;
 
   // remove outlier
   for (size_t i = 0; i < y.size(); i++) {

@@ -43,9 +43,10 @@ void create_transects_from_baseline(const Path &path, const Path &output_path,
                                     TransectGroups *output_transects,
                                     const Options &options);
 
-void create_intersects_by_transects(const TransectGroups &transects,
+void create_intersects_by_transects(TransectGroups &transects,
                                     const Path &shoreline_folders,
-                                    const Path &output, const Options &options);
+                                    const Path &output, const Options &options,
+                                    const std::string &proj);
 }  // namespace dsas
 
 #endif  // DSAS_CPP_DSAS_CPP_H
