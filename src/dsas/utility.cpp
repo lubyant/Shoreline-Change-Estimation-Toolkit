@@ -393,9 +393,9 @@ void remove_outliers(std::vector<double> &x, std::vector<double> &y,
   }
 }
 
-gm::Baselines load_baselines_shp(gm::Path &baseline_shp_path,
-                                 std::string &field_name,
-                                 dsas::Options &options) {
+gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
+                                 const std::string &field_name,
+                                 const dsas::Options &options) {
   // Initialize GDAL
   GDALAllRegister();
 

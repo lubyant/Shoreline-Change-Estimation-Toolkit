@@ -20,5 +20,9 @@ void digital_shoreline_analysis_system(const Path &folder,
 void digital_shoreline_analysis_system(const std::vector<Path> &paths,
                                        const Path &output_path,
                                        const Options &options);
+
+void create_transects_from_baseline(const Path &path, const Path &output_path,
+                                    const Options &options);
+
 }  // namespace dsas
 #endif  // DSAS_CPP_INCLUDE_DSAS_H_

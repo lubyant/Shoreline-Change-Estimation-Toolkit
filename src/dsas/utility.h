@@ -255,9 +255,9 @@ std::string get_shp_proj(const char *path);
 void remove_outliers(std::vector<double> &x, std::vector<double> &y,
                      double thres);
 
-gm::Baselines load_baselines_shp(gm::Path &baseline_shp_path,
-                                 std::string &field_name,
-                                 dsas::Options &options);
+gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
+                                 const std::string &field_name,
+                                 const dsas::Options &options);
 
 }  // namespace util
 #endif  // DSAS_CPP_UTILITY_H
