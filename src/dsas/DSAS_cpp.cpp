@@ -145,6 +145,16 @@ void dsas(const std::vector<Path> &folders, const Path &output_path,
     }
   }
 }
+void dsas(const Path &shoreline_folder, const Path &baseline_path,
+          const Path &output_transect_path,
+          const Path &output_intersections_path, const Options &options) {
+  TransectGroups transect_groups;
+  create_transects_from_baseline(baseline_path, output_transect_path,
+                                 &transect_groups, options);
+  auto proj = util::get_shp_proj(baseline_path.c_str());
+  create_intersects_by_transects(transect_groups, shoreline_folder,
+                                 output_intersections_path, options, proj);
+}
 
 void controller(const std::vector<Path> &paths, const Path &output_folder,
                 const Options &options) {
@@ -336,15 +346,46 @@ void create_transects_from_baseline(const Path &path, const Path &output_path,
   }
   util::save_lines(output_file, psz_prj_.c_str(), output_path);
 }
-void create_intersects_by_transects(const TransectGroups &transect_groups,
+void create_intersects_by_transects(TransectGroups &transect_groups,
                                     const Path &shoreline_folders,
-                                    const Path &output,
-                                    const Options &options) {
-  Path shoreline_path;
+                                    const Path &output, const Options &options,
+                                    const std::string &proj) {
+  std::vector<gm::IntersectPoint> intersections;
   for (const auto &transect_group : transect_groups) {
     auto baseline_id{transect_group.baseline_id_};
-    shoreline_path = shoreline_folders / Path(std::to_string(baseline_id)) /
-                     Path(std::to_string(baseline_id) + "_shoreline.shp");
+    Path shoreline_path = shoreline_folders /
+                          Path(std::to_string(baseline_id)) /
+                          Path(std::to_string(baseline_id) + "_shoreline.shp");
+    auto shorelines = util::load_shorelines_shp(shoreline_path, baseline_id);
+    for (const auto &transectLine : transect_group.transects_) {
+      for (const auto &shoreline : shorelines) {
+        auto ret = transectLine.intersection(shoreline);
+        if (ret.has_value()) {
+          intersections.push_back(ret.value());
+        }
+      }
+    }
   }
+
+  umap<int, std::vector<gm::IntersectPoint>> tid_points;
+  umap<int, decltype(tid_points)> bid_tid_points;
+  for (const auto &intersect : intersections) {
+    int baseline_id = intersect.baseline_id_;
+    int transect_id = intersect.transect_id_;
+    bid_tid_points[baseline_id][transect_id].push_back(intersect);
+  }
+
+  compute_rate(bid_tid_points, transect_groups, options.outlier_rate);
+
+  // save the intersections to shp
+  std::vector<gm::IntersectPoint> output_intersections;
+  for (auto &kv1 : bid_tid_points) {
+    for (auto &kv2 : kv1.second) {
+      for (auto &point : kv2.second) {
+        output_intersections.push_back(point);
+      }
+    }
+  }
+  util::save_points(intersections, proj.c_str(), output);
 }
 }  // namespace dsas
