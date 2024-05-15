@@ -200,10 +200,14 @@ Baseline::Baseline(const std::vector<BaselinesVertex> &points,
   if (smooth_factor < 1) {
     throw std::runtime_error("smooth factor should no less than 1");
   }
-  for (size_t i = 0; i < points.size() - smooth_factor; i += smooth_factor) {
-    BaselineSeg baselineSeg{spacing_, offset_, points.at(i),
-                            points.at(i + smooth_factor)};
-    if (i == 0) {
+  size_t start{0};
+  size_t end = static_cast<size_t>(smooth_factor) >= points.size() - 1
+                   ? points.size() - 1
+                   : smooth_factor;
+  while (end < points.size()) {
+    BaselineSeg baselineSeg{spacing_, offset_, points.at(start),
+                            points.at(end)};
+    if (start == 0) {
       transects_base_points_.push_back(baselineSeg.leftEdge_);
       transects_lines_.emplace_back(baselineSeg.leftEdge_, transect_length_,
                                     baselineSeg.normal_vector_, transect_id++,
@@ -217,6 +221,8 @@ Baseline::Baseline(const std::vector<BaselinesVertex> &points,
                                     baselineSeg.normal_vector_, transect_id++,
                                     baseline_id_, image_id_, mode);
     }
+    start = end;
+    end += smooth_factor;
   }
 }
 
