@@ -39,6 +39,7 @@ struct MultiLine {
 };
 
 enum class IntersectionMode { Closest, Farthest };
+enum class TransectOrientation { Left, Right, Mix };
 
 template <typename... Arg>
 struct GDALShpSaver {
@@ -136,14 +137,16 @@ struct TransectLine : public LineSegment,
   std::string intersect_info_{};  // year, dist; year, dist;....
   double change_rate{};           // change rate for all the intersections
   IntersectionMode mode_;
+  TransectOrientation orient_;
 
   TransectLine(Point<> &transect_base, double transect_length,
                std::pair<double, double> baseline_normal_vector,
                int transect_id, int baseline_id, int image_id,
-               IntersectionMode mode = IntersectionMode::Closest)
+               IntersectionMode mode = IntersectionMode::Closest,
+               TransectOrientation orient = TransectOrientation::Mix)
       : transect_base_point_(transect_base),
         LineSegment(create_transect(transect_base, baseline_normal_vector,
-                                    transect_length)),
+                                    transect_length, orient)),
 
         transect_ref_point_(rightEdge_),
         transect_id_(transect_id),
@@ -153,7 +156,7 @@ struct TransectLine : public LineSegment,
 
   static LineSegment create_transect(
       Point<> &transect_base, std::pair<double, double> baseline_normal_vector,
-      double transect_length);
+      double transect_length, TransectOrientation orient);
 
   [[nodiscard]] std::optional<IntersectPoint> intersection(
       const Shoreline &shoreline) const;
@@ -209,7 +212,9 @@ struct Baseline : public MultiLine<Point<double>>, GDALShpSaver<int, int> {
 
   Baseline(const std::vector<BaselinesVertex> &points, double transect_length,
            double spacing, int baseline_id, int image_id, double offset,
-           int smooth_factor, gm::IntersectionMode mode);
+           int smooth_factor,
+           gm::IntersectionMode mode = gm::IntersectionMode::Closest,
+           gm::TransectOrientation orient = gm::TransectOrientation::Mix);
 
   [[nodiscard]] size_t size() const override {
     return transects_lines_.size();
@@ -234,8 +239,8 @@ struct Baseline : public MultiLine<Point<double>>, GDALShpSaver<int, int> {
 
 struct Shoreline : public MultiLine<Point<double>>, GDALShpSaver<int, int> {
   std::vector<gm::Point<double>> shoreline_vertices_;  // shoreline vertices
-  int shoreline_id_{};                                   // shoreline id
-  int year_{};                                           // shoreline year
+  int shoreline_id_{};                                 // shoreline id
+  int year_{};                                         // shoreline year
   int image_id_{};
 
   Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
