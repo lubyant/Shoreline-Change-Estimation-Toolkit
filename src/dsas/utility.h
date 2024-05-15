@@ -253,7 +253,7 @@ std::string get_tiff_proj(const char *path);
 std::string get_shp_proj(const char *path);
 
 void remove_outliers(std::vector<double> &x, std::vector<double> &y,
-                     double thres);
+                     double threshold);
 
 gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
                                  const std::string &field_name,
