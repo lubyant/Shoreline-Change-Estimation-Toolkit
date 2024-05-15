@@ -39,6 +39,13 @@ void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
                   TransectGroups &transect_groups,
                   double outlier_rate);
 
+void create_transects_from_baseline(const Path &path, const Path &output_path,
+                                    TransectGroups *output_transects,
+                                    const Options &options);
+
+void create_intersects_by_transects(const TransectGroups &transects,
+                                    const Path &shoreline_folders,
+                                    const Path &output, const Options &options);
 }  // namespace dsas
 
 #endif  // DSAS_CPP_DSAS_CPP_H
