@@ -77,7 +77,7 @@ void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
   }
 
   // if more than two intersections
-  // firt remove outlier
+  // first remove outlier
   // , then compute the rates for consecutive years
   // and set the value to transect
   std::vector<double> y{copy[0].distance_to_ref_};
@@ -97,7 +97,7 @@ void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
   // remove the outliers
   remove_outliers(x, y, outlier_rate);
 
-  // chanage rate
+  // change rate
   transect.set_info(x, y);
 }
 
@@ -265,7 +265,7 @@ std::string get_shp_proj(const char *path) {
 
   GDALDataset *poDS;
   poDS = static_cast<GDALDataset *>(
-      GDALOpenEx(path, GDAL_OF_VECTOR, NULL, NULL, NULL));
+      GDALOpenEx(path, GDAL_OF_VECTOR, nullptr, nullptr, nullptr));
   if (poDS == nullptr) {
     throw std::runtime_error("shapefile not open!");
   }
@@ -273,7 +273,7 @@ std::string get_shp_proj(const char *path) {
   OGRLayer *poLayer = poDS->GetLayer(0);
   OGRSpatialReference *poSRS = poLayer->GetSpatialRef();
   std::string psz_prj_;
-  if (poSRS != NULL) {
+  if (poSRS != nullptr) {
     char *pszProjection;
     poSRS->exportToWkt(&pszProjection);
     psz_prj_ = std::string(pszProjection);
@@ -365,7 +365,7 @@ void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
 }
 
 void remove_outliers(std::vector<double> &x, std::vector<double> &y,
-                     double thres) {
+                     double threshold) {
   // check dimension
   size_t nx = x.size(), ny = y.size();
   if (nx != ny) {
@@ -373,21 +373,23 @@ void remove_outliers(std::vector<double> &x, std::vector<double> &y,
   }
 
   // compute the standard deviation
-  double stdev = 0;
-  double mean = 0;
-  mean = std::accumulate(y.begin(), y.end(), 0.0) / y.size();
-  stdev = std::sqrt(std::accumulate(y.begin(), y.end(), 0.0,
-                                    [mean](double sum, double val) {
-                                      return sum + (val - mean) * (val - mean);
-                                    }) /
-                    (y.size() - 1));
-  std::cout << mean << " " << stdev << std::endl;
+  double standard_dev;
+  double mean;
+  mean =
+      std::accumulate(y.begin(), y.end(), 0.0) / static_cast<double>(y.size());
+  standard_dev =
+      std::sqrt(std::accumulate(y.begin(), y.end(), 0.0,
+                                [mean](double sum, double val) {
+                                  return sum + (val - mean) * (val - mean);
+                                }) /
+                static_cast<double>(y.size() - 1));
+  std::cout << mean << " " << standard_dev << std::endl;
 
   // remove outlier
   for (size_t i = 0; i < y.size(); i++) {
-    if (std::abs(y[i] - mean) > thres * stdev) {
-      x.erase(x.begin() + i);
-      y.erase(y.begin() + i);
+    if (std::abs(y[i] - mean) > threshold * standard_dev) {
+      x.erase(x.begin() + static_cast<std::vector<double>::difference_type>(i));
+      y.erase(y.begin() + static_cast<std::vector<double>::difference_type>(i));
       i--;
     }
   }
@@ -401,9 +403,9 @@ gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
 
   // Open the Shapefile
   GDALDataset *poDS;
-  poDS = static_cast<GDALDataset *>(
-      GDALOpenEx(baseline_shp_path.c_str(), GDAL_OF_VECTOR, NULL, NULL, NULL));
-  if (poDS == NULL) {
+  poDS = static_cast<GDALDataset *>(GDALOpenEx(
+      baseline_shp_path.c_str(), GDAL_OF_VECTOR, nullptr, nullptr, nullptr));
+  if (poDS == nullptr) {
     std::cerr << "Open failed.\n";
     exit(1);
   }
@@ -416,12 +418,12 @@ gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
   OGRFeature *poFeature;
   poLayer->ResetReading();
   gm::Baselines baselines;
-  while ((poFeature = poLayer->GetNextFeature()) != NULL) {
+  while ((poFeature = poLayer->GetNextFeature()) != nullptr) {
     OGRGeometry *poGeometry;
     poGeometry = poFeature->GetGeometryRef();
-    if (poGeometry != NULL &&
+    if (poGeometry != nullptr &&
         wkbFlatten(poGeometry->getGeometryType()) == wkbLineString) {
-      OGRLineString *poLine = static_cast<OGRLineString *>(poGeometry);
+      auto *poLine = dynamic_cast<OGRLineString *>(poGeometry);
       int numPoints = poLine->getNumPoints();
 
       std::vector<gm::Point<double>> baseline_vertices;
