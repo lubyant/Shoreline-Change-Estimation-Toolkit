@@ -210,35 +210,43 @@ Baseline::Baseline(const std::vector<BaselinesVertex> &points,
       offset_(offset) {
   // create the baselineSeq
   int transect_id{0};
-  if (smooth_factor < 1) {
-    throw std::runtime_error("smooth factor should no less than 1");
-  }
-  size_t start{0};
-  size_t end = static_cast<size_t>(smooth_factor) >= points.size() - 1
-                   ? points.size() - 1
-                   : smooth_factor;
-  while (end < points.size()) {
-    BaselineSeg baselineSeg{spacing_, offset_, points.at(start),
-                            points.at(end)};
-    if (start == 0) {
+  std::vector<std::pair<double, double>> normal_vectors;
+  for (size_t i = 0; i < points.size() - 1; i++) {
+    BaselineSeg baselineSeg{spacing_, offset_, points.at(i), points.at(i + 1)};
+    // starting point
+    if (i == 0) {
       transects_base_points_.push_back(baselineSeg.leftEdge_);
-      transects_lines_.emplace_back(baselineSeg.leftEdge_, transect_length_,
-                                    baselineSeg.normal_vector_, transect_id++,
-                                    baseline_id_, image_id_, mode, orient);
+      normal_vectors.push_back(baselineSeg.normal_vector_);
       baseline_vertices_.push_back(baselineSeg.leftEdge_);
     }
     baseline_vertices_.push_back(baselineSeg.rightEdge_);
     for (auto &point : baselineSeg.transects_base_points_) {
       transects_base_points_.push_back(point);
-      transects_lines_.emplace_back(point, transect_length_,
-                                    baselineSeg.normal_vector_, transect_id++,
-                                    baseline_id_, image_id_, mode, orient);
+      normal_vectors.push_back(baselineSeg.normal_vector_);
     }
-    start = end;
-    end += smooth_factor;
+  }
+
+  // smoothing the transects
+  if (smooth_factor < 0) {
+    throw std::runtime_error("smooth factor should no less than 0");
+  }
+  for (size_t i = 0; i < normal_vectors.size(); i++) {
+    size_t start = i;
+    size_t end = i + smooth_factor >= normal_vectors.size()
+                     ? normal_vectors.size() - 1
+                     : i + smooth_factor;
+    std::pair<double, double> normal_vector = std::accumulate(
+        normal_vectors.begin() + start, normal_vectors.begin() + end + 1,
+        std::make_pair(0, 0),
+        [](const std::pair<double, double> &a,
+           const std::pair<double, double> &b) {
+          return std::make_pair(a.first + b.first, a.second + b.second);
+        });
+    transects_lines_.emplace_back(
+        transects_base_points_.at(i), transect_length_, normal_vector,
+        transect_id++, baseline_id_, image_id_, mode, orient);
   }
 }
-
 Shoreline::Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
                      int shoreline_id, int year, int image_id)
     : shoreline_vertices_(shoreline_vertices),

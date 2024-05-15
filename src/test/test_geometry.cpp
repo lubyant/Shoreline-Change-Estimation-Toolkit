@@ -138,7 +138,7 @@ TEST_F(BaselineTest, test_baseline_transect_points2) {
 TEST_F(BaselineTest, test_baseline_transect_lines) {
   std::vector<Point<double>> points{{0, 0}, {0, 1}, {1, 1}, {1, 0}};
   gm::IntersectionMode mode{gm::IntersectionMode::Closest};
-  baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 1, 0, 1, mode);
+  baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 1, 0, 0, mode);
   auto transects_lines = baseline->transects_lines_;
 
   ASSERT_EQ(transects_lines.size(), 7);
@@ -156,7 +156,7 @@ TEST_F(BaselineTest, test_baseline_transect_lines_right) {
   gm::IntersectionMode mode{gm::IntersectionMode::Closest};
   gm::TransectOrientation orient{gm::TransectOrientation::Right};
   baseline =
-      std::make_unique<Baseline>(points, 1, 0.5, 0, 1, 0, 1, mode, orient);
+      std::make_unique<Baseline>(points, 1, 0.5, 0, 1, 0, 0, mode, orient);
   auto transects_lines = baseline->transects_lines_;
 
   // assert if the number of transects is correct
@@ -180,7 +180,7 @@ TEST_F(BaselineTest, test_baseline_transect_lines_mix) {
   gm::IntersectionMode mode{gm::IntersectionMode::Closest};
   gm::TransectOrientation orient{gm::TransectOrientation::Mix};
   baseline =
-      std::make_unique<Baseline>(points, 1, 0.5, 0, 1, 0, 1, mode, orient);
+      std::make_unique<Baseline>(points, 1, 0.5, 0, 1, 0, 0, mode, orient);
   auto transects_lines = baseline->transects_lines_;
 
   // assert if the number of transects is correct
@@ -204,7 +204,7 @@ TEST_F(BaselineTest, test_baseline_transect_lines_left) {
   gm::IntersectionMode mode{gm::IntersectionMode::Closest};
   gm::TransectOrientation orient{gm::TransectOrientation::Left};
   baseline =
-      std::make_unique<Baseline>(points, 1, 0.5, 0, 1, 0, 1, mode, orient);
+      std::make_unique<Baseline>(points, 1, 0.5, 0, 1, 0, 0, mode, orient);
   auto transects_lines = baseline->transects_lines_;
 
   ASSERT_EQ(transects_lines.size(), 7);
@@ -225,7 +225,7 @@ TEST_F(BaselineTest, test_baseline_transect_lines_left) {
 TEST_F(BaselineTest, test_baseline_transect_length1) {
   std::vector<Point<double>> points{{0, 0}, {0, 1}, {1, 1}, {1, 0}};
   gm::IntersectionMode mode{gm::IntersectionMode::Closest};
-  baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1, 1, mode);
+  baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1, 0, mode);
   auto transects_lines = baseline->transects_lines_;
   for (const auto &transect : transects_lines) {
     ASSERT_NEAR(transect.leftEdge_.distance_to_point(transect.rightEdge_), 1,
@@ -236,7 +236,7 @@ TEST_F(BaselineTest, test_baseline_transect_length1) {
 TEST_F(BaselineTest, test_baseline_transect_length2) {
   std::vector<Point<double>> points{{0, 0}, {1, 1}, {2, 0}, {3, 1}};
   gm::IntersectionMode mode{gm::IntersectionMode::Closest};
-  baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1, 1, mode);
+  baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1, 0, mode);
   auto transects_lines = baseline->transects_lines_;
   for (const auto &transect : transects_lines) {
     ASSERT_NEAR(transect.leftEdge_.distance_to_point(transect.rightEdge_), 1,
@@ -245,14 +245,17 @@ TEST_F(BaselineTest, test_baseline_transect_length2) {
 }
 
 TEST_F(BaselineTest, test_baseline_smooth) {
+  // TODO: need more test cases
   {
     int smooth_factor{1};
-    std::vector<Point<double>> points{{0, 0}, {1, 1}, {2, 0}, {3, 1},
-                                      {3, 0}, {4, 1}, {4, 0}};
+    std::vector<Point<double>> points{{0, 0}, {1, 1}, {2, 0}, {3, 1}};
     gm::IntersectionMode mode{gm::IntersectionMode::Closest};
     baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1,
                                           smooth_factor, mode);
-    ASSERT_EQ(baseline->baseline_vertices_.size(), 7);
+    ASSERT_EQ(baseline->baseline_vertices_.size(), 4);
+    double slope{baseline->transects_lines_[0].normal_vector_.first /
+                 baseline->transects_lines_[0].normal_vector_.second};
+    ASSERT_NEAR(slope, 1, TOL);
   }
   {
     int smooth_factor{2};
@@ -261,16 +264,7 @@ TEST_F(BaselineTest, test_baseline_smooth) {
     gm::IntersectionMode mode{gm::IntersectionMode::Closest};
     baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1,
                                           smooth_factor, mode);
-    ASSERT_EQ(baseline->baseline_vertices_.size(), 4);
-  }
-  {
-    int smooth_factor{3};
-    std::vector<Point<double>> points{{0, 0}, {1, 1}, {2, 0}, {3, 1},
-                                      {3, 0}, {4, 1}, {4, 0}};
-    gm::IntersectionMode mode{gm::IntersectionMode::Closest};
-    baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1,
-                                          smooth_factor, mode);
-    ASSERT_EQ(baseline->baseline_vertices_.size(), 3);
+    ASSERT_EQ(baseline->baseline_vertices_.size(), 7);
   }
   {
     int smooth_factor{8};
@@ -279,6 +273,6 @@ TEST_F(BaselineTest, test_baseline_smooth) {
     gm::IntersectionMode mode{gm::IntersectionMode::Closest};
     baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1,
                                           smooth_factor, mode);
-    ASSERT_EQ(baseline->baseline_vertices_.size(), 2);
+    ASSERT_EQ(baseline->baseline_vertices_.size(), 7);
   }
 }
