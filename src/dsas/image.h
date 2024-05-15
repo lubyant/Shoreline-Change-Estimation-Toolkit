@@ -18,7 +18,6 @@
 
 namespace dsas {
 struct Image {
-  using Shorelines = std::vector<gm::Shoreline>;
 
   // attributes
   std::filesystem::path image_path_;              // image path
@@ -27,7 +26,7 @@ struct Image {
   int rows_{}, cols_{};                           // image size x,y
   cv::Mat img_;                                   // image pixel vals
   std::vector<std::vector<cv::Point>> contours_;  // image edge contours
-  Shorelines shorelines_;                         // shoreline contour
+  gm::Shorelines shorelines_;                         // shoreline contour
   int edge_distance_;    // outside (ed, rows-ed) is edge
   double least_factor_;  // shoreline.size() < factor * max_size, remove
 

@@ -68,7 +68,7 @@ void Image::extract_contours() {
 }
 
 void Image::extract_shorelines() {
-  Shorelines shorelines{};
+  gm::Shorelines shorelines{};
   int shoreline_id{0};
   std::vector<gm::Point<double>> temp;
   for (const auto &contour : contours_) {
@@ -137,7 +137,7 @@ void Image::transform_coordinates() {
 
   double adfGeoTransform[6];
   if (poDataset->GetGeoTransform(adfGeoTransform) != CE_None) {
-    std::cerr << "No geotransform found." << std::endl;
+    std::cerr << "No geo-transform found." << std::endl;
     exit(1);
   }
 
