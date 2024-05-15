@@ -341,10 +341,10 @@ void create_intersects_by_transects(const TransectGroups &transect_groups,
                                     const Path &output,
                                     const Options &options) {
   Path shoreline_path;
-  for(const auto& transect_group: transect_groups){
-    auto baseline_id {transect_group.baseline_id_};
-    shoreline_path = shoreline_folders + 
-
+  for (const auto &transect_group : transect_groups) {
+    auto baseline_id{transect_group.baseline_id_};
+    shoreline_path = shoreline_folders / Path(std::to_string(baseline_id)) /
+                     Path(std::to_string(baseline_id) + "_shoreline.shp");
   }
 }
 }  // namespace dsas
