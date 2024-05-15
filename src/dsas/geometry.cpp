@@ -3,10 +3,6 @@
 //
 #include "geometry.h"
 
-#include <algorithm>
-#include <cmath>
-#include <iostream>
-
 #include "utility.h"
 
 namespace gm {
@@ -163,7 +159,7 @@ std::optional<IntersectPoint> TransectLine::intersection(
   if (mode_ ==
       IntersectionMode::Farthest) {  // farthest mode return farthest distance
     return intersections[intersections.size() - 1];
-  } else {                           // close mode return smallest dis
+  } else {  // close mode return smallest dis
     return intersections[0];
   }
 }
