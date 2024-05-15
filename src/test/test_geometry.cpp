@@ -204,3 +204,38 @@ TEST_F(BaselineTest, test_baseline_transect_length2) {
                 TOL);
   }
 }
+
+TEST_F(BaselineTest, test_baseline_smooth) {
+  {
+    int smooth_factor{1};
+    std::vector<Point<double>> points{{0, 0}, {1, 1}, {2, 0}, {3, 1}, {3, 0}, {4, 1}, {4, 0}};
+    gm::IntersectionMode mode{gm::IntersectionMode::Closest};
+    baseline =
+        std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1, smooth_factor, mode);
+    ASSERT_EQ(baseline->baseline_vertices_.size(), 7);
+  }
+  {
+    int smooth_factor{2};
+    std::vector<Point<double>> points{{0, 0}, {1, 1}, {2, 0}, {3, 1}, {3, 0}, {4, 1}, {4, 0}};
+    gm::IntersectionMode mode{gm::IntersectionMode::Closest};
+    baseline =
+        std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1, smooth_factor, mode);
+    ASSERT_EQ(baseline->baseline_vertices_.size(), 4);
+  }
+  {
+    int smooth_factor{3};
+    std::vector<Point<double>> points{{0, 0}, {1, 1}, {2, 0}, {3, 1}, {3, 0}, {4, 1}, {4, 0}};
+    gm::IntersectionMode mode{gm::IntersectionMode::Closest};
+    baseline =
+        std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1, smooth_factor, mode);
+    ASSERT_EQ(baseline->baseline_vertices_.size(), 3);
+  }
+  {
+    int smooth_factor{8};
+    std::vector<Point<double>> points{{0, 0}, {1, 1}, {2, 0}, {3, 1}, {3, 0}, {4, 1}, {4, 0}};
+    gm::IntersectionMode mode{gm::IntersectionMode::Closest};
+    baseline =
+        std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1, smooth_factor, mode);
+    ASSERT_EQ(baseline->baseline_vertices_.size(), 2);
+  }
+}
