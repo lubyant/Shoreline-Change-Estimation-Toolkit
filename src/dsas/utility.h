@@ -249,7 +249,8 @@ void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
 
 double least_square(const std::vector<double> &x, const std::vector<double> &y);
 
-std::string get_proj(const char *path);
+std::string get_tiff_proj(const char *path);
+std::string get_shp_proj(const char *path);
 
 void remove_outliers(std::vector<double> &x, std::vector<double> &y,
                      double thres);

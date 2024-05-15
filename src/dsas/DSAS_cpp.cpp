@@ -165,7 +165,7 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
   }
 
   // get image projection using the baseline
-  std::string psz_prj_ = util::get_proj(images[0]->image_path_.c_str());
+  std::string psz_prj_ = util::get_tiff_proj(images[0]->image_path_.c_str());
 
   // generate the baselines
   auto baselines = generate_baselines(images, options);

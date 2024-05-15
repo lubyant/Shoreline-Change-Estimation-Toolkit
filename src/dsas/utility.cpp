@@ -250,13 +250,37 @@ double least_square(const std::vector<double> &x,
   return co_var / var;
 }
 
-std::string get_proj(const char *path) {
+std::string get_tiff_proj(const char *path) {
   auto *poTIFFDataset = static_cast<GDALDataset *>(GDALOpen(path, GA_ReadOnly));
   if (poTIFFDataset == nullptr) {
     throw std::runtime_error("Not available tiff!");
   }
   std::string psz_prj_ = std::string(poTIFFDataset->GetProjectionRef());
   GDALClose(poTIFFDataset);
+  return psz_prj_;
+}
+
+std::string get_shp_proj(const char *path) {
+  GDALAllRegister();
+
+  GDALDataset *poDS;
+  poDS = static_cast<GDALDataset *>(
+      GDALOpenEx(path, GDAL_OF_VECTOR, NULL, NULL, NULL));
+  if (poDS == nullptr) {
+    throw std::runtime_error("shapefile not open!");
+  }
+
+  OGRLayer *poLayer = poDS->GetLayer(0);
+  OGRSpatialReference *poSRS = poLayer->GetSpatialRef();
+  std::string psz_prj_;
+  if (poSRS != NULL) {
+    char *pszProjection;
+    poSRS->exportToWkt(&pszProjection);
+    psz_prj_ = std::string(pszProjection);
+    CPLFree(pszProjection);
+  } else {
+    throw std::runtime_error("No spatial reference information available\n");
+  }
   return psz_prj_;
 }
 
@@ -377,8 +401,8 @@ gm::Baselines load_baselines_shp(gm::Path &baseline_shp_path,
 
   // Open the Shapefile
   GDALDataset *poDS;
-  poDS = static_cast<GDALDataset *>(GDALOpenEx(
-      baseline_shp_path.c_str(), GDAL_OF_VECTOR, NULL, NULL, NULL));
+  poDS = static_cast<GDALDataset *>(
+      GDALOpenEx(baseline_shp_path.c_str(), GDAL_OF_VECTOR, NULL, NULL, NULL));
   if (poDS == NULL) {
     std::cerr << "Open failed.\n";
     exit(1);
