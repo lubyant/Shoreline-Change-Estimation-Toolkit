@@ -259,5 +259,7 @@ gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
                                  const std::string &field_name,
                                  const dsas::Options &options);
 
+gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
+                                   int image_id);
 }  // namespace util
 #endif  // DSAS_CPP_UTILITY_H

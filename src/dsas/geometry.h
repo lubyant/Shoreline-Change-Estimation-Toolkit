@@ -234,9 +234,14 @@ struct Baseline : public MultiLine<Point<double>>, GDALShpSaver<int, int> {
 
 struct Shoreline : public MultiLine<Point<double>>, GDALShpSaver<int, int> {
   std::vector<gm::Point<double>> shoreline_vertices_;  // shoreline vertices
-  int shoreline_id_;                                   // shoreline id
-  int year_;                                           // shoreline year
-  int image_id_;
+  int shoreline_id_{};                                   // shoreline id
+  int year_{};                                           // shoreline year
+  int image_id_{};
+
+  Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
+            int shoreline_id, int year, int image_id);
+
+  Shoreline() = default;
 
   [[nodiscard]] size_t size() const override {
     return shoreline_vertices_.size();
@@ -305,6 +310,7 @@ using Path = std::filesystem::path;
 using Baselines = std::vector<Baseline>;
 
 using TransectGroups = std::vector<Transects>;
+using Shorelines = std::vector<gm::Shoreline>;
 }  // namespace gm
 
 #endif  // DSAS_CPP_GEOMETRY_H

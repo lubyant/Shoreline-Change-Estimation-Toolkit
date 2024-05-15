@@ -453,4 +453,57 @@ gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
 
   return baselines;
 }
+gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
+                                   int image_id) {
+  gm::Shorelines shorelines;
+  int shoreline_id{0};
+
+  // Initialize GDAL
+  GDALAllRegister();
+
+  // Open the Shapefile
+  GDALDataset *poDS;
+  poDS = static_cast<GDALDataset *>(GDALOpenEx(
+      shoreline_shp_path.c_str(), GDAL_OF_VECTOR, nullptr, nullptr, nullptr));
+  if (poDS == nullptr) {
+    std::cerr << "Open failed.\n";
+    exit(1);
+  }
+
+  // Get the Layer Containing the Line Features
+  OGRLayer *poLayer;
+  poLayer = poDS->GetLayer(0);
+
+  // Iterate Through the Features in the Layer and Access Points
+  OGRFeature *poFeature;
+  poLayer->ResetReading();
+  gm::Baselines baselines;
+  while ((poFeature = poLayer->GetNextFeature()) != nullptr) {
+    OGRGeometry *poGeometry;
+    poGeometry = poFeature->GetGeometryRef();
+    if (poGeometry != nullptr &&
+        wkbFlatten(poGeometry->getGeometryType()) == wkbLineString) {
+      auto *poLine = dynamic_cast<OGRLineString *>(poGeometry);
+      int numPoints = poLine->getNumPoints();
+
+      std::vector<gm::Point<double>> shoreline_vertices;
+      for (int i = 0; i < numPoints; i++) {
+        OGRPoint point;
+        poLine->getPoint(i, &point);
+        shoreline_vertices.emplace_back(point.getX(), point.getY());
+      }
+      int year{poFeature->GetFieldAsInteger("year")};
+      shorelines.emplace_back(shoreline_vertices, shoreline_id++, year,
+                              image_id);
+    } else {
+      std::cout << "No geometry\n";
+    }
+    OGRFeature::DestroyFeature(poFeature);
+  }
+
+  // Cleanup
+  GDALClose(poDS);
+
+  return shorelines;
+}
 }  // namespace util

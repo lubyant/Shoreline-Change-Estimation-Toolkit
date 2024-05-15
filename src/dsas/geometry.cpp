@@ -163,7 +163,7 @@ std::optional<IntersectPoint> TransectLine::intersection(
   if (mode_ ==
       IntersectionMode::Farthest) {  // farthest mode return farthest distance
     return intersections[intersections.size() - 1];
-  } else {  // close mode return smallest dis
+  } else {                           // close mode return smallest dis
     return intersections[0];
   }
 }
@@ -226,4 +226,10 @@ Baseline::Baseline(const std::vector<BaselinesVertex> &points,
   }
 }
 
+Shoreline::Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
+                     int shoreline_id, int year, int image_id)
+    : shoreline_vertices_(shoreline_vertices),
+      shoreline_id_(shoreline_id),
+      year_(year),
+      image_id_(image_id) {}
 }  // namespace gm
