@@ -439,7 +439,8 @@ gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
                             baseline_id,
                             options.transect_offset,
                             options.smooth_factor,
-                            options.intersection_mode};
+                            options.intersection_mode,
+                            options.transect_orient};
       baselines.push_back(std::move(baseline));
     } else {
       std::cout << "No geometry\n";

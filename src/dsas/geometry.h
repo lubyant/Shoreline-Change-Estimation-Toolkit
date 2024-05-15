@@ -14,8 +14,10 @@
 #include <cmath>
 #include <filesystem>
 #include <iostream>
+#include <numeric>
 #include <optional>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 // classes
