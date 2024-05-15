@@ -151,9 +151,11 @@ void dsas(const Path &shoreline_folder, const Path &baseline_path,
   TransectGroups transect_groups;
   create_transects_from_baseline(baseline_path, output_transect_path,
                                  &transect_groups, options);
+  std::cout << "transects generated.\n";
   auto proj = util::get_shp_proj(baseline_path.c_str());
   create_intersects_by_transects(transect_groups, shoreline_folder,
                                  output_intersections_path, options, proj);
+  std::cout << "intersects generated.\n";
 }
 
 void controller(const std::vector<Path> &paths, const Path &output_folder,
