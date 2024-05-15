@@ -3,10 +3,6 @@
 //
 #include "geometry.h"
 
-#include <algorithm>
-#include <cmath>
-#include <iostream>
-
 #include "utility.h"
 
 namespace gm {

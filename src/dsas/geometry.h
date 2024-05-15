@@ -10,6 +10,7 @@
 
 #include <ogr_core.h>
 
+#include <algorithm>
 #include <cmath>
 #include <filesystem>
 #include <iostream>
@@ -269,8 +270,8 @@ struct Shoreline : public MultiLine<Point<double>>, GDALShpSaver<int, int> {
   }
 };
 
-struct IntersectPoint : public Point<double>,
-                        GDALShpSaver<int, int, int, int, int, double> {
+#define IntersectPoint_t int, int, int, int, int, double, double, double
+struct IntersectPoint : public Point<double>, GDALShpSaver<IntersectPoint_t> {
   int image_id_;
   int transect_id_;
   int shoreline_id_;
@@ -290,19 +291,26 @@ struct IntersectPoint : public Point<double>,
         distance_to_ref_(distance_to_ref) {}
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
-    return {"BaselineId", "TransectId", "ShoreID", "ImageID", "Year", "Dist"};
+    return {"BaselineId", "TransectId", "ShoreID", "ImageID",
+            "Year",       "Dist",       "X",       "Y"};
   }
 
   [[nodiscard]] std::vector<OGRFieldType> get_types() const override {
     return {OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
             OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
-            OGRFieldType::OFTInteger, OGRFieldType::OFTReal};
+            OGRFieldType::OFTInteger, OGRFieldType::OFTReal,
+            OGRFieldType::OFTReal,    OGRFieldType::OFTReal};
   }
 
-  [[nodiscard]] std::tuple<int, int, int, int, int, double> get_values()
-      const override {
-    return {baseline_id_, transect_id_, shoreline_id_,
-            image_id_,    year_,        distance_to_ref_};
+  [[nodiscard]] std::tuple<IntersectPoint_t> get_values() const override {
+    return {baseline_id_,
+            transect_id_,
+            shoreline_id_,
+            image_id_,
+            year_,
+            distance_to_ref_,
+            x,
+            y};
   }
 };
 
