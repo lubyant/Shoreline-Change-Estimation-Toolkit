@@ -320,19 +320,31 @@ void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
   }
 }
 void create_transects_from_baseline(const Path &path, const Path &output_path,
+                                    TransectGroups *output_transects,
                                     const Options &options) {
   std::string field_name{"DSAS_ID"};
   auto baselines = util::load_baselines_shp(path, field_name, options);
   auto psz_prj_ = util::get_shp_proj(path.c_str());
-  auto transects = generate_transects(baselines);
+  *output_transects = std::move(generate_transects(baselines));
 
   // output the transects
   std::vector<gm::TransectLine> output_file;
-  for (auto &transect : transects) {
+  for (auto &transect : *output_transects) {
     for (auto &transect_line : transect.transects_) {
       output_file.push_back(std::move(transect_line));
     }
   }
   util::save_lines(output_file, psz_prj_.c_str(), output_path);
+}
+void create_intersects_by_transects(const TransectGroups &transect_groups,
+                                    const Path &shoreline_folders,
+                                    const Path &output,
+                                    const Options &options) {
+  Path shoreline_path;
+  for(const auto& transect_group: transect_groups){
+    auto baseline_id {transect_group.baseline_id_};
+    shoreline_path = shoreline_folders + 
+
+  }
 }
 }  // namespace dsas
