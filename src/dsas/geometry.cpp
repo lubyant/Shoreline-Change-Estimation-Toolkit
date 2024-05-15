@@ -114,12 +114,28 @@ BaselineSeg::BaselineSeg(double spacing, double offset, const Point<> &leftEdge,
 
 LineSegment TransectLine::create_transect(
     Point<> &transect_base, std::pair<double, double> baseline_normal_vector,
-    double transect_length) {
-  auto leftEdge =
-      transect_base.create_point(baseline_normal_vector, transect_length / 2);
-  auto rightEdge =
-      transect_base.create_point(baseline_normal_vector, -transect_length / 2);
-
+    double transect_length, TransectOrientation orient) {
+  auto leftEdge{transect_base}, rightEdge{transect_base};
+  switch (orient) {
+    case TransectOrientation::Mix:
+      leftEdge = transect_base.create_point(baseline_normal_vector,
+                                            transect_length / 2);
+      rightEdge = transect_base.create_point(baseline_normal_vector,
+                                             -transect_length / 2);
+      break;
+    case TransectOrientation::Left:
+      leftEdge =
+          transect_base.create_point(baseline_normal_vector, transect_length);
+      rightEdge = transect_base;
+      break;
+    case TransectOrientation::Right:
+      leftEdge = transect_base;
+      rightEdge =
+          transect_base.create_point(baseline_normal_vector, -transect_length);
+      break;
+    default:
+      throw std::runtime_error("Not a valid orientation!");
+  }
   return {leftEdge, rightEdge};
 }
 
@@ -156,10 +172,11 @@ std::optional<IntersectPoint> TransectLine::intersection(
               return a.distance_to_ref_ < b.distance_to_ref_;
             });
 
-  if (mode_ ==
-      IntersectionMode::Farthest) {  // farthest mode return farthest distance
+  if (mode_ == IntersectionMode::Farthest) {
+    // farthest mode return farthest distance
     return intersections[intersections.size() - 1];
-  } else {  // close mode return smallest dis
+  } else {
+    // close mode return smallest dis
     return intersections[0];
   }
 }
@@ -185,7 +202,7 @@ void TransectLine::set_info(const std::vector<double> &years,
 Baseline::Baseline(const std::vector<BaselinesVertex> &points,
                    double transect_length, double spacing, int baseline_id,
                    int image_id, double offset, int smooth_factor,
-                   gm::IntersectionMode mode)
+                   gm::IntersectionMode mode, gm::TransectOrientation orient)
     : baseline_id_(baseline_id),
       image_id_(image_id),
       spacing_(spacing),
@@ -207,7 +224,7 @@ Baseline::Baseline(const std::vector<BaselinesVertex> &points,
       transects_base_points_.push_back(baselineSeg.leftEdge_);
       transects_lines_.emplace_back(baselineSeg.leftEdge_, transect_length_,
                                     baselineSeg.normal_vector_, transect_id++,
-                                    baseline_id_, image_id_, mode);
+                                    baseline_id_, image_id_, mode, orient);
       baseline_vertices_.push_back(baselineSeg.leftEdge_);
     }
     baseline_vertices_.push_back(baselineSeg.rightEdge_);
@@ -215,7 +232,7 @@ Baseline::Baseline(const std::vector<BaselinesVertex> &points,
       transects_base_points_.push_back(point);
       transects_lines_.emplace_back(point, transect_length_,
                                     baselineSeg.normal_vector_, transect_id++,
-                                    baseline_id_, image_id_, mode);
+                                    baseline_id_, image_id_, mode, orient);
     }
     start = end;
     end += smooth_factor;

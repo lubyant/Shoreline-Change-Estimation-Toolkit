@@ -16,6 +16,7 @@ struct Options {
   double outlier_rate{3};
   size_t thread_num{std::thread::hardware_concurrency()};
   gm::IntersectionMode intersection_mode{gm::IntersectionMode::Closest};
+  gm::TransectOrientation transect_orient{gm::TransectOrientation::Mix};
 };
 }  // namespace dsas
 
