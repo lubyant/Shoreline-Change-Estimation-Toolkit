@@ -358,7 +358,8 @@ void create_intersects_by_transects(TransectGroups &transect_groups,
     Path shoreline_path = shoreline_folders /
                           Path(std::to_string(baseline_id)) /
                           Path(std::to_string(baseline_id) + "_shoreline.shp");
-    auto shorelines = util::load_shorelines_shp(shoreline_path, baseline_id);
+    auto shorelines =
+        util::load_shorelines_shp(shoreline_path, proj, baseline_id);
     for (const auto &transectLine : transect_group.transects_) {
       for (const auto &shoreline : shorelines) {
         auto ret = transectLine.intersection(shoreline);
@@ -380,13 +381,8 @@ void create_intersects_by_transects(TransectGroups &transect_groups,
   compute_rate(bid_tid_points, transect_groups, options.outlier_rate);
 
   // save the intersections to shp
-  std::vector<gm::IntersectPoint> output_intersections;
-  for (auto &kv1 : bid_tid_points) {
-    for (auto &kv2 : kv1.second) {
-      for (auto &point : kv2.second) {
-        output_intersections.push_back(point);
-      }
-    }
+  if (intersections.size() == 0){
+    throw std::runtime_error("No intersections");
   }
   util::save_points(intersections, proj.c_str(), output);
 }

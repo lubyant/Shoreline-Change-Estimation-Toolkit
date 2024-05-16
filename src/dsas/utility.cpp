@@ -454,6 +454,7 @@ gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
   return baselines;
 }
 gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
+                                   const std::string &baseline_proj,
                                    int image_id) {
   gm::Shorelines shorelines;
   int shoreline_id{0};
@@ -470,9 +471,22 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
     exit(1);
   }
 
+  // get coordiante system
+  const char *pszRefProj = baseline_proj.c_str();
+  OGRSpatialReference refSRS;
+  if (refSRS.importFromWkt(pszRefProj) != OGRERR_NONE) {
+    throw std::runtime_error("Failed to import reference spatial reference.\n");
+  }
+
   // Get the Layer Containing the Line Features
   OGRLayer *poLayer;
   poLayer = poDS->GetLayer(0);
+  OGRSpatialReference *pszInputProj = poLayer->GetSpatialRef();
+  OGRCoordinateTransformation *coordTransform;
+  coordTransform = OGRCreateCoordinateTransformation(pszInputProj, &refSRS);
+  if(coordTransform == NULL) {
+      throw std::runtime_error("Failed to create coordinate transformation.\n");
+  }
 
   // Iterate Through the Features in the Layer and Access Points
   OGRFeature *poFeature;
@@ -481,6 +495,10 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
   while ((poFeature = poLayer->GetNextFeature()) != nullptr) {
     OGRGeometry *poGeometry;
     poGeometry = poFeature->GetGeometryRef();
+    // Transform the geometry
+    if (poGeometry->transform(coordTransform) != OGRERR_NONE) {
+      throw std::runtime_error("fail to transform!");
+    }
     if (poGeometry != nullptr &&
         wkbFlatten(poGeometry->getGeometryType()) == wkbLineString) {
       auto *poLine = dynamic_cast<OGRLineString *>(poGeometry);
