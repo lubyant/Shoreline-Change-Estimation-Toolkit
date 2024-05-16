@@ -484,8 +484,8 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
   OGRSpatialReference *pszInputProj = poLayer->GetSpatialRef();
   OGRCoordinateTransformation *coordTransform;
   coordTransform = OGRCreateCoordinateTransformation(pszInputProj, &refSRS);
-  if(coordTransform == NULL) {
-      throw std::runtime_error("Failed to create coordinate transformation.\n");
+  if (coordTransform == NULL) {
+    throw std::runtime_error("Failed to create coordinate transformation.\n");
   }
 
   // Iterate Through the Features in the Layer and Access Points
@@ -511,6 +511,78 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
         shoreline_vertices.emplace_back(point.getX(), point.getY());
       }
       int year{poFeature->GetFieldAsInteger("year")};
+      shorelines.emplace_back(shoreline_vertices, shoreline_id++, year,
+                              image_id);
+    } else {
+      std::cout << "No geometry\n";
+    }
+    OGRFeature::DestroyFeature(poFeature);
+  }
+
+  // Cleanup
+  GDALClose(poDS);
+
+  return shorelines;
+}
+gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
+                                   const std::string &baseline_proj) {
+  gm::Shorelines shorelines;
+  int shoreline_id{0};
+
+  // Initialize GDAL
+  GDALAllRegister();
+
+  // Open the Shapefile
+  GDALDataset *poDS;
+  poDS = static_cast<GDALDataset *>(GDALOpenEx(
+      shoreline_shp_path.c_str(), GDAL_OF_VECTOR, nullptr, nullptr, nullptr));
+  if (poDS == nullptr) {
+    std::cerr << "Open failed.\n";
+    exit(1);
+  }
+
+  // get coordiante system
+  const char *pszRefProj = baseline_proj.c_str();
+  OGRSpatialReference refSRS;
+  if (refSRS.importFromWkt(pszRefProj) != OGRERR_NONE) {
+    throw std::runtime_error("Failed to import reference spatial reference.\n");
+  }
+
+  // Get the Layer Containing the Line Features
+  OGRLayer *poLayer;
+  poLayer = poDS->GetLayer(0);
+  OGRSpatialReference *pszInputProj = poLayer->GetSpatialRef();
+  OGRCoordinateTransformation *coordTransform;
+  coordTransform = OGRCreateCoordinateTransformation(pszInputProj, &refSRS);
+  if (coordTransform == NULL) {
+    throw std::runtime_error("Failed to create coordinate transformation.\n");
+  }
+
+  // Iterate Through the Features in the Layer and Access Points
+  OGRFeature *poFeature;
+  poLayer->ResetReading();
+  gm::Baselines baselines;
+  while ((poFeature = poLayer->GetNextFeature()) != nullptr) {
+    OGRGeometry *poGeometry;
+    poGeometry = poFeature->GetGeometryRef();
+    // Transform the geometry
+    if (poGeometry->transform(coordTransform) != OGRERR_NONE) {
+      throw std::runtime_error("fail to transform!");
+    }
+    if (poGeometry != nullptr &&
+        wkbFlatten(poGeometry->getGeometryType()) == wkbLineString) {
+      auto *poLine = dynamic_cast<OGRLineString *>(poGeometry);
+      int numPoints = poLine->getNumPoints();
+
+      std::vector<gm::Point<double>> shoreline_vertices;
+      for (int i = 0; i < numPoints; i++) {
+        OGRPoint point;
+        poLine->getPoint(i, &point);
+        shoreline_vertices.emplace_back(point.getX(), point.getY());
+      }
+      std::string date = std::string(poFeature->GetFieldAsString("Date_"));
+      int year = std::atoi(date.substr(6, 4).c_str());
+      int image_id{poFeature->GetFieldAsInteger("ImageID")};
       shorelines.emplace_back(shoreline_vertices, shoreline_id++, year,
                               image_id);
     } else {

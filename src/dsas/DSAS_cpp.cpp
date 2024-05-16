@@ -353,18 +353,33 @@ void create_intersects_by_transects(TransectGroups &transect_groups,
                                     const Path &output, const Options &options,
                                     const std::string &proj) {
   std::vector<gm::IntersectPoint> intersections;
-  for (const auto &transect_group : transect_groups) {
-    auto baseline_id{transect_group.baseline_id_};
-    Path shoreline_path = shoreline_folders /
-                          Path(std::to_string(baseline_id)) /
-                          Path(std::to_string(baseline_id) + "_shoreline.shp");
-    auto shorelines =
-        util::load_shorelines_shp(shoreline_path, proj, baseline_id);
-    for (const auto &transectLine : transect_group.transects_) {
-      for (const auto &shoreline : shorelines) {
-        auto ret = transectLine.intersection(shoreline);
-        if (ret.has_value()) {
-          intersections.push_back(ret.value());
+  if (std::filesystem::is_directory(shoreline_folders)) {
+    for (const auto &transect_group : transect_groups) {
+      auto baseline_id{transect_group.baseline_id_};
+      Path shoreline_path =
+          shoreline_folders / Path(std::to_string(baseline_id)) /
+          Path(std::to_string(baseline_id) + "_shoreline.shp");
+      auto shorelines =
+          util::load_shorelines_shp(shoreline_path, proj, baseline_id);
+      for (const auto &transectLine : transect_group.transects_) {
+        for (const auto &shoreline : shorelines) {
+          auto ret = transectLine.intersection(shoreline);
+          if (ret.has_value()) {
+            intersections.push_back(ret.value());
+          }
+        }
+      }
+    }
+  } else {
+    for (const auto &transect_group : transect_groups) {
+      Path shoreline_path = shoreline_folders;
+      auto shorelines = util::load_shorelines_shp(shoreline_path, proj);
+      for (const auto &transectLine : transect_group.transects_) {
+        for (const auto &shoreline : shorelines) {
+          auto ret = transectLine.intersection(shoreline);
+          if (ret.has_value()) {
+            intersections.push_back(ret.value());
+          }
         }
       }
     }
@@ -381,7 +396,7 @@ void create_intersects_by_transects(TransectGroups &transect_groups,
   compute_rate(bid_tid_points, transect_groups, options.outlier_rate);
 
   // save the intersections to shp
-  if (intersections.size() == 0){
+  if (intersections.size() == 0) {
     throw std::runtime_error("No intersections");
   }
   util::save_points(intersections, proj.c_str(), output);
