@@ -156,7 +156,8 @@ struct TransectLine : public LineSegment,
         transect_id_(transect_id),
         baseline_id_(baseline_id),
         image_id_(image_id),
-        mode_(mode) {}
+        mode_(mode),
+        orient_(orient) {}
 
   static LineSegment create_transect(
       Point<> &transect_base, std::pair<double, double> baseline_normal_vector,
