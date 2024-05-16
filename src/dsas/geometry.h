@@ -151,11 +151,13 @@ struct TransectLine : public LineSegment,
         LineSegment(create_transect(transect_base, baseline_normal_vector,
                                     transect_length, orient)),
 
-        transect_ref_point_(rightEdge_),
+        transect_ref_point_(orient == TransectOrientation::Right ? leftEdge_
+                                                                 : rightEdge_),
         transect_id_(transect_id),
         baseline_id_(baseline_id),
         image_id_(image_id),
-        mode_(mode) {}
+        mode_(mode),
+        orient_(orient) {}
 
   static LineSegment create_transect(
       Point<> &transect_base, std::pair<double, double> baseline_normal_vector,
