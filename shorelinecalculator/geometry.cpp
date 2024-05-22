@@ -1,9 +1,9 @@
 //
 // Created by lby on 10/20/23.
 //
-#include "geometry.h"
+#include "geometry.hpp"
 
-#include "utility.h"
+#include "utility.hpp"
 
 namespace gm {
 int LineSegment::num_lines = 0;

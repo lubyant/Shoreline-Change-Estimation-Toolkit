@@ -2,16 +2,16 @@
 // Created by lby on 10/13/23.
 //
 
-#ifndef DSAS_CPP_IMAGE_H
-#define DSAS_CPP_IMAGE_H
+#ifndef SHORELINECALCULATOR_IMAGE_HPP
+#define SHORELINECALCULATOR_IMAGE_HPP
 
 #include <filesystem>
 #include <opencv2/opencv.hpp>
 #include <string>
 
-#include "geometry.h"
-#include "options.h"
-#include "utility.h"
+#include "geometry.hpp"
+#include "options.hpp"
+#include "utility.hpp"
 
 #define IsEdge(x_cor, y_cor, x_lim, y_lim) \
   ((x_cor) == 0 || (x_cor) == x_lim || (y_cor) == 0 || (y_cor) == y_lim)

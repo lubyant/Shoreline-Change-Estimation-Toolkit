@@ -2,7 +2,7 @@
 // Created by lby on 10/21/23.
 //
 
-#include "image.h"
+#include "image.hpp"
 namespace dsas {
 Image::Image(std::filesystem::path image_path, const Options &options)
     : image_path_(std::move(image_path)),
