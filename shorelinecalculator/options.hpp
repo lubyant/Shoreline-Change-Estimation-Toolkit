@@ -1,9 +1,9 @@
-#ifndef DSAS_CPP_OPTIONS_H
-#define DSAS_CPP_OPTIONS_H
+#ifndef SHORELINECALCULATOR_OPTIONS_HPP
+#define SHORELINECALCULATOR_OPTIONS_HPP
 
 #include <thread>
 
-#include "geometry.h"
+#include "geometry.hpp"
 
 namespace dsas {
 struct Options {

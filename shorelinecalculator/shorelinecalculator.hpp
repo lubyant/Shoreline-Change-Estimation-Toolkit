@@ -2,21 +2,37 @@
 // Created by lby on 10/12/23.
 //
 
-#ifndef DSAS_CPP_DSAS_CPP_H
-#define DSAS_CPP_DSAS_CPP_H
+#ifndef SHORELINECALCULATOR_SHORELINECALCULATOR_HPP
+#define SHORELINECALCULATOR_SHORELINECALCULATOR_HPP
 
 #include <filesystem>
 #include <vector>
 
-#include "geometry.h"
-#include "image.h"
+#include "geometry.hpp"
+#include "image.hpp"
 
 namespace dsas {
-
 
 template <typename Key, typename Value>
 using umap = std::unordered_map<Key, Value>;
 using namespace gm;
+using Path = std::filesystem::path;
+
+void dsas(const std::vector<Path> &folders, const Path &output_path,
+          const Options &options);
+
+void digital_shoreline_analysis_system(const Path &folder,
+                                       const Path &output_path,
+                                       const Options &options);
+
+void digital_shoreline_analysis_system(const std::vector<Path> &paths,
+                                       const Path &output_path,
+                                       const Options &options);
+
+void dsas(const Path &shoreline_folder, const Path &baseline_path,
+          const Path &output_transect_path,
+          const Path &output_intersections_path, const Options &options);
+
 
 void controller(const std::vector<Path> &paths, const Path &output_path,
                 const Options &options);

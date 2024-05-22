@@ -1,7 +1,7 @@
 //
 // Created by lby on 10/12/23.
 //
-#include "DSAS_cpp.h"
+#include "shorelinecalculator.hpp"
 
 #include <unistd.h>
 
@@ -10,8 +10,7 @@
 #include <stdexcept>
 #include <unordered_set>
 
-#include "../include/dsas.h"
-#include "geometry.h"
+#include "geometry.hpp"
 
 namespace dsas {
 

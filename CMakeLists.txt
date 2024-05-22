@@ -1,19 +1,14 @@
 cmake_minimum_required(VERSION 3.10)
-project(DSAS_cpp)
+project(ShorelineCalculator)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# include directory
-include_directories(${CMAKE_SOURCE_DIR}/include)
-include_directories(${CMAKE_SOURCE_DIR}/src)
-include_directories(${CMAKE_SOURCE_DIR}/lib)
-# add subdirectory
-add_subdirectory(src/dsas)
-
+# # include directory
+include_directories(${CMAKE_SOURCE_DIR}/shorelinecalculator)
+add_subdirectory(${CMAKE_SOURCE_DIR}/shorelinecalculator)
 
 # gtest
 add_subdirectory(lib/googletest)
-
 # opencv
 find_package(OpenCV CONFIG REQUIRED)
 include_directories( ${OpenCV_INCLUDE_DIRS} )
@@ -28,13 +23,20 @@ if(GDAL_FOUND)
 else()
     message(FATAL_ERROR "GDAL not found!")
 endif()
+
 include_directories(${GDAL_INCLUDE_DIRS})
-
-
 # final executable
-add_executable(${PROJECT_NAME} main.cpp)
-target_link_libraries(${PROJECT_NAME} dsas_lib)
-target_link_libraries(${PROJECT_NAME} pthread)
+
+add_executable(${PROJECT_NAME} shorelinecalculator/main.cpp)
+target_link_libraries(${PROJECT_NAME} DSAS)
 
 enable_testing()
-add_subdirectory(src/test)
+add_executable(${PROJECT_NAME}_tests
+shorelinecalculator/utility.test.cpp 
+shorelinecalculator/geometry.test.cpp)
+target_link_libraries(${PROJECT_NAME}_tests gtest gtest_main)
+target_link_libraries(${PROJECT_NAME}_tests ${OpenCV_LIBS})
+target_link_libraries(${PROJECT_NAME}_tests ${GDAL_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_tests DSAS)
+
+add_test(NAME ${PROJECT_NAME}_tests COMMAND ${PROJECT_NAME}_tests)

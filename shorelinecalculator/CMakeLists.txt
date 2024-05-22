@@ -1,10 +1,3 @@
-# define libray
-add_library(dsas_lib
-        DSAS_cpp.cpp
-        geometry.cpp
-        image.cpp
-        utility.cpp)
-
 # opencv
 find_package(OpenCV CONFIG REQUIRED)
 include_directories( ${OpenCV_INCLUDE_DIRS} )
@@ -20,6 +13,8 @@ else()
     message(FATAL_ERROR "GDAL not found!")
 endif()
 include_directories(${GDAL_INCLUDE_DIRS})
-target_link_libraries(dsas_lib ${OpenCV_LIBS})
-target_link_libraries(dsas_lib ${GDAL_LIBRARIES})
-target_link_libraries(dsas_lib pthread)
+
+add_library(DSAS STATIC geometry.cpp image.cpp shorelinecalculator.cpp utility.cpp)
+target_link_libraries(DSAS PRIVATE pthread)
+target_link_libraries(DSAS PRIVATE ${OpenCV_LIBS})
+target_link_libraries(DSAS PRIVATE ${GDAL_LIBRARIES})

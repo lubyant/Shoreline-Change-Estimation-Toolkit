@@ -2,13 +2,13 @@
 // Created by lby on 10/20/23.
 //
 
-#ifndef DSAS_CPP_GEOMETRY_H
-#define DSAS_CPP_GEOMETRY_H
+#ifndef SHORELINECALCULATOR_GEOMETRY_HPP
+#define SHORELINECALCULATOR_GEOMETRY_HPP
 
 #define EPS_OFFSET 1e-6
 #define PI 3.1415926
 
-#include <ogr_core.h>
+#include "gdal_priv.h"
 
 #include <algorithm>
 #include <cmath>

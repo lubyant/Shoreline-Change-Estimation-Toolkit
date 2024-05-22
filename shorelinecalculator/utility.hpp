@@ -2,8 +2,8 @@
 // Created by lby on 10/13/23.
 //
 
-#ifndef DSAS_CPP_UTILITY_H
-#define DSAS_CPP_UTILITY_H
+#ifndef SHORELINECALCULATOR_UTILITY_HPP
+#define SHORELINECALCULATOR_UTILITY_HPP
 
 #include <gdal_priv.h>
 #include <ogrsf_frmts.h>
@@ -18,8 +18,8 @@
 #include <tuple>
 #include <vector>
 
-#include "geometry.h"
-#include "options.h"
+#include "geometry.hpp"
+#include "options.hpp"
 
 #ifndef MIN
 #define MIN(A, B) ((A) < (B) ? (A) : (B))
