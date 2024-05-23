@@ -20,40 +20,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: recursive
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
-    - name: Cache vcpkg
-      uses: actions/cache@v3
-      with:
-        path: |
-          ${{github.workspace}}/vcpkg/installed
-          ${{github.workspace}}/vcpkg/downloads
-          ${{github.workspace}}/vcpkg/buildtrees
-        key: ${{ runner.os }}-vcpkg-${{ hashFiles('**/vcpkg.json') }}
-        restore-keys: |
-          ${{ runner.os }}-vcpkg-
+      - name: Cache vcpkg
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{github.workspace}}/vcpkg/installed
+            ${{github.workspace}}/vcpkg/downloads
+            ${{github.workspace}}/vcpkg/buildtrees
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('**/vcpkg.json') }}
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-
 
-    - name: Install vcpkg
-      run: |
-        git clone https://github.com/microsoft/vcpkg.git
-        ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
-        echo "VCPKG_ROOT=${{github.workspace}}/vcpkg" >> $GITHUB_ENV
-        echo "VCPKG_MAX_CONCURRENCY=8" >> $GITHUB_ENV
-        ./vcpkg/vcpkg integrate install
-        sudo apt-get install build-essential libdbus-glib-1-dev libxi-dev libxtst-dev
+      - name: Install vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
+          echo "VCPKG_ROOT=${{github.workspace}}/vcpkg" >> $GITHUB_ENV
+          echo "VCPKG_MAX_CONCURRENCY=8" >> $GITHUB_ENV
+          ./vcpkg/vcpkg integrate install
+          sudo apt install build-essential gcc g++ python3-distutils pkg-config cmake ninja-build bison gperf nasm libx11-dev libxft-dev libxext-dev libdbus-1-dev libxi-dev libxtst-dev libgl1-mesa-dev libgles2-mesa-dev libglu1-mesa-dev libtool libudev-dev libx11-xcb-dev libxcursor-dev libxdamage-dev libxinerama-dev libxrandr-dev
+      - name: Configure CMake
+        run: cmake --preset=default
 
-    - name: Configure CMake
-      run: cmake --preset=default
+      - name: Build
+        # Build your program with the given configuration
+        run: cmake --build ${{github.workspace}}/build
 
-    - name: Build
-      # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build
-
-    - name: Test
-      working-directory: ${{github.workspace}}/build
-      # Execute tests defined by the CMake configuration.
-      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest -C ${{env.BUILD_TYPE}}
+      - name: Test
+        working-directory: ${{github.workspace}}/build
+        # Execute tests defined by the CMake configuration.
+        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+        run: ctest -C ${{env.BUILD_TYPE}}
 
