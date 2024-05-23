@@ -1,0 +1,9 @@
+{
+  "dependencies": [
+    "boost-date-time",
+    "boost-json",
+    "gdal",
+    "opencv",
+    "gtest"
+  ]
+}
