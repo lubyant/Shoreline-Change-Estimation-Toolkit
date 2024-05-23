@@ -6,13 +6,6 @@
     "boost-json",
     "gdal",
     "gtest",
-    {
-      "name": "opencv",
-      "default-features": false,
-      "features": [
-        "imgproc",
-        "imgcodecs"
-      ]
-    }
+    "opencv"
   ]
 }
