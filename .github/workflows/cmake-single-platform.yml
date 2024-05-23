@@ -42,6 +42,7 @@ jobs:
         echo "VCPKG_ROOT=${{github.workspace}}/vcpkg" >> $GITHUB_ENV
         echo "VCPKG_MAX_CONCURRENCY=8" >> $GITHUB_ENV
         ./vcpkg/vcpkg integrate install
+        sudo apt-get install build-essential
 
     - name: Configure CMake
       run: cmake --preset=default
