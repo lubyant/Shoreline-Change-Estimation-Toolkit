@@ -42,7 +42,7 @@ jobs:
         echo "VCPKG_ROOT=${{github.workspace}}/vcpkg" >> $GITHUB_ENV
         echo "VCPKG_MAX_CONCURRENCY=8" >> $GITHUB_ENV
         ./vcpkg/vcpkg integrate install
-        sudo apt-get install build-essential dbus-glib-devel libXi-devel libXtst-devel
+        sudo apt-get install build-essential libdbus-glib-1-dev libxi-dev libxtst-dev
 
     - name: Configure CMake
       run: cmake --preset=default
