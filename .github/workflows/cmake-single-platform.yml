@@ -45,11 +45,11 @@ jobs:
         sudo apt-get install build-essential
 
     - name: Configure CMake
-      run: sudo cmake --preset=default
+      run: cmake --preset=default
 
     - name: Build
       # Build your program with the given configuration
-      run: sudo cmake --build ${{github.workspace}}/build
+      run: cmake --build ${{github.workspace}}/build
 
     - name: Test
       working-directory: ${{github.workspace}}/build
