@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 # gtest
 find_package(GTest CONFIG REQUIRED)
 # opencv
-find_package(OpenCV CONFIG REQUIRED)
+find_package(OpenCV CONFIG REQUIRED COMPONENTS core,imgproc,imgcodecs)
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 # gdal
 find_package(GDAL CONFIG REQUIRED)

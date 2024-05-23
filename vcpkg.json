@@ -3,7 +3,14 @@
     "boost-date-time",
     "boost-json",
     "gdal",
-    "opencv",
-    "gtest"
+    "gtest",
+    {
+      "name": "opencv",
+      "features": [
+        "core",
+        "imgproc",
+        "imgcodecs"
+      ]
+    }
   ]
 }
