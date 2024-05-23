@@ -1,4 +1,6 @@
 {
+  "name": "shoreline-calculator",
+  "version": "0.0.1",
   "dependencies": [
     "boost-date-time",
     "boost-json",
@@ -6,8 +8,8 @@
     "gtest",
     {
       "name": "opencv",
+      "default-features": false,
       "features": [
-        "core",
         "imgproc",
         "imgcodecs"
       ]
