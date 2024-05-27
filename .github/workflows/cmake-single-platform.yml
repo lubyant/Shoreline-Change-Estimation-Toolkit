@@ -34,7 +34,7 @@ jobs:
 
       - name: Run Docker Container
         run: |
-          docker run --rm lubyant1994/shoreline_calculator:latest
+          docker run --rm lubyant1994/shoreline_calculator:latest ctest
 
       - name: Push to DockerHub
         if: success()
