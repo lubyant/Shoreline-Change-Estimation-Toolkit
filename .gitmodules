@@ -1,9 +1,0 @@
-[submodule "lib/googletest"]
-	path = lib/googletest
-	url = https://github.com/google/googletest.git
-[submodule "lib/gdal"]
-	path = lib/gdal
-	url = https://github.com/OSGeo/GDAL.git
-[submodule "lib/opencv"]
-	path = lib/opencv
-	url = https://github.com/opencv/opencv.git
