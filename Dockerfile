@@ -33,4 +33,3 @@ WORKDIR /app/build
 CMD ["ctest"]
 
 # Set the ENTRYPOINT to keep the container running
-ENTRYPOINT ["top", "-b"]
