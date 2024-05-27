@@ -9,6 +9,7 @@
 #define PI 3.1415926
 
 #include "gdal_priv.h"
+#include <boost/json.hpp>
 
 #include <algorithm>
 #include <cmath>
