@@ -51,4 +51,4 @@ target_link_libraries(${PROJECT_NAME}_tests ${OpenCV_LIBS})
 target_link_libraries(${PROJECT_NAME}_tests ${GDAL_LIBRARIES})
 target_link_libraries(${PROJECT_NAME}_tests DSAS)
 
-add_test(NAME ${PROJECT_NAME}_tests COMMAND ${PROJECT_NAME}_tests)
+add_test(NAME ${PROJECT_NAME}_tests COMMAND $<TARGET_FILE:${PROJECT_NAME}_tests>)
