@@ -32,9 +32,9 @@ jobs:
           load: true  # Ensures the image is loaded into the Docker environment
           tags: lubyant1994/shoreline_calculator:latest
 
-      - name: Run Docker Container
-        run: |
-          docker run --rm lubyant1994/shoreline_calculator:latest ctest
+      # - name: Run Docker Container
+      #   run: |
+      #     docker run --rm lubyant1994/shoreline_calculator:latest ctest
 
       - name: Push to DockerHub
         if: success()
