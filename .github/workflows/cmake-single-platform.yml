@@ -30,7 +30,7 @@ jobs:
         context: .
         file: ./Dockerfile
         push: false
-        tags: yourusername/yourrepository:latest  # Replace with your DockerHub username and repository
+        tags: lubyant1994/shoreline_calculator:latest
 
     - name: Run Tests
       run: |
@@ -43,7 +43,7 @@ jobs:
         context: .
         file: ./Dockerfile
         push: true
-        tags: yourusername/yourrepository:latest  # Replace with your DockerHub username and repository
+        tags: lubyant1994/shoreline_calculator:latest
 
     - name: Clean up Buildx
       uses: docker/build-push-action@v3
