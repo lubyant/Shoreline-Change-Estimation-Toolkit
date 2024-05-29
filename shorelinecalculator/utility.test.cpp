@@ -78,6 +78,7 @@ BOOST_AUTO_TEST_CASE(TestRemoveOutliers) {
 
     BOOST_CHECK_EQUAL(x.size(), 9);
     BOOST_CHECK_EQUAL(data.size(), 9);
+    BOOST_CHECK_EQUAL(1, 0);
   }
   {
     std::vector<double> data = {1, 2, 3, 100, 5, 6, -20, 8, 9, 10};
