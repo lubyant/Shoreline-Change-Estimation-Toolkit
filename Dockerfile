@@ -19,7 +19,7 @@ COPY . /app
 WORKDIR /app/build
 RUN cmake ..
 RUN make
-CMD ["./ShorelineCalculator_tests"]
+RUN ctest
 
 # Stage 2: Prepare the final image
 FROM ubuntu:latest
