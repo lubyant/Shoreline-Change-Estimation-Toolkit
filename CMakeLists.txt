@@ -25,7 +25,7 @@ endif()
 include_directories(${GDAL_INCLUDE_DIRS})
 
 # boost
-find_package(Boost CONFIG REQUIRED COMPONENTS json date_time)
+find_package(Boost CONFIG REQUIRED COMPONENTS json date_time unit_test_framework)
 include_directories(${Boost_INCLUDE_DIRS})
 
 # final executable
@@ -46,9 +46,9 @@ enable_testing()
 add_executable(${PROJECT_NAME}_tests
 shorelinecalculator/utility.test.cpp 
 shorelinecalculator/geometry.test.cpp)
-target_link_libraries(${PROJECT_NAME}_tests GTest::gtest GTest::gtest_main)
-target_link_libraries(${PROJECT_NAME}_tests ${OpenCV_LIBS})
-target_link_libraries(${PROJECT_NAME}_tests ${GDAL_LIBRARIES})
+# target_link_libraries(${PROJECT_NAME}_tests ${OpenCV_LIBS})
+# target_link_libraries(${PROJECT_NAME}_tests ${GDAL_LIBRARIES})
 target_link_libraries(${PROJECT_NAME}_tests DSAS)
+target_link_libraries(${PROJECT_NAME}_tests ${Boost_LIBRARIES})
 
 add_test(NAME ${PROJECT_NAME}_tests COMMAND $<TARGET_FILE:${PROJECT_NAME}_tests>)

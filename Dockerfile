@@ -19,6 +19,7 @@ COPY . /app
 WORKDIR /app/build
 RUN cmake ..
 RUN make
+RUN ctest
 
 # Stage 2: Prepare the final image
 FROM ubuntu:latest
@@ -30,7 +31,7 @@ COPY --from=builder /app/build /app/build
 WORKDIR /app/build
 
 # Set the command to run tests when the container starts
-CMD ["ctest"]
+CMD ["./ShorelineCalculator_tests"]
 
 # Set the ENTRYPOINT to keep the container running
 # ENTRYPOINT ["top", "-b"]
