@@ -44,6 +44,7 @@ target_link_libraries(${PROJECT_NAME} DSAS)
 
 enable_testing()
 add_executable(${PROJECT_NAME}_tests
+shorelinecalculator/main.test.cpp
 shorelinecalculator/utility.test.cpp 
 shorelinecalculator/geometry.test.cpp)
 # target_link_libraries(${PROJECT_NAME}_tests ${OpenCV_LIBS})

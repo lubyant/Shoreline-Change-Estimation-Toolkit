@@ -2,8 +2,7 @@
 // Created by lby on 10/21/23.
 //
 #include "geometry.hpp"
-#define BOOST_TEST_MAIN
-#include <boost/test/included/unit_test.hpp>
+#include <boost/test/unit_test.hpp>
 
 #define TOL 1e-4
 using namespace gm;
