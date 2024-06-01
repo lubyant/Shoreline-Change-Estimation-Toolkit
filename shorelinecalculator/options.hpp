@@ -2,6 +2,7 @@
 #define SHORELINECALCULATOR_OPTIONS_HPP
 
 #include <thread>
+#include <boost/json.hpp>
 
 #include "geometry.hpp"
 
@@ -17,6 +18,11 @@ struct Options {
   size_t thread_num{std::thread::hardware_concurrency()};
   gm::IntersectionMode intersection_mode{gm::IntersectionMode::Closest};
   gm::TransectOrientation transect_orient{gm::TransectOrientation::Mix};
+
+  Options() = default;
+  Options(const boost::json::value &json_value);
+
+
 };
 }  // namespace dsas
 

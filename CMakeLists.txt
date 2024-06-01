@@ -31,6 +31,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 # final executable
 add_library(DSAS STATIC shorelinecalculator/geometry.cpp
         shorelinecalculator/image.cpp
+        shorelinecalculator/options.cpp
         shorelinecalculator/shorelinecalculator.cpp
         shorelinecalculator/utility.cpp)
 target_link_libraries(DSAS PRIVATE pthread)
@@ -46,9 +47,8 @@ enable_testing()
 add_executable(${PROJECT_NAME}_tests
 shorelinecalculator/main.test.cpp
 shorelinecalculator/utility.test.cpp 
+shorelinecalculator/options.test.cpp
 shorelinecalculator/geometry.test.cpp)
-# target_link_libraries(${PROJECT_NAME}_tests ${OpenCV_LIBS})
-# target_link_libraries(${PROJECT_NAME}_tests ${GDAL_LIBRARIES})
 target_link_libraries(${PROJECT_NAME}_tests DSAS)
 target_link_libraries(${PROJECT_NAME}_tests ${Boost_LIBRARIES})
 
