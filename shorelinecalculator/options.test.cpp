@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(JsonInput){
     }
   )";
   boost::json::error_code ec;
-  auto json_value {boost::json::parse(json_string, ec)};
+  auto json_value  = boost::json::parse(json_string, ec);
   if (ec){
     std::cerr << "json parser err\n";
     BOOST_CHECK(false);
