@@ -2,3 +2,4 @@
 /cmake-build-release/*
 /images/*
 /build/*
+__pycache__
