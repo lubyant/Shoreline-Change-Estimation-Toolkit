@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.5...3.27)
 project(ShorelineCalculator)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -42,6 +42,11 @@ target_link_libraries(DSAS PRIVATE Boost::date_time)
 
 add_executable(${PROJECT_NAME} shorelinecalculator/main.cpp)
 target_link_libraries(${PROJECT_NAME} DSAS)
+
+find_package(Python 3.10 COMPONENTS Interpreter Development REQUIRED)
+find_package(pybind11 CONFIG REQUIRED)
+pybind11_add_module(example shorelinecalculator/pybind.cpp)
+target_link_libraries(example PRIVATE DSAS)
 
 enable_testing()
 add_executable(${PROJECT_NAME}_tests
