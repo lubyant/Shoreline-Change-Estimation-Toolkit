@@ -8,7 +8,7 @@
 #define EPS_OFFSET 1e-6
 #define PI 3.1415926
 
-#include "gdal_priv.h"
+#include <gdal_priv.h>
 #include <boost/json.hpp>
 
 #include <algorithm>
