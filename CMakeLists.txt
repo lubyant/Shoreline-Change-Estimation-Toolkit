@@ -28,7 +28,8 @@ add_executable(${PROJECT_NAME}
 shorelinecalculator/main.cpp
 )
 
-pybind11_add_module(example_module shorelinecalculator/cpp_interface.cpp)
+pybind11_add_module(cppext shorelinecalculator/pybind.cpp)
+target_link_libraries(cppext PRIVATE DSAS)
 
 target_link_libraries(
     ${PROJECT_NAME}
