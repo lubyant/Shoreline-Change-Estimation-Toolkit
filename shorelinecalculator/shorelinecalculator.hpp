@@ -63,6 +63,9 @@ void create_intersects_by_transects(TransectGroups &transects,
                                     const Path &shoreline_folders,
                                     const Path &output, const Options &options,
                                     const std::string &proj);
+
+void dsas(std::string &json_str);
+
 }  // namespace dsas
 
-#endif  // DSAS_CPP_DSAS_CPP_H
+#endif  // SHORELINECALCULATOR_SHORELINECALCULATOR_HPP

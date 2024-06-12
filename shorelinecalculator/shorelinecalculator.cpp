@@ -400,4 +400,24 @@ void create_intersects_by_transects(TransectGroups &transect_groups,
   }
   util::save_points(intersections, proj.c_str(), output);
 }
+void dsas(std::string &json_str) {
+  boost::system::error_code ec;
+  auto json_value = boost::json::parse(json_str, ec);
+  if (ec) {
+    throw std::runtime_error("json parser err\n");
+  }
+  dsas::Options options{json_value};
+  
+  if (!json_value.as_object().contains("data")){
+    throw std::runtime_error("json needs to contains data field");
+  }
+
+  auto data = json_value.as_object().at("data");
+
+  for(auto& [image_name, items]: data){
+    for (auto& [date_str, path_str]: items){
+        Image image{path_str, image_name, boost::gregorian::date_from_iso_string(date_str), }
+    }
+  }
+}
 }  // namespace dsas

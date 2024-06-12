@@ -12,14 +12,33 @@ Image::Image(std::filesystem::path image_path, const Options &options)
   auto image_name = image_path_.stem().string();
 
   // extract the year from the name
-  try{
+  try {
     year_ = std::stoi(image_name.substr(image_name.size() - 4, 4));
-  } catch(std::exception &e){
+  } catch (std::exception &e) {
     throw std::runtime_error(image_name + e.what());
   }
 
   // extract the file_name
   file_name_ = image_name.substr(0, image_name.size() - 4);
+
+  // extract the contour
+  extract_contours();
+
+  // extract the shorelines
+  extract_shorelines();
+
+  // process the shoreline
+  process_shorelines();
+
+  // transform the geospatial coordinate system
+  transform_coordinates();
+}
+
+Image::Image(const std::filesystem::path image_path,
+             const std::string &image_id, const boost::gregorian::date &date,
+             const Options &options)
+    : image_path_(image_path), date_(date), file_name_(image_id) {
+  year_ = date.year;
 
   // extract the contour
   extract_contours();
