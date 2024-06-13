@@ -25,6 +25,7 @@ jobs:
 
     - name: Build and Install Module
       run: |
+        echo ${CONDA_PREFIX}
         conda install -c conda-forge gdal opencv pybind11 boost compilers -y
         conda list
         mkdir build && cd build
