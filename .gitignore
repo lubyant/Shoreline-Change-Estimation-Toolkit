@@ -2,3 +2,8 @@
 /cmake-build-release/*
 /images/*
 /build/*
+__pycache__
+/Validation/*
+/ErosionFiles/*
+/rasters/*
+/MergeShp/*
