@@ -51,7 +51,7 @@ setup(
     author='Your Name',
     description='A C++ extension for Python',
     long_description='',
-    ext_modules=[CMakeExtension('cppext', 'src')],
+    ext_modules=[CMakeExtension('cppext')],
     cmdclass={'build_ext': CMakeBuild},
     zip_safe=False,
 )
