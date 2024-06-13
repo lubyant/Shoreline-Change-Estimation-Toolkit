@@ -23,10 +23,6 @@ jobs:
         environment-file: environment.yml
         auto-activate-base: false
 
-    - name: Install Dependencies
-      run: |
-        conda install -c conda-forge gdal opencv boost pybind -y
-
     - name: Build and Install Module
       run: |
         python setup.py build
