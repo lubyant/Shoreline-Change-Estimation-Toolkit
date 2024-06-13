@@ -25,9 +25,7 @@ jobs:
 
     - name: Build and Install Module
       run: |
-        conda init
-        conda activate my_env
-        conda list
+        conda install -c conda-forge gdal opencv pybind11 boost compilers
         python setup.py build
         python setup.py install
 
