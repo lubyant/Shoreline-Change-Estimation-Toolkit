@@ -25,6 +25,9 @@ jobs:
 
     - name: Build and Install Module
       run: |
+        conda env create -f environment.yml
+        conda init
+        conda activate my_env
         conda list
         python setup.py build
         python setup.py install
