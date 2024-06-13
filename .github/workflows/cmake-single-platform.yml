@@ -23,16 +23,9 @@ jobs:
         environment-file: environment.yml
         auto-activate-base: false
 
-    - name: Manually activate Conda environment and check CONDA_PREFIX
+    - name: Build and Install Module
       shell: bash -l {0}
       run: |
-        conda activate my_env
-        echo "CONDA_PREFIX=$CONDA_PREFIX"
+        python setup.py build
+        python setup.py install
 
-    - name: Build and Install Module
-      run: |
-        echo "CONDA_PREFIX=$CONDA_PREFIX"
-
-    - name: Run Tests
-      run: |
-        python -m unittest discover tests
