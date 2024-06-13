@@ -5,6 +5,6 @@ dependencies:
   - python=3.10
   - gdal=3.5
   - opencv
-  - boost=1.75
+  - boost=1.83
   - pybind11
   - compilers
