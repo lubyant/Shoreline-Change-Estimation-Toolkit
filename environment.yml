@@ -2,9 +2,9 @@ name: my_env
 channels:
   - conda-forge
 dependencies:
-  - python=3.10
-  - gdal=3.5
+  - python
+  - gdal
   - opencv
-  - boost=1.83
+  - boost
   - pybind11
   - compilers
