@@ -26,6 +26,7 @@ jobs:
     - name: Build and Install Module
       shell: bash -l {0}
       run: |
+        conda activate my_env
         python setup.py build
         python setup.py install
 
