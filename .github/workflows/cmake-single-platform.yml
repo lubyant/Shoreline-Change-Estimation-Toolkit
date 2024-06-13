@@ -25,6 +25,7 @@ jobs:
 
     - name: Build and Install Module
       run: |
+        conda list
         python setup.py build
         python setup.py install
 
