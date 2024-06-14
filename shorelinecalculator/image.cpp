@@ -3,6 +3,8 @@
 //
 
 #include "image.hpp"
+
+#include <utility>
 namespace dsas {
 Image::Image(std::filesystem::path image_path, const Options &options)
     : image_path_(std::move(image_path)),
@@ -14,6 +16,7 @@ Image::Image(std::filesystem::path image_path, const Options &options)
   // extract the year from the name
   try {
     year_ = std::stoi(image_name.substr(image_name.size() - 4, 4));
+    date_ = boost::gregorian::date(year_, 1, 1);
   } catch (std::exception &e) {
     throw std::runtime_error(image_name + e.what());
   }
@@ -34,11 +37,14 @@ Image::Image(std::filesystem::path image_path, const Options &options)
   transform_coordinates();
 }
 
-Image::Image(const std::filesystem::path image_path,
-             const std::string &image_id, const boost::gregorian::date &date,
-             const Options &options)
-    : image_path_(image_path), date_(date), file_name_(image_id) {
-  year_ = date.year;
+Image::Image(std::filesystem::path image_path, std::string image_id,
+             const boost::gregorian::date &date, const Options &options)
+    : image_path_(std::move(image_path)),
+      date_(date),
+      file_name_(std::move(image_id)),
+      edge_distance_(options.edge_distance),
+      least_factor_(options.shoreline_least_factor) {
+  year_ = static_cast<int>(date_.year());
 
   // extract the contour
   extract_contours();

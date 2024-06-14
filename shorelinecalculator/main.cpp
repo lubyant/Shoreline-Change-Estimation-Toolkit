@@ -3,23 +3,6 @@
 
 int main(int argc, char **argv) {
   using namespace dsas;
-  // // no input
-  // if (argc == 0) {
-  //   std::cerr << "Please input the target path!\n";
-  // }
-
-  // // input paths
-  // if (argc > 1) {
-  //   std::vector<Path> input_paths;
-  //   for (int i = 1; i < argc - 1; i++) {
-  //     input_paths.emplace_back(argv[i]);
-  //   }
-  //   Path output_path{argv[argc - 1]};
-  //   dsas::dsas(input_paths, output_path);
-  // }
-  // std::vector<Path>
-  // paths{"/home/lby1994/ShorelineCalculator/rasters/4208607"}; std::string
-  // output{"output"};
   Options options;
   options.outlier_rate = 6;
   options.smooth_factor = 5;
