@@ -1,2 +1,2 @@
-def hello():
-    print("hello")
+import cppext
+cppext.cppext("a", "b")
