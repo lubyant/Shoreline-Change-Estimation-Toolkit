@@ -1,6 +1,7 @@
 from osgeo import ogr, osr
 import os
 
+
 def batch_merge(func):
     def wrapper(shapefiles, output_path, target_epsg):
         shapefiles.sort()
@@ -16,6 +17,7 @@ def batch_merge(func):
             print(batch_shapefiles, batch_output_path)
             func(batch_shapefiles, batch_output_path, target_epsg)
     return wrapper
+
 
 def add_shapefiles_from_folder(folder, shapefile_paths, field="transect"):
     for item in os.listdir(folder):
@@ -44,6 +46,7 @@ def reproject_layer(layer, target_srs):
         reprojected_layer.CreateFeature(feature)
 
     return reprojected_layer
+
 
 @batch_merge
 def merge_shapefiles(shapefiles, output_path, target_epsg):
@@ -116,7 +119,8 @@ def merge_shapefiles(shapefiles, output_path, target_epsg):
 
 
 # List of shapefile paths
-lakes = ["LakeMichigan", "LakeErie", "LakeSuperior", "LakeHuron", "LakeOntario"]
+lakes = ["LakeMichigan", "LakeErie",
+         "LakeSuperior", "LakeHuron", "LakeOntario"]
 
 for i in range(5):
     shapefile_paths = []
