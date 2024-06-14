@@ -166,6 +166,24 @@ void Image::transform_coordinates() {
     exit(1);
   }
 
+  up_left_.x = adfGeoTransform[0];
+  up_left_.y = adfGeoTransform[3];
+
+  pixel_size_x_ = adfGeoTransform[1];
+  pixel_size_y_ = adfGeoTransform[5];
+
+  n_pixel_x_ = poDataset->GetRasterXSize();
+  n_pixel_y_ = poDataset->GetRasterYSize();
+
+  bottom_right_.x = up_left_.x + pixel_size_x_ * n_pixel_x_;
+  bottom_right_.y = up_left_.y + pixel_size_y_ * n_pixel_y_;
+
+  up_right_.x = bottom_right_.x;
+  up_right_.y = up_left_.y;
+
+  bottom_left_.x = up_left_.x;
+  bottom_left_.y = bottom_right_.y;
+
   for (auto &shoreline : shorelines_) {
     std::transform(
         shoreline.shoreline_vertices_.begin(),

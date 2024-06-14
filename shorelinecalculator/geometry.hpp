@@ -57,6 +57,7 @@ template <typename T>
 struct Point {
   T x, y;
 
+  Point() = default;
   Point(T x, T y) : x(x), y(y) {}
 
   friend std::ostream &operator<< <T>(std::ostream &os, const Point<T> &point);
