@@ -8,3 +8,4 @@ dependencies:
   - boost
   - pybind11
   - compilers
+  - openmim
