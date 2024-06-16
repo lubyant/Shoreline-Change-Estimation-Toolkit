@@ -32,8 +32,9 @@ struct Image {
   gm::Point<double> up_left_, up_right_, bottom_left_, bottom_right_;
   double pixel_size_x_, pixel_size_y_;
   size_t n_pixel_x_, n_pixel_y_;
+  std::string psz_prj_;
 
-  Image() = delete;
+  Image() = default;
 
   Image(std::filesystem::path image_path, const Options &options);
   Image(std::filesystem::path image_path, std::string image_id,
@@ -51,7 +52,10 @@ struct Image {
   // geo-transform
   void transform_coordinates();
 
-  static std::vector<Shoreline> merge_shorelines_from_images()
+  static std::vector<gm::Shoreline> merge_shorelines_from_images(std::vector<Image> &images);
+
+  static gm::Baselines merge_baselines_from_images(const std::vector<const Image*> &images,
+  const Options &options);
 
   // check if the point is in edge
   [[nodiscard]] bool is_edge(const int x_cor, const int y_cor) const {
@@ -66,6 +70,11 @@ struct Image {
                           return this->is_edge(point.x, point.y);
                         });
   }
+  friend Image operator+(const Image &image1, const Image &image2);
+
+  [[nodiscard]] bool is_overlaid(const Image &image) const;
+
+  [[nodiscard]] bool is_overlaid(const gm::Point<double> &point) const;
 };
 }  // namespace dsas
 #endif  // DSAS_CPP_IMAGE_H

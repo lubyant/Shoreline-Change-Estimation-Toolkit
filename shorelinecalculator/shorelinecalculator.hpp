@@ -37,13 +37,13 @@ void dsas(const Path &shoreline_folder, const Path &baseline_path,
 void controller(const std::vector<Path> &paths, const Path &output_path,
                 const Options &options);
 
-Baselines generate_baselines(const std::vector<std::unique_ptr<Image>> &images,
+Baselines generate_baselines(const std::vector<Image> &images,
                              const Options &options);
 
 TransectGroups generate_transects(const Baselines &baselines);
 
 umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
-    const std::vector<std::unique_ptr<Image>> &images,
+    const std::vector<Image> &images,
     const TransectGroups &TransectGroups);
 
 std::vector<gm::IntersectPoint> generate_intersection(

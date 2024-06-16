@@ -4,10 +4,13 @@
 
 #include "image.hpp"
 
+#include <queue>
+#include <unordered_set>
 #include <utility>
 namespace dsas {
 Image::Image(std::filesystem::path image_path, const Options &options)
     : image_path_(std::move(image_path)),
+      psz_prj_(util::get_tiff_proj(image_path.c_str())),
       edge_distance_(options.edge_distance),
       least_factor_(options.shoreline_least_factor) {
   // file name
@@ -200,4 +203,119 @@ void Image::transform_coordinates() {
   }
   GDALClose(poDataset);
 }
+
+std::vector<gm::Shoreline> Image::merge_shorelines_from_images(
+    std::vector<Image> &images) {
+  // check the projection
+  std::string psz_prj{images[0].psz_prj_};
+  for (size_t i = 1; i < images.size(); i++) {
+    if (images.at(i).psz_prj_ != psz_prj) {
+      throw std::runtime_error(images[0].image_path_.string() + "-" +
+                               images[i].image_path_.string() +
+                               "has different projection");
+    }
+  }
+
+  // merge the shorelines
+  std::vector<gm::Shoreline> shorelines;
+  for (auto &image : images) {
+    auto &shorelines = image.shorelines_;
+    for (auto &shoreline : shorelines) {
+      shorelines.push_back(std::move(shoreline));
+    }
+  }
+  return shorelines;
+}
+
+gm::Baselines Image::merge_baselines_from_images(
+    const std::vector<const Image *> &images, const Options &options) {
+  // perform bfs
+  std::vector<bool> visited(images.size(), false);
+  std::queue<const Image *> q;
+
+  Image merge_image;
+
+  for (size_t i = 0; i < images.size(); i++) {
+    if (!visited[i]) {
+      q.push(images[i]);
+      visited[0] = true;
+      while (!q.empty()) {
+        const auto *image = q.front();
+        q.pop();
+        merge_image = merge_image + *image;
+        // merge_image = merge_image + *image;
+        for (size_t i = 0; i < images.size(); i++) {
+          if (image->is_overlaid(*images[i]) && !visited[i]) {
+            q.push(images[i]);
+            visited[i] = true;
+          }
+        }
+      }
+    }
+  }
+  auto &shorelines = merge_image.shorelines_;
+  gm::Baselines baselines;
+  int baseline_id{};
+  for (const auto &shoreline : shorelines) {
+    if (shoreline.shoreline_vertices_.empty()) {
+      continue;
+    }
+    double transect_length{options.transect_length};
+    double spacing{options.transect_spacing};
+    double offset{options.transect_offset};
+    int smooth_factor{options.smooth_factor};
+    gm::IntersectionMode mode{options.intersection_mode};
+    baselines.emplace_back(shoreline.shoreline_vertices_, transect_length,
+                           spacing, baseline_id++, shoreline.image_id_, offset,
+                           smooth_factor, mode);
+  }
+  return baselines;
+}
+
+bool Image::is_overlaid(const Image &image) const {
+  auto up_left = image.up_left_, up_right = image.up_right_,
+       bottom_left = image.bottom_left_, bottom_right = image.bottom_right_;
+  bool x_overlaid =
+      (bottom_right_.x >= bottom_left.x) && (bottom_left_.x <= bottom_right.x);
+  bool y_overlaid =
+      (up_left_.y >= up_left.y) && (bottom_left_.y <= bottom_left.y);
+  return x_overlaid && y_overlaid;
+}
+
+bool Image::is_overlaid(const gm::Point<double> &point) const {
+  bool x_overlaid = (point.x >= bottom_left_.x) && (point.x <= bottom_right_.x);
+  bool y_overlaid = (point.y >= bottom_left_.y) && (point.y <= up_right_.y);
+  return x_overlaid && y_overlaid;
+}
+
+Image operator+(const Image &image1, const Image &image2) {
+  Image image;
+  image.bottom_left_ =
+      gm::Point<double>(std::min(image1.bottom_left_.x, image2.bottom_left_.x),
+                        std::min(image1.bottom_left_.y, image2.bottom_left_.y));
+  image.bottom_right_ =
+      gm::Point<double>(std::max(image1.bottom_left_.x, image2.bottom_left_.x),
+                        std::min(image1.bottom_left_.y, image2.bottom_left_.y));
+  image.up_left_ =
+      gm::Point<double>(std::min(image1.bottom_left_.x, image2.bottom_left_.x),
+                        std::max(image1.bottom_left_.y, image2.bottom_left_.y));
+  image.up_right_ =
+      gm::Point<double>(std::max(image1.bottom_left_.x, image2.bottom_left_.x),
+                        std::max(image1.bottom_left_.y, image2.bottom_left_.y));
+  image.shorelines_ = image1.shorelines_;
+  for (const auto &shoreline : image2.shorelines_) {
+    gm::Shoreline temp_shoreline;
+    temp_shoreline.shoreline_id_ = shoreline.shoreline_id_;
+    temp_shoreline.year_ = shoreline.year_;
+    temp_shoreline.image_id_ = shoreline.image_id_;
+    for (const auto &point : shoreline.shoreline_vertices_) {
+      if (!image1.is_overlaid(point)) {
+        temp_shoreline.shoreline_vertices_.push_back(point);
+      }
+    }
+    image.shorelines_.push_back(std::move(temp_shoreline));
+  }
+  return image;
+}
+
 }  // namespace dsas

@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
+#include <unordered_map>
 #include <unordered_set>
 
 #include "geometry.hpp"
@@ -160,10 +161,10 @@ void dsas(const Path &shoreline_folder, const Path &baseline_path,
 void controller(const std::vector<Path> &paths, const Path &output_folder,
                 const Options &options) {
   // read the image
-  std::vector<std::unique_ptr<Image>> images;
+  std::vector<Image> images;
   for (const auto &path : paths) {
     try {
-      images.emplace_back(std::make_unique<Image>(path, options));
+      images.emplace_back(path, options);
     } catch (const std::runtime_error &e) {
       std::cerr << e.what() << "\n";
     } catch (const std::exception &e) {
@@ -171,15 +172,15 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
       exit(1);
     }
   }
+  auto psz_prj_ = images[0].psz_prj_;
+
   if (images.size() <= 1) {
     throw std::runtime_error("Too few images to process: ");
   }
 
-  // get image projection using the baseline
-  std::string psz_prj_ = util::get_tiff_proj(images[0]->image_path_.c_str());
-
   // generate the baselines
   auto baselines = generate_baselines(images, options);
+  auto shorelines = Image::merge_shorelines_from_images(images);
 
   // generate the transects
   auto transects = generate_transects(baselines);
@@ -200,7 +201,7 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
     }
   }
   const Path output_file_intersection =
-      output_folder / Path(images[0]->file_name_ + "intersection.shp");
+      output_folder / Path( "intersection.shp");
   util::save_points(intersections, psz_prj_.c_str(), output_file_intersection);
 
   // save the transects to shp
@@ -211,59 +212,37 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
     }
   }
   util::save_lines(output_file, psz_prj_.c_str(),
-                   output_folder / (images[0]->file_name_ + "transect.shp"));
+                   output_folder / "transect.shp");
   util::save_points(output_file, psz_prj_.c_str(),
-                    output_folder / (images[0]->file_name_ + "result.shp"));
+                    output_folder / "result.shp");
 
   // save the shoreline to shp
-  std::vector<gm::Shoreline> shorelines;
-  for (const auto &image : images) {
-    for (const auto &shoreline : image->shorelines_) {
-      shorelines.push_back(shoreline);
-    }
-  }
-  util::save_lines<gm::Shoreline>(
-      shorelines, psz_prj_.c_str(),
-      output_folder / (images[0]->file_name_ + "shoreline.shp"));
+  util::save_lines<gm::Shoreline>(shorelines, psz_prj_.c_str(),
+                                  output_folder / "shoreline.shp");
 
   // save the baseline to shp
-  util::save_lines<gm::Baseline>(
-      baselines, psz_prj_.c_str(),
-      output_folder / (images[0]->file_name_ + "baseline.shp"));
+  util::save_lines<gm::Baseline>(baselines, psz_prj_.c_str(),
+                                 output_folder / "baseline.shp");
 }
 
-Baselines generate_baselines(const std::vector<std::unique_ptr<Image>> &images,
+Baselines generate_baselines(const std::vector<Image> &images,
                              const Options &options) {
-  // using the nearest the image as the baseline, since it is most eroded
-  const auto &img = std::max_element(
-      images.begin(), images.end(), [](const auto &image1, const auto &image2) {
-        return image1->year_ < image2->year_;
-      });
-
-  auto &shorelines = img->get()->shorelines_;
-  int image_id = 0;
-  try {
-    image_id = std::stoi(img->get()->file_name_);
-  } catch (std::exception &e) {
-    throw std::runtime_error(image_id + e.what());
+  std::unordered_map<int, std::vector<const Image *>> year_Images;
+  for (const auto &image : images) {
+    auto year = image.year_;
+    year_Images[year].push_back(&image);
   }
 
-  Baselines baselines;
-  int baseline_id{};
-  for (const auto &shoreline : shorelines) {
-    if (shoreline.shoreline_vertices_.empty()) {
-      continue;
+  size_t lg_size = -1;
+  int lg_year;
+  for (const auto &[year, images] : year_Images) {
+    if (images.size() > lg_size) {
+      lg_size = images.size();
+      lg_year = year;
     }
-    double transect_length{options.transect_length};
-    double spacing{options.transect_spacing};
-    double offset{options.transect_offset};
-    int smooth_factor{options.smooth_factor};
-    gm::IntersectionMode mode{options.intersection_mode};
-    baselines.emplace_back(shoreline.shoreline_vertices_, transect_length,
-                           spacing, baseline_id++, image_id, offset,
-                           smooth_factor, mode);
   }
-  return baselines;
+
+  return Image::merge_baselines_from_images(year_Images[lg_year], options);
 }
 
 TransectGroups generate_transects(const Baselines &baselines) {
@@ -276,12 +255,12 @@ TransectGroups generate_transects(const Baselines &baselines) {
 }
 
 umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
-    const std::vector<std::unique_ptr<Image>> &images,
+    const std::vector<Image> &images,
     const TransectGroups &transectGroups) {
   umap<int, std::vector<gm::IntersectPoint>> tid_points;
   umap<int, decltype(tid_points)> bid_tid_points;
   for (const auto &image : images) {
-    auto shorelines = image->shorelines_;
+    auto shorelines = image.shorelines_;
     auto intersections = generate_intersection(shorelines, transectGroups);
     for (const auto &intersect : intersections) {
       int baseline_id = intersect.baseline_id_;
@@ -371,7 +350,7 @@ void create_intersects_by_transects(TransectGroups &transect_groups,
     }
   } else {
     for (const auto &transect_group : transect_groups) {
-      const Path& shoreline_path = shoreline_folders;
+      const Path &shoreline_path = shoreline_folders;
       auto shorelines = util::load_shorelines_shp(shoreline_path, proj);
       for (const auto &transectLine : transect_group.transects_) {
         for (const auto &shoreline : shorelines) {
