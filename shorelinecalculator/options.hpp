@@ -20,7 +20,7 @@ struct Options {
   gm::TransectOrientation transect_orient{gm::TransectOrientation::Mix};
 
   Options() = default;
-  Options(const boost::json::value &json_value);
+  explicit Options(const boost::json::value &json_value);
 
 
 };

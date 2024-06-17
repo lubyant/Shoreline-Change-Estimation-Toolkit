@@ -5,12 +5,11 @@
 #include "image.hpp"
 
 #include <queue>
-#include <unordered_set>
 #include <utility>
 namespace dsas {
 Image::Image(std::filesystem::path image_path, const Options &options)
     : image_path_(std::move(image_path)),
-      psz_prj_(util::get_tiff_proj(image_path.c_str())),
+      psz_prj_(util::get_tiff_proj(image_path_)),
       edge_distance_(options.edge_distance),
       least_factor_(options.shoreline_least_factor) {
   // file name
@@ -157,6 +156,7 @@ void Image::process_shorelines() {
 }
 
 void Image::transform_coordinates() {
+  GDALAllRegister();
   auto *poDataset = (GDALDataset *)GDALOpen(image_path_.c_str(), GA_ReadOnly);
   if (poDataset == nullptr) {
     std::cerr << "Error opening dataset." << std::endl;
@@ -219,8 +219,8 @@ std::vector<gm::Shoreline> Image::merge_shorelines_from_images(
   // merge the shorelines
   std::vector<gm::Shoreline> shorelines;
   for (auto &image : images) {
-    auto &shorelines = image.shorelines_;
-    for (auto &shoreline : shorelines) {
+    auto &shorelines_ = image.shorelines_;
+    for (auto &shoreline : shorelines_) {
       shorelines.push_back(std::move(shoreline));
     }
   }
@@ -233,21 +233,23 @@ gm::Baselines Image::merge_baselines_from_images(
   std::vector<bool> visited(images.size(), false);
   std::queue<const Image *> q;
 
-  Image merge_image;
+  Image merge_image{*images[0]};
 
   for (size_t i = 0; i < images.size(); i++) {
     if (!visited[i]) {
       q.push(images[i]);
-      visited[0] = true;
+      visited[i] = true;
       while (!q.empty()) {
         const auto *image = q.front();
         q.pop();
-        merge_image = merge_image + *image;
+        if (i !=0) {
+          merge_image = merge_image + *image;
+        }
         // merge_image = merge_image + *image;
-        for (size_t i = 0; i < images.size(); i++) {
-          if (image->is_overlaid(*images[i]) && !visited[i]) {
-            q.push(images[i]);
-            visited[i] = true;
+        for (size_t j = 0; j < images.size(); j++) {
+          if (image->is_overlaid(*images[j]) && !visited[j]) {
+            q.push(images[j]);
+            visited[j] = true;
           }
         }
       }
@@ -273,13 +275,13 @@ gm::Baselines Image::merge_baselines_from_images(
 }
 
 bool Image::is_overlaid(const Image &image) const {
-  auto up_left = image.up_left_, up_right = image.up_right_,
-       bottom_left = image.bottom_left_, bottom_right = image.bottom_right_;
-  bool x_overlaid =
-      (bottom_right_.x >= bottom_left.x) && (bottom_left_.x <= bottom_right.x);
-  bool y_overlaid =
-      (up_left_.y >= up_left.y) && (bottom_left_.y <= bottom_left.y);
-  return x_overlaid && y_overlaid;
+  const double maxX1{bottom_right_.x}, minX1{bottom_left_.x}, maxY1{up_left_.y},
+      minY1{bottom_left_.y};
+  const double maxX2{image.bottom_right_.x}, minX2{image.bottom_left_.x},
+      maxY2{image.up_left_.y}, minY2{image.bottom_left_.y};
+  const bool xOverlap = (maxX1 >= minX2) && (maxX2 >= minX1);
+  const bool yOverlap = (maxY1 >= minY2) && (maxY2 >= minY1);
+  return xOverlap && yOverlap;
 }
 
 bool Image::is_overlaid(const gm::Point<double> &point) const {

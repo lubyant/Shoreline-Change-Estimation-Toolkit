@@ -27,11 +27,11 @@ struct Image {
   int rows_{}, cols_{};                           // image size x,y
   std::vector<std::vector<cv::Point>> contours_;  // image edge contours
   gm::Shorelines shorelines_;                     // shoreline contour
-  int edge_distance_;    // outside (ed, rows-ed) is edge
-  double least_factor_;  // shoreline.size() < factor * max_size, remove
+  int edge_distance_{};    // outside (ed, rows-ed) is edge
+  double least_factor_{};  // shoreline.size() < factor * max_size, remove
   gm::Point<double> up_left_, up_right_, bottom_left_, bottom_right_;
-  double pixel_size_x_, pixel_size_y_;
-  size_t n_pixel_x_, n_pixel_y_;
+  double pixel_size_x_{}, pixel_size_y_{};
+  size_t n_pixel_x_{}, n_pixel_y_{};
   std::string psz_prj_;
 
   Image() = default;
@@ -52,10 +52,11 @@ struct Image {
   // geo-transform
   void transform_coordinates();
 
-  static std::vector<gm::Shoreline> merge_shorelines_from_images(std::vector<Image> &images);
+  static std::vector<gm::Shoreline> merge_shorelines_from_images(
+      std::vector<Image> &images);
 
-  static gm::Baselines merge_baselines_from_images(const std::vector<const Image*> &images,
-  const Options &options);
+  static gm::Baselines merge_baselines_from_images(
+      const std::vector<const Image *> &images, const Options &options);
 
   // check if the point is in edge
   [[nodiscard]] bool is_edge(const int x_cor, const int y_cor) const {
@@ -77,4 +78,4 @@ struct Image {
   [[nodiscard]] bool is_overlaid(const gm::Point<double> &point) const;
 };
 }  // namespace dsas
-#endif  // DSAS_CPP_IMAGE_H
+#endif  // SHORELINECALCULATOR_IMAGE_HPP

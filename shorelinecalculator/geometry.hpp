@@ -9,13 +9,10 @@
 #define PI 3.1415926
 
 #include <gdal_priv.h>
-#include <boost/json.hpp>
 
-#include <algorithm>
+#include <boost/json.hpp>
 #include <cmath>
 #include <filesystem>
-#include <iostream>
-#include <numeric>
 #include <optional>
 #include <tuple>
 #include <utility>
@@ -57,14 +54,14 @@ template <typename T>
 struct Point {
   T x, y;
 
-  Point(): x(0), y(0){};
+  Point() : x(0), y(0){};
   Point(T x, T y) : x(x), y(y) {}
 
-  Point(const Point& point) = default;
-  Point(Point&& point) noexcept = default;
+  Point(const Point &point) = default;
+  Point(Point &&point) noexcept = default;
 
-  Point& operator=(const Point &point) = default;
-  Point& operator=(Point &&point) = default;
+  Point &operator=(const Point &point) = default;
+  Point &operator=(Point &&point) = default;
 
   friend std::ostream &operator<< <T>(std::ostream &os, const Point<T> &point);
 

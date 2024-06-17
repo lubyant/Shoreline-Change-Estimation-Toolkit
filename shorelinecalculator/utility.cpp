@@ -250,8 +250,9 @@ double least_square(const std::vector<double> &x,
   return co_var / var;
 }
 
-std::string get_tiff_proj(const char *path) {
-  auto *poTIFFDataset = static_cast<GDALDataset *>(GDALOpen(path, GA_ReadOnly));
+std::string get_tiff_proj(const std::string &path) {
+  GDALAllRegister();
+  auto *poTIFFDataset = static_cast<GDALDataset *>(GDALOpen(path.c_str(), GA_ReadOnly));
   if (poTIFFDataset == nullptr) {
     throw std::runtime_error("Not available tiff!");
   }
@@ -288,6 +289,7 @@ template <>
 void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
                                   const char *pszProj,
                                   const std::filesystem::path &output_path) {
+  GDALAllRegister();
   OGRSpatialReference oSRS;
   if (oSRS.importFromWkt(&pszProj) != OGRERR_NONE) {
     throw std::runtime_error("Projection setting fail!");
