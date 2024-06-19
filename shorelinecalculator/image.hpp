@@ -29,7 +29,8 @@ struct Image {
   gm::Shorelines shorelines_;                     // shoreline contour
   int edge_distance_{};    // outside (ed, rows-ed) is edge
   double least_factor_{};  // shoreline.size() < factor * max_size, remove
-  gm::Point<double> up_left_{-1, -1}, up_right_{-1, -1}, bottom_left_{-1, -1}, bottom_right_{-1, -1};
+  gm::Point<double> up_left_{-1, -1}, up_right_{-1, -1}, bottom_left_{-1, -1},
+      bottom_right_{-1, -1};
   double pixel_size_x_{}, pixel_size_y_{};
   size_t n_pixel_x_{}, n_pixel_y_{};
   std::string psz_prj_;

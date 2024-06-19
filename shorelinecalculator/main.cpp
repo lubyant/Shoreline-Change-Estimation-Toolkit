@@ -1,4 +1,5 @@
 #include <iostream>
+
 #include "shorelinecalculator.hpp"
 
 int main(int argc, char **argv) {
@@ -13,7 +14,8 @@ int main(int argc, char **argv) {
   options.transect_offset = 0;
   options.transect_orient = gm::TransectOrientation::Right;
   options.intersection_mode = gm::IntersectionMode::Closest;
-  dsas::digital_shoreline_analysis_system(Path("/home/lby/Desktop/ShorelineCalculator/rasters"),
-    Path("/home/lby/Desktop/ShorelineCalculator/output"), options);
+  dsas::digital_shoreline_analysis_system(
+      Path("/home/lby/Desktop/ShorelineCalculator/rasters"),
+      Path("/home/lby/Desktop/ShorelineCalculator/output"), options);
   return 0;
 }

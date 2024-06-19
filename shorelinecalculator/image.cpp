@@ -325,7 +325,7 @@ Image operator+(const Image &image1, const Image &image2) {
         temp_shoreline.shoreline_vertices_.push_back(point);
       }
     }
-    if (!temp_shoreline.shoreline_vertices_.empty()){
+    if (!temp_shoreline.shoreline_vertices_.empty()) {
       image.shorelines_.push_back(std::move(temp_shoreline));
     }
   }

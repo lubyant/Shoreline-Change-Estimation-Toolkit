@@ -11,7 +11,6 @@
 #include <gdal_priv.h>
 
 #include <boost/date_time/gregorian/gregorian_io.hpp>
-#include <boost/json.hpp>
 #include <cmath>
 #include <filesystem>
 #include <optional>
@@ -348,4 +347,4 @@ using TransectGroups = std::vector<Transects>;
 using Shorelines = std::vector<gm::Shoreline>;
 }  // namespace gm
 
-#endif  // DSAS_CPP_GEOMETRY_H
+#endif  // SHORELINECALCULATOR_GEOMETRY_HPP
