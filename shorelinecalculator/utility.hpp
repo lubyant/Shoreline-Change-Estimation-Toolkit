@@ -222,9 +222,6 @@ void save_lines(std::vector<T> &lines, const char *pszProj,
 
     // Step 6: Create a line geometry and add points to it
     for (size_t i = 0; i < shape.size(); i++) {
-      if (std::isnan(shape[i].x) || std::isnan(shape[i].y)){
-        continue;
-      }
       line.addPoint(shape[i].x, shape[i].y);
     }
 

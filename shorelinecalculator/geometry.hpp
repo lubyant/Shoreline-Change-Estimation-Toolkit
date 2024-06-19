@@ -10,6 +10,7 @@
 
 #include <gdal_priv.h>
 
+#include <boost/date_time/gregorian/gregorian_io.hpp>
 #include <boost/json.hpp>
 #include <cmath>
 #include <filesystem>
@@ -77,6 +78,9 @@ struct Point {
   }
 
   Point<T> create_point(std::pair<double, double> orient, T dest) {
+    if (orient.first == 0 && orient.second == 0) {
+      return {x, y};
+    }
     double dist =
         sqrt(orient.first * orient.first + orient.second * orient.second);
     double y_new = y + dest * orient.first / dist;
@@ -162,7 +166,12 @@ struct TransectLine : public LineSegment,
         baseline_id_(baseline_id),
         image_id_(image_id),
         mode_(mode),
-        orient_(orient) {}
+        orient_(orient) {
+    if (std::isnan(transect_ref_point_.x) ||
+        std::isnan(transect_ref_point_.y)) {
+      throw std::runtime_error("ref point error");
+    }
+  }
 
   static LineSegment create_transect(
       Point<> &transect_base, std::pair<double, double> baseline_normal_vector,
@@ -252,9 +261,13 @@ struct Shoreline : public MultiLine<Point<double>>, GDALShpSaver<int, int> {
   int shoreline_id_{};                                 // shoreline id
   int year_{};                                         // shoreline year
   int image_id_{};
+  boost::gregorian::date date_{};
 
   Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
             int shoreline_id, int year, int image_id);
+
+  Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
+            int shoreline_id, boost::gregorian::date date, int image_id);
 
   Shoreline() = default;
 

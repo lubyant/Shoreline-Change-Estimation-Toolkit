@@ -173,51 +173,50 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
 
   // generate the baselines
   auto baselines = generate_baselines(images, options);
-  // save the baseline to shp
-  std::cout << baselines.size() << std::endl;
-  util::save_lines<gm::Baseline>(baselines, psz_prj_.c_str(),
-                                 output_folder / "baseline.shp");
 
-  // auto shorelines = Image::merge_shorelines_from_images(images);
-  //
-  // // generate the transects
-  // auto transects = generate_transects(baselines);
+  auto shorelines = Image::merge_shorelines_from_images(images);
 
-  // // generate the intersections
-  // auto intersection_map = generate_intersections(images, transects);
-  //
-  // // compute the regression rate
-  // compute_rate(intersection_map, transects, options.outlier_rate);
-  //
-  // // save the intersections to shp
-  // std::vector<gm::IntersectPoint> intersections;
-  // for (auto &kv1 : intersection_map) {
-  //   for (auto &kv2 : kv1.second) {
-  //     for (auto &point : kv2.second) {
-  //       intersections.push_back(point);
-  //     }
-  //   }
-  // }
-  // const Path output_file_intersection =
-  //     output_folder / Path( "intersection.shp");
-  // util::save_points(intersections, psz_prj_.c_str(),
-  // output_file_intersection);
+  // generate the transects
+  auto transect_groups = generate_transects(baselines);
+
+  // generate the intersections
+  auto intersection_map = generate_intersections(shorelines, transect_groups);
+
+  // compute the regression rate
+  compute_rate(intersection_map, transect_groups, options.outlier_rate);
+
+  // save the intersections to shp
+  std::vector<gm::IntersectPoint> intersections;
+  for (auto &kv1 : intersection_map) {
+    for (auto &kv2 : kv1.second) {
+      for (auto &point : kv2.second) {
+        intersections.push_back(point);
+      }
+    }
+  }
+  const Path output_file_intersection =
+      output_folder / Path("intersection.shp");
+  util::save_points(intersections, psz_prj_.c_str(), output_file_intersection);
 
   // save the transects to shp
-  // std::vector<gm::TransectLine> output_file;
-  // for (auto &transect : transects) {
-  //   for (auto &transect_line : transect.transects_) {
-  //     output_file.push_back(std::move(transect_line));
-  //   }
-  // }
-  // util::save_lines(output_file, psz_prj_.c_str(),
-  //                  output_folder / "transect.shp");
-  // util::save_points(output_file, psz_prj_.c_str(),
-  //                   output_folder / "result.shp");
+  std::vector<gm::TransectLine> output_file;
+  for (auto &transect : transect_groups) {
+    for (auto &transect_line : transect.transects_) {
+      output_file.push_back(std::move(transect_line));
+    }
+  }
+  util::save_lines(output_file, psz_prj_.c_str(),
+                   output_folder / "transect.shp");
+  util::save_points(output_file, psz_prj_.c_str(),
+                    output_folder / "result.shp");
 
   // save the shoreline to shp
-  // util::save_lines<gm::Shoreline>(shorelines, psz_prj_.c_str(),
-  //                                 output_folder / "shoreline.shp");
+  util::save_lines<gm::Shoreline>(shorelines, psz_prj_.c_str(),
+                                  output_folder / "shoreline.shp");
+
+  // save the baseline to shp
+  util::save_lines<gm::Baseline>(baselines, psz_prj_.c_str(),
+                                 output_folder / "baseline.shp");
 }
 
 Baselines generate_baselines(const std::vector<Image> &images,
@@ -250,8 +249,8 @@ TransectGroups generate_transects(const Baselines &baselines) {
 
 umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
     const std::vector<Image> &images, const TransectGroups &transectGroups) {
-  umap<int, std::vector<gm::IntersectPoint>> tid_points;
-  umap<int, decltype(tid_points)> bid_tid_points;
+  using tid_points_t = umap<int, std::vector<gm::IntersectPoint>>;
+  umap<int, tid_points_t> bid_tid_points;
   for (const auto &image : images) {
     auto shorelines = image.shorelines_;
     auto intersections = generate_intersection(shorelines, transectGroups);
@@ -264,6 +263,18 @@ umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
   return bid_tid_points;
 }
 
+umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
+    const Shorelines &shorelines, const TransectGroups &transect_groups) {
+  using tid_points_t = umap<int, std::vector<gm::IntersectPoint>>;
+  umap<int, tid_points_t> bid_tid_points;
+  auto intersections = generate_intersection(shorelines, transect_groups);
+  for (const auto &intersect : intersections) {
+    int baseline_id = intersect.baseline_id_;
+    int transect_id = intersect.transect_id_;
+    bid_tid_points[baseline_id][transect_id].push_back(intersect);
+  }
+  return bid_tid_points;
+}
 std::vector<gm::IntersectPoint> generate_intersection(
     const std::vector<gm::Shoreline> &shorelines,
     const TransectGroups &transect_groups) {

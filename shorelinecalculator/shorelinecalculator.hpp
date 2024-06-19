@@ -46,14 +46,19 @@ umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
     const std::vector<Image> &images,
     const TransectGroups &TransectGroups);
 
+umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
+    const Shorelines &shorelines,
+    const TransectGroups &TransectGroups);
+
 std::vector<gm::IntersectPoint> generate_intersection(
-    const std::vector<gm::Shoreline> &shorelines,
+    const Shorelines &shorelines,
     const TransectGroups &transect_groups);
 
 void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
                       &intersections_maps,
                   TransectGroups &transect_groups,
                   double outlier_rate);
+
 
 void create_transects_from_baseline(const Path &path, const Path &output_path,
                                     TransectGroups *output_transects,

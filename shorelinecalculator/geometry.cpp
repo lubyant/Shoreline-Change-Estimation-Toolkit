@@ -252,5 +252,17 @@ Shoreline::Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
     : shoreline_vertices_(shoreline_vertices),
       shoreline_id_(shoreline_id),
       year_(year),
-      image_id_(image_id) {}
+      image_id_(image_id) {
+  date_ = boost::gregorian::date(year_, 1, 1);
+}
+Shoreline::Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
+                     int shoreline_id, boost::gregorian::date date,
+                     int image_id)
+    : shoreline_vertices_(shoreline_vertices),
+      shoreline_id_(shoreline_id),
+      date_(date),
+      image_id_(image_id) {
+  year_ = date_.year();
+}
+
 }  // namespace gm
