@@ -10,7 +10,7 @@
 
 #include <gdal_priv.h>
 
-#include <boost/date_time/gregorian/gregorian_io.hpp>
+#include <boost/date_time/gregorian/gregorian.hpp>
 #include <cmath>
 #include <filesystem>
 #include <optional>
@@ -298,6 +298,7 @@ struct IntersectPoint : public Point<double>, GDALShpSaver<IntersectPoint_t> {
   int shoreline_id_;
   int baseline_id_;
   int year_;
+  boost::gregorian::date date_;
   double distance_to_ref_;
 
   IntersectPoint(Point<double> point, int transect_id, int shoreline_id,
@@ -309,6 +310,7 @@ struct IntersectPoint : public Point<double>, GDALShpSaver<IntersectPoint_t> {
         baseline_id_(baseline_id),
         image_id_(image_id),
         year_(year),
+        date_(year_, 1, 1),
         distance_to_ref_(distance_to_ref) {}
 
   [[nodiscard]] std::vector<std::string> get_names() const override {

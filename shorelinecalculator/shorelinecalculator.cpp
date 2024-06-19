@@ -170,20 +170,24 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
   if (images.size() <= 1) {
     throw std::runtime_error("Too few images to process: ");
   }
+  std::cout << "read images: " << images.size() << std::endl;
 
   // generate the baselines
   auto baselines = generate_baselines(images, options);
-
+  std::cout << "generate baselines;\n";
   auto shorelines = Image::merge_shorelines_from_images(images);
 
   // generate the transects
   auto transect_groups = generate_transects(baselines);
+  std::cout << "generate transects;\n";
 
   // generate the intersections
   auto intersection_map = generate_intersections(shorelines, transect_groups);
+  std::cout << "generate intersects;\n";
 
   // compute the regression rate
-  compute_rate(intersection_map, transect_groups, options.outlier_rate);
+  compute_rate(intersection_map, transect_groups, options);
+  std::cout << "compute the rates;\n";
 
   // save the intersections to shp
   std::vector<gm::IntersectPoint> intersections;
@@ -275,6 +279,7 @@ umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
   }
   return bid_tid_points;
 }
+
 std::vector<gm::IntersectPoint> generate_intersection(
     const std::vector<gm::Shoreline> &shorelines,
     const TransectGroups &transect_groups) {
@@ -291,25 +296,29 @@ std::vector<gm::IntersectPoint> generate_intersection(
   }
   return intersections;
 }
+
 void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
                       &intersection_maps,
-                  TransectGroups &transect_groups, double outlier_rate) {
+                  TransectGroups &transect_groups, const Options &options) {
   // baseline_id <-> vector index
   umap<int, size_t> id_map;
   for (size_t i = 0; i < transect_groups.size(); i++) {
     id_map[transect_groups[i].baseline_id_] = i;
   }
-  for (const auto &kv_baseline : intersection_maps) {
-    for (const auto &kv_transect : kv_baseline.second) {
+  for (const auto &[baseline_id, tid_map] : intersection_maps) {
+    for (const auto &[transect_id, intersections] : tid_map) {
       // assign the rate to the transect
-      auto it = std::find_if(
-          transect_groups[id_map[kv_baseline.first]].transects_.begin(),
-          transect_groups[id_map[kv_baseline.first]].transects_.end(),
-          [&](const gm::TransectLine &a) {
-            return a.transect_id_ == kv_transect.first;
-          });
+      auto it =
+          std::find_if(transect_groups[id_map[baseline_id]].transects_.begin(),
+                       transect_groups[id_map[baseline_id]].transects_.end(),
+                       [&](const gm::TransectLine &a) {
+                         return a.transect_id_ == transect_id;
+                       });
+      // remove the duplicate intersects
+      auto clean_intersects = util::remove_same_year_intersections(
+          intersections, options.intersection_mode);
       // calculate the shoreline rate
-      util::linearRegressRate(kv_transect.second, *it, outlier_rate);
+      util::linearRegressRate(clean_intersects, *it, options.outlier_rate);
     }
   }
 }
@@ -375,7 +384,7 @@ void create_intersects_by_transects(TransectGroups &transect_groups,
     bid_tid_points[baseline_id][transect_id].push_back(intersect);
   }
 
-  compute_rate(bid_tid_points, transect_groups, options.outlier_rate);
+  compute_rate(bid_tid_points, transect_groups, options);
 
   // save the intersections to shp
   if (intersections.empty()) {

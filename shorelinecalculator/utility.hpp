@@ -267,5 +267,9 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
 
 gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
                                    const std::string &baseline_proj);
+
+std::vector<gm::IntersectPoint> remove_same_year_intersections(
+    const std::vector<gm::IntersectPoint>&, const gm::IntersectionMode &);
+
 }  // namespace util
 #endif  // SHORELINECALCULATOR_UTILITY_HPP

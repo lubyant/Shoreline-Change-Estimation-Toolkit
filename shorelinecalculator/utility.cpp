@@ -3,6 +3,8 @@
 //
 #include "utility.hpp"
 
+#include <unordered_set>
+
 namespace util {
 
 ThreadPool::ThreadPool(uint32_t num_threads)
@@ -252,7 +254,8 @@ double least_square(const std::vector<double> &x,
 
 std::string get_tiff_proj(const std::string &path) {
   GDALAllRegister();
-  auto *poTIFFDataset = static_cast<GDALDataset *>(GDALOpen(path.c_str(), GA_ReadOnly));
+  auto *poTIFFDataset =
+      static_cast<GDALDataset *>(GDALOpen(path.c_str(), GA_ReadOnly));
   if (poTIFFDataset == nullptr) {
     throw std::runtime_error("Not available tiff!");
   }
@@ -597,5 +600,39 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
   GDALClose(poDS);
 
   return shorelines;
+}
+std::vector<gm::IntersectPoint> remove_same_year_intersections(
+    const std::vector<gm::IntersectPoint> &intersect_points,
+    const gm::IntersectionMode &mode) {
+  struct DateHash {
+    std::size_t operator()(const boost::gregorian::date &d) const {
+      constexpr std::hash<int> int_hash;
+      return int_hash(d.year()) ^ int_hash(d.month()) ^ int_hash(d.day());
+    }
+  };
+  struct DateEqual {
+    bool operator()(const boost::gregorian::date &d1,
+                    const boost::gregorian::date &d2) const {
+      return d1 == d2;
+    }
+  };
+  std::unordered_map<boost::gregorian::date, std::vector<gm::IntersectPoint>, DateHash, DateEqual>
+      avail_dates;
+  for(const auto& point: intersect_points) {
+    avail_dates[point.date_].push_back(point);
+  }
+  std::vector<gm::IntersectPoint> new_intersects;
+  for(auto &[date, points]: avail_dates) {
+    auto target_point = std::max_element(points.begin(),
+      points.end(), [&](const gm::IntersectPoint& a,
+        const gm::IntersectPoint &b) {
+        if (mode == gm::IntersectionMode::Closest) {
+          return a.distance_to_ref_ >= b.distance_to_ref_;
+        }
+        return a.distance_to_ref_ < b.distance_to_ref_;
+      });
+    new_intersects.push_back(std::move(*target_point));
+  }
+  return new_intersects;
 }
 }  // namespace util
