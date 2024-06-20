@@ -22,7 +22,6 @@ struct Options {
   Options() = default;
   explicit Options(const boost::json::value &json_value);
 
-
 };
 }  // namespace dsas
 
