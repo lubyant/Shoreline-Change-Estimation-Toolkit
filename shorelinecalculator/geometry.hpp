@@ -9,13 +9,10 @@
 #define PI 3.1415926
 
 #include <gdal_priv.h>
-#include <boost/json.hpp>
 
-#include <algorithm>
+#include <boost/date_time/gregorian/gregorian.hpp>
 #include <cmath>
 #include <filesystem>
-#include <iostream>
-#include <numeric>
 #include <optional>
 #include <tuple>
 #include <utility>
@@ -57,7 +54,14 @@ template <typename T>
 struct Point {
   T x, y;
 
+  Point() : x(0), y(0){};
   Point(T x, T y) : x(x), y(y) {}
+
+  Point(const Point &point) = default;
+  Point(Point &&point) noexcept = default;
+
+  Point &operator=(const Point &point) = default;
+  Point &operator=(Point &&point) = default;
 
   friend std::ostream &operator<< <T>(std::ostream &os, const Point<T> &point);
 
@@ -73,6 +77,9 @@ struct Point {
   }
 
   Point<T> create_point(std::pair<double, double> orient, T dest) {
+    if (orient.first == 0 && orient.second == 0) {
+      return {x, y};
+    }
     double dist =
         sqrt(orient.first * orient.first + orient.second * orient.second);
     double y_new = y + dest * orient.first / dist;
@@ -158,7 +165,12 @@ struct TransectLine : public LineSegment,
         baseline_id_(baseline_id),
         image_id_(image_id),
         mode_(mode),
-        orient_(orient) {}
+        orient_(orient) {
+    if (std::isnan(transect_ref_point_.x) ||
+        std::isnan(transect_ref_point_.y)) {
+      throw std::runtime_error("ref point error");
+    }
+  }
 
   static LineSegment create_transect(
       Point<> &transect_base, std::pair<double, double> baseline_normal_vector,
@@ -248,9 +260,13 @@ struct Shoreline : public MultiLine<Point<double>>, GDALShpSaver<int, int> {
   int shoreline_id_{};                                 // shoreline id
   int year_{};                                         // shoreline year
   int image_id_{};
+  boost::gregorian::date date_{};
 
   Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
             int shoreline_id, int year, int image_id);
+
+  Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
+            int shoreline_id, boost::gregorian::date date, int image_id);
 
   Shoreline() = default;
 
@@ -282,6 +298,7 @@ struct IntersectPoint : public Point<double>, GDALShpSaver<IntersectPoint_t> {
   int shoreline_id_;
   int baseline_id_;
   int year_;
+  boost::gregorian::date date_;
   double distance_to_ref_;
 
   IntersectPoint(Point<double> point, int transect_id, int shoreline_id,
@@ -293,6 +310,7 @@ struct IntersectPoint : public Point<double>, GDALShpSaver<IntersectPoint_t> {
         baseline_id_(baseline_id),
         image_id_(image_id),
         year_(year),
+        date_(year_, 1, 1),
         distance_to_ref_(distance_to_ref) {}
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
@@ -331,4 +349,4 @@ using TransectGroups = std::vector<Transects>;
 using Shorelines = std::vector<gm::Shoreline>;
 }  // namespace gm
 
-#endif  // DSAS_CPP_GEOMETRY_H
+#endif  // SHORELINECALCULATOR_GEOMETRY_HPP

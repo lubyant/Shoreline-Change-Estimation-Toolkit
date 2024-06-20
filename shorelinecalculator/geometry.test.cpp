@@ -2,6 +2,7 @@
 // Created by lby on 10/21/23.
 //
 #include "geometry.hpp"
+
 #include <boost/test/unit_test.hpp>
 
 #define TOL 1e-4
@@ -42,7 +43,6 @@ BOOST_AUTO_TEST_CASE(test_move) {
   BOOST_CHECK_CLOSE(lineSegment.rightEdge_.y, (double)(1 + sqrt(2) / 2), TOL);
 }
 BOOST_AUTO_TEST_SUITE_END()
-
 
 BOOST_AUTO_TEST_SUITE(BaselineSegTest)
 BOOST_AUTO_TEST_CASE(test_offset) {
@@ -95,8 +95,7 @@ BOOST_AUTO_TEST_CASE(test_transects) {
 }
 BOOST_AUTO_TEST_SUITE_END()
 
-struct BaselineTestConfig{
-
+struct BaselineTestConfig {
   BaselineTestConfig() {
     BaselineSeg::cumulative_segment_distance = 0;
     BaselineSeg::cumulative_transects_distance = 0;
@@ -233,8 +232,8 @@ BOOST_AUTO_TEST_CASE(test_baseline_transect_length1) {
   auto baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1, 0, mode);
   auto transects_lines = baseline->transects_lines_;
   for (const auto &transect : transects_lines) {
-    BOOST_CHECK_CLOSE(transect.leftEdge_.distance_to_point(transect.rightEdge_), 1,
-                TOL);
+    BOOST_CHECK_CLOSE(transect.leftEdge_.distance_to_point(transect.rightEdge_),
+                      1, TOL);
   }
 }
 
@@ -244,8 +243,8 @@ BOOST_AUTO_TEST_CASE(test_baseline_transect_length2) {
   auto baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1, 0, mode);
   auto transects_lines = baseline->transects_lines_;
   for (const auto &transect : transects_lines) {
-    BOOST_CHECK_CLOSE(transect.leftEdge_.distance_to_point(transect.rightEdge_), 1,
-                TOL);
+    BOOST_CHECK_CLOSE(transect.leftEdge_.distance_to_point(transect.rightEdge_),
+                      1, TOL);
   }
 }
 
@@ -256,7 +255,7 @@ BOOST_AUTO_TEST_CASE(test_baseline_smooth) {
     std::vector<Point<double>> points{{0, 0}, {1, 1}, {2, 0}, {3, 1}};
     gm::IntersectionMode mode{gm::IntersectionMode::Closest};
     auto baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1,
-                                          smooth_factor, mode);
+                                               smooth_factor, mode);
     BOOST_CHECK_EQUAL(baseline->baseline_vertices_.size(), 4);
     double slope{baseline->transects_lines_[0].normal_vector_.first /
                  baseline->transects_lines_[0].normal_vector_.second};
@@ -268,7 +267,7 @@ BOOST_AUTO_TEST_CASE(test_baseline_smooth) {
                                       {3, 0}, {4, 1}, {4, 0}};
     gm::IntersectionMode mode{gm::IntersectionMode::Closest};
     auto baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1,
-                                          smooth_factor, mode);
+                                               smooth_factor, mode);
     BOOST_CHECK_EQUAL(baseline->baseline_vertices_.size(), 7);
   }
   {
@@ -277,7 +276,7 @@ BOOST_AUTO_TEST_CASE(test_baseline_smooth) {
                                       {3, 0}, {4, 1}, {4, 0}};
     gm::IntersectionMode mode{gm::IntersectionMode::Closest};
     auto baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1,
-                                          smooth_factor, mode);
+                                               smooth_factor, mode);
     BOOST_CHECK_EQUAL(baseline->baseline_vertices_.size(), 7);
   }
 }

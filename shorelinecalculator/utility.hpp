@@ -177,6 +177,7 @@ void save_points(const std::vector<gm::TransectLine> &shapes,
 template <typename T>
 void save_lines(std::vector<T> &lines, const char *pszProj,
                 const std::filesystem::path &output_path) {
+  GDALAllRegister();
   // Step 1: Initialize GDAL
   OGRSpatialReference oSRS;
   if (oSRS.importFromWkt(&pszProj) != OGRERR_NONE) {
@@ -188,10 +189,11 @@ void save_lines(std::vector<T> &lines, const char *pszProj,
       GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
 
   // Step 3: Create a new shapefile
+  std::cout << output_path << std::endl;
   GDALDataset *dataset = driver->Create(output_path.string().c_str(), 0, 0, 0,
                                         GDT_Unknown, nullptr);
   if (!dataset) {
-    throw std::runtime_error("Failed to create dataset");
+    throw std::runtime_error("Failed to create dataset\n");
   }
 
   // Step 4: Create a layer for the shapefile
@@ -249,7 +251,7 @@ void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
 
 double least_square(const std::vector<double> &x, const std::vector<double> &y);
 
-std::string get_tiff_proj(const char *path);
+std::string get_tiff_proj(const std::string &path);
 std::string get_shp_proj(const char *path);
 
 void remove_outliers(std::vector<double> &x, std::vector<double> &y,
@@ -265,5 +267,9 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
 
 gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
                                    const std::string &baseline_proj);
+
+std::vector<gm::IntersectPoint> remove_same_year_intersections(
+    const std::vector<gm::IntersectPoint>&, const gm::IntersectionMode &);
+
 }  // namespace util
-#endif  // DSAS_CPP_UTILITY_H
+#endif  // SHORELINECALCULATOR_UTILITY_HPP

@@ -37,23 +37,28 @@ void dsas(const Path &shoreline_folder, const Path &baseline_path,
 void controller(const std::vector<Path> &paths, const Path &output_path,
                 const Options &options);
 
-Baselines generate_baselines(const std::vector<std::unique_ptr<Image>> &images,
+Baselines generate_baselines(const std::vector<Image> &images,
                              const Options &options);
 
 TransectGroups generate_transects(const Baselines &baselines);
 
 umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
-    const std::vector<std::unique_ptr<Image>> &images,
+    const std::vector<Image> &images,
     const TransectGroups &TransectGroups);
 
+umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
+    const Shorelines &shorelines,
+    const TransectGroups &transect_groups);
+
 std::vector<gm::IntersectPoint> generate_intersection(
-    const std::vector<gm::Shoreline> &shorelines,
+    const Shorelines &shorelines,
     const TransectGroups &transect_groups);
 
 void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
-                      &intersections_maps,
+                      &intersection_maps,
                   TransectGroups &transect_groups,
-                  double outlier_rate);
+                  const Options &options);
+
 
 void create_transects_from_baseline(const Path &path, const Path &output_path,
                                     TransectGroups *output_transects,
@@ -63,6 +68,8 @@ void create_intersects_by_transects(TransectGroups &transects,
                                     const Path &shoreline_folders,
                                     const Path &output, const Options &options,
                                     const std::string &proj);
+
+
 }  // namespace dsas
 
-#endif  // DSAS_CPP_DSAS_CPP_H
+#endif  // SHORELINECALCULATOR_SHORELINECALCULATOR_HPP
