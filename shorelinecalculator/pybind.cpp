@@ -4,10 +4,12 @@
 namespace py = pybind11;
 #include "shorelinecalculator.hpp"
 
-void cppext(const std::string &input_folders, const std::string &output_folder);
-void cppext(const std::string &input_folders,
-            const std::string &output_folder) {
-  std::cout << "cpp extenstion!\n";
+void cppext(const std::string &input_folder, const std::string &output_folder,
+            const dsas::Options &options);
+void cppext(const std::string &input_folder, const std::string &output_folder,
+            const dsas::Options &options) {
+  dsas::digital_shoreline_analysis_system(input_folder, output_folder,
+                                          options);
 }
 
 PYBIND11_MODULE(cppext, m) {
