@@ -11,3 +11,5 @@ dependencies:
   - openmim
   - pytorch >= 1.12.0
   - pillow
+  - rasterio
+  - pyproj
