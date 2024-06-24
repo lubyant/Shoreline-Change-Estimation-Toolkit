@@ -216,7 +216,7 @@ def merge_img(in_folder, year, direction):
                 cand_files.append(f)
     if check_label(cand_files, '_1_') and check_label(cand_files, '_h_'):
         cand_files = find_cand_files_with_label(cand_files, '_h_')
-    start_date = re.search("_\d{8}", cand_files[0]).group()
+    start_date = re.search(r"_\d{8}", cand_files[0]).group()
     cand_files = [cand for cand in cand_files if start_date in cand]
 
     max_r, max_c = find_max_dims(cand_files)
