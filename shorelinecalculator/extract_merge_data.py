@@ -23,14 +23,21 @@ from rasterio.transform import Affine
 from rasterio.merge import merge
 from PIL import Image
 import argparse
-import io, zipfile
+import zipfile
 from pyproj import Proj, transform
 import time
+import uuid
+from tqdm import tqdm
 
 # This function test if a dir exists
 def check_folder_exist(filepath): 
     if not os.path.exists(filepath):
             os.mkdir(filepath)
+
+def get_subfolders_with_digits(folder):
+    subfolders = [f for f in os.listdir(folder)
+              if os.path.isdir(os.path.join(folder, f)) and f.isdigit()]
+    return subfolders
 
 # This function test if a sample_id and year already exists in the folder
 def check_id_year_exist(folder, sample_id, year):
@@ -294,7 +301,7 @@ def find_ymd_from_year(pckl_folder, sample_id, year):
 
 # This function merged all tifs for a point within a year
 def get_merged_data_by_point(img_folder, pckl_folder, raster_save_folder, sample_id, year):
-    temp_save_folder = f'./temp_{img_folder.replace("/", "_")}/'
+    temp_save_folder = f'./temp_{uuid.uuid4()}/'
     dir_list = ['sw', 'se', 'nw', 'ne']
     cand_files = find_meta_by_id_year(pckl_folder, str(sample_id), year)
     check_folder_exist(temp_save_folder)
@@ -355,137 +362,144 @@ def get_merged_data_by_point(img_folder, pckl_folder, raster_save_folder, sample
 
     shutil.rmtree(temp_save_folder)
 
-
-
-if __name__ == '__main__':
-    
-    parser = argparse.ArgumentParser(description = 'Environment Settings', formatter_class = argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-zp', '--zip_path', dest = 'zip_path', type = str, \
-                        default = '', help='Path to zip files')
-    parser.add_argument('-rp', '--raster_path', dest = 'raster_path', type = str, \
-                        default = './Raster/', help='Path to raster files')
-    parser.add_argument('-imp', '--img_path', dest = 'img_path', type = str, \
-                        default = './Divided_Img/', help = 'Path to divided imgs')
-    parser.add_argument('-inp', '--infrared_path', dest = 'infrared_path', type = str, \
-                        default = './Infrared/', help = 'Path to divided infrared imgs')
-    parser.add_argument('-pp', '--pickle_path', dest = 'pickle_path', type = str, \
-                        default = './Pckl_Folder/', help = 'Path to pickle files')
-    parser.add_argument('-frp', '--final_raster_path', dest = 'final_raster_path', type = str, \
-                        default = './Final_Raster_Folder/', help = 'Path to the merged raster files')    
-    parser.add_argument('-tp', '--txt_path', dest = 'txt_path', type = str, \
-                        default = './TXT_Folder/', help = 'Path to the coordinate files')   
-    parser.add_argument('-ird', '--if_raster_deleted', dest = 'if_raster_deleted', type = bool, \
-                        default = True, help = 'If deleted the raster file after extracting imgs and pckls') 
-    
-    parser.add_argument('-l', '--lake', dest = 'lake', type = str, \
-                        default = 'LakeErie', help = 'Which lake to process')    
-    parser.add_argument('-s', '--stage', dest = 'stage', type = int, \
-                        default = 1, help = 'which stage to process, 1 is extraction and division, 2 is merging')   
-        
-    args = parser.parse_args()
-    ##############################################################################
-    # The following code is for splitting the tif into imgs into {img_folder}/year/sample_id/
-    # And save metadata to {pckl_folder}/year/sample_id/
-    ##############################################################################
-
-    zip_folder, raster_folder, txt_folder = args.zip_path, args.raster_path, args.txt_path
-    img_folder, infrared_folder, pckl_folder = args.img_path, args.infrared_path, args.pickle_path
-    lake, if_raster_del, stage = args.lake, args.if_raster_deleted, args.stage
-    
-    check_folder_exist(txt_folder)
+def extract_NAIP_folder(zip_folder, raster_folder, div_rgb_folder, div_infrared_folder, pckl_folder, txt_folder, sub_folder = None, \
+                       is_raster_del = True, is_infrared_record = True, is_txt_record = False):
     check_folder_exist(raster_folder)
-    check_folder_exist(img_folder)
+    check_folder_exist(div_rgb_folder)
     check_folder_exist(pckl_folder)
-    check_folder_exist(infrared_folder)
-    
-    zip_folder, raster_folder, txt_folder, img_folder, infrared_folder, pckl_folder = zip_folder + lake + '/', raster_folder + lake + '/', \
-                   txt_folder + lake + '/', img_folder + lake + '/', infrared_folder + lake + '/', pckl_folder + lake + '/'
-    
-    check_folder_exist(txt_folder)
-    check_folder_exist(raster_folder)
-    check_folder_exist(img_folder)
-    check_folder_exist(pckl_folder)
-    check_folder_exist(infrared_folder)
-    if stage == 1:
-        zip_files = find_by_suffix(zip_folder, 'ZIP')
-        print_list = []
-        print_list.append('LON,LAT,SAMPLE_ID,YEAR,FILE_NAME')
-        for z in zip_files:
-            print('Now we are Processing: \n %s'%z)
-            temp_str = ''
-            try:
-                archive = zipfile.ZipFile(zip_folder + z, 'r')
-                file_front = z.split('.')[0]
-                year = file_front.split('_')[-1][:4]
-                sample_id = file_front.split('_')[1]
-                check_id_year_exist(raster_folder, sample_id, year)
-                raster_save_folder = raster_folder + str(year) + '/' + str(sample_id) + '/'
-                archive.extract(file_front + '.tif', raster_save_folder)
-                check_id_year_exist(img_folder, sample_id, year)
-                check_id_year_exist(pckl_folder, sample_id, year)
-                check_id_year_exist(infrared_folder, sample_id, year)
+    if is_infrared_record:
+        check_folder_exist(div_infrared_folder)
+    if is_txt_record:
+        check_folder_exist(txt_folder)
+    if sub_folder != None:
+        zip_folder, raster_folder, div_rgb_folder, div_infrared_folder, txt_folder, pckl_folder = \
+        zip_folder + sub_folder + '/', raster_folder + sub_folder + '/', div_rgb_folder + sub_folder + '/', \
+        div_infrared_folder + sub_folder + '/', txt_folder + sub_folder + '/', pckl_folder + sub_folder + '/'
+        check_folder_exist(raster_folder)
+        check_folder_exist(div_rgb_folder)
+        check_folder_exist(pckl_folder)
+        if is_infrared_record:
+            check_folder_exist(div_infrared_folder)
+        if is_txt_record:
+            check_folder_exist(txt_folder)
+    zip_files = find_by_suffix(zip_folder, 'ZIP')
+    print_list = []
+    print_list.append('LON,LAT,SAMPLE_ID,YEAR,FILE_NAME')
+    for z in tqdm(zip_files):
+        print('Now we are Processing: \n %s'%z)
+        temp_str = ''
+        try:
+            archive = zipfile.ZipFile(zip_folder + z, 'r')
+            file_front = z.split('.')[0]
+            year = file_front.split('_')[-1][:4]
+            sample_id = file_front.split('_')[1]
+            check_id_year_exist(raster_folder, sample_id, year)
+            raster_save_folder = raster_folder + str(year) + '/' + str(sample_id) + '/'
+            archive.extract(file_front + '.tif', raster_save_folder)
+            check_id_year_exist(div_rgb_folder, sample_id, year)
+            check_id_year_exist(pckl_folder, sample_id, year)
+            check_id_year_exist(div_infrared_folder, sample_id, year)
                 
-                raster_file = file_front + '.tif'
-                img_orig_folder = img_folder + str(year) + '/' + str(sample_id) + '/'
-                pckl_orig_folder = pckl_folder + str(year) + '/' + str(sample_id) + '/'
-                infrared_orig_folder = infrared_folder + str(year) + '/' + str(sample_id) + '/'
-                pckl_name = file_front + '.' + 'pckl'
-                out_meta = extract_raster_meta(raster_save_folder, raster_file)
-                save_pickle(out_meta, pckl_orig_folder, pckl_name)
-                orig_img = get_img_from_raster(raster_save_folder, raster_file)
-                divide_img_by_interval(orig_img, img_orig_folder, file_front + '.' + 'png', row_interval = 1000, col_interval = 1000)
+            raster_file = file_front + '.tif'
+            img_orig_folder = div_rgb_folder + str(year) + '/' + str(sample_id) + '/'
+            pckl_orig_folder = pckl_folder + str(year) + '/' + str(sample_id) + '/'
+            infrared_orig_folder = div_infrared_folder + str(year) + '/' + str(sample_id) + '/'
+            pckl_name = file_front + '.' + 'pckl'
+            out_meta = extract_raster_meta(raster_save_folder, raster_file)
+            save_pickle(out_meta, pckl_orig_folder, pckl_name)
+            orig_img = get_img_from_raster(raster_save_folder, raster_file)
+            divide_img_by_interval(orig_img, img_orig_folder, file_front + '.' + 'png', row_interval = 1000, col_interval = 1000)
+            if is_infrared_record:
                 if raster_file.split('_')[0] == 'm' or raster_file.split('_')[0] == 'M':
                     infrared_img = get_infrared_img_from_raster(raster_save_folder, raster_file)
                     divide_grayscale_img_by_interval_using_pil(infrared_img, infrared_orig_folder, file_front + '.png', row_interval = 1000, col_interval = 1000)
+                    
+            Proj_str = str(out_meta.get('crs')).split('(')[-1].split(')')[0]
+            inProj = Proj(init = Proj_str)
+            outProj = Proj(init = 'epsg:4326')
+            row_num, col_num = out_meta.get('height'), out_meta.get('width')
                 
-                Proj_str = str(out_meta.get('crs')).split('(')[-1].split(')')[0]
-                inProj = Proj(init = Proj_str)
-                outProj = Proj(init = 'epsg:4326')
-                row_num, col_num = out_meta.get('height'), out_meta.get('width')
+            check_row, check_col = row_num // 2, col_num // 2
                 
-                check_row, check_col = row_num // 2, col_num // 2
+            orig_trans = out_meta.get('transform')
+            gdal_trans = Affine.to_gdal(orig_trans)
                 
-                orig_trans = out_meta.get('transform')
-                gdal_trans = Affine.to_gdal(orig_trans)
+            check_x = gdal_trans[0] + check_col * gdal_trans[1] + check_row * gdal_trans[2]
+            check_y = gdal_trans[3] + check_col * gdal_trans[4] + check_row * gdal_trans[5]
                 
-                check_x = gdal_trans[0] + check_col * gdal_trans[1] + check_row * gdal_trans[2]
-                check_y = gdal_trans[3] + check_col * gdal_trans[4] + check_row * gdal_trans[5]
+            check_lon, check_lat = transform(inProj,outProj,check_x, check_y)
+            temp_str = '%f,%f,%s,%s,%s'%(check_lon, check_lat, sample_id, year, z)
                 
-                check_lon, check_lat = transform(inProj,outProj,check_x, check_y)
-                temp_str = '%f,%f,%s,%s,%s'%(check_lon, check_lat, sample_id, year, z)
+            print_list.append(temp_str)
                 
+            time.sleep(0.1)
+            if is_raster_del:
+                shutil.rmtree(raster_save_folder)
+        except:
+            if not temp_str:
+                file_front = z.split('.')[0]
+                year = file_front.split('_')[-1][:4]
+                sample_id = file_front.split('_')[1]
+                temp_str = '%f,%f,%s,%s,%s'%(-999999, -999999, sample_id, year, z)
                 print_list.append(temp_str)
-                
-                time.sleep(0.1)
-                if if_raster_del:
-                    shutil.rmtree(raster_save_folder)
-            except:
-                if not temp_str:
-                    file_front = z.split('.')[0]
-                    year = file_front.split('_')[-1][:4]
-                    sample_id = file_front.split('_')[1]
-                    temp_str = '%f,%f,%s,%s,%s'%(-999999, -999999, sample_id, year, z)
+            else:
+                if not print_list:
                     print_list.append(temp_str)
-                else:
-                    if not print_list:
-                        print_list.append(temp_str)
-                    elif print_list[-1] != temp_str:
-                        print_list.append(temp_str)
-                continue
+                elif print_list[-1] != temp_str:
+                    print_list.append(temp_str)
+            continue
+    if is_txt_record:
         with open(txt_folder + 'lon_lat_info.txt', 'w') as f:
             for p in print_list:
                 print(p, file = f)
         f.close()
-    ##############################################################################
-    # The following code is reading imgs in {img_folder}/year/sample_id/ (img_orig_folder),
-    # and metadata in {pckl_folder}/year/sample_id/ (pckl_orig_folder),
-    # generate a merged tif for sample_id in this year.
-    # temp_save_folder is for saving temp files, which will be deleted after completing merging
-    # final_save_folder is the folder to save final rasters, the result will be saved into 
-    # {final_save_folder}/sample_id/
-    ##############################################################################
+
+def merge_detect_folder(detect_root_folder, pickle_folder, final_raster_folder, print_log = True):
+    subfolders = get_subfolders_with_digits(detect_root_folder)
+    for sf in tqdm(subfolders):
+        temp_detect_folder = os.path.join(detect_root_folder, sf)
+        temp_subfolders = get_subfolders_with_digits(temp_detect_folder)
+        temp_year = sf
+        if print_log:
+            print('We are now processing %s'%sf)
+        for tsf in temp_subfolders:
+            check_detect_folder = os.path.join(temp_detect_folder, tsf)
+            temp_site = tsf
+            check_pickle_folder = os.path.join(pickle_folder, temp_year, temp_site)
+            get_merged_data_by_point(check_detect_folder, check_pickle_folder, final_raster_folder, temp_site, temp_year)
+            
+            
+    
+if __name__ == '__main__':
+    
+    parser = argparse.ArgumentParser(description = 'Environment Settings', formatter_class = argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-zp', '--zip_path', dest = 'zip_path', type = str, \
+                        default = '/media/weiwang/easystore/NAIP/', help='Path to zip files')
+    parser.add_argument('-rp', '--raster_path', dest = 'raster_path', type = str, \
+                        default = '/media/weiwang/easystore/NAIP/Raster/', help='Path to raster files')
+    parser.add_argument('-imp', '--img_path', dest = 'img_path', type = str, \
+                        default = '/media/weiwang/easystore/NAIP/Divided_Img/', help = 'Path to divided imgs')
+    parser.add_argument('-inp', '--infrared_path', dest = 'infrared_path', type = str, \
+                        default = '/media/weiwang/easystore/NAIP/Infrared/', help = 'Path to divided infrared imgs')
+    parser.add_argument('-pp', '--pickle_path', dest = 'pickle_path', type = str, \
+                        default = '/media/weiwang/easystore/NAIP/Pckl_Folder/', help = 'Path to pickle files')
+    parser.add_argument('-frp', '--final_raster_path', dest = 'final_raster_path', type = str, \
+                        default = '/media/weiwang/easystore/NAIP/Final_Raster_Folder/', help = 'Path to the merged raster files')    
+    parser.add_argument('-tp', '--txt_path', dest = 'txt_path', type = str, \
+                        default = '/media/weiwang/easystore/NAIP/TXT_Folder/', help = 'Path to the coordinate files')   
+    parser.add_argument('-ird', '--if_raster_deleted', dest = 'if_raster_deleted', type = bool, \
+                        default = True, help = 'If deleted the raster file after extracting imgs and pckls') 
+    parser.add_argument('-dd', '--detected_img_path', dest = 'detected_img_path', type = str, \
+                        default = '/media/weiwang/easystore/NAIP/Marked_Img/')
+    parser.add_argument('-l', '--lake', dest = 'lake', type = str, \
+                        default = 'LakeZero', help = 'Which lake to process')    
+    parser.add_argument('-s', '--stage', dest = 'stage', type = int, \
+                        default = 1, help = 'which stage to process, 1 is extraction and division, 2 is merging')   
+        
+    args = parser.parse_args()
+    stage = args.stage
+    if stage == 1:
+        extract_NAIP_folder(args.zip_path, args.raster_path, args.img_path, args.infrared_path, args.pickle_path, args.txt_path, sub_folder = args.lake, \
+                       is_raster_del = True, is_infrared_record = True, is_txt_record = False)
     if stage == 2:
-        final_save_folder = './final_raster/'
-        img_orig_folder = 'K:/demo_res_pure_deeplabv3_200/4108603/2018/'
-        pckl_orig_folder = './Pckl_Folder/LakeMichigan/2018/4108603/'
-        get_merged_data_by_point(img_orig_folder, pckl_orig_folder, final_save_folder, '4108603', '2018')
+        merge_detect_folder(args.detected_img_path, args.pickle_path, args.final_raster_path, print_log = True)
