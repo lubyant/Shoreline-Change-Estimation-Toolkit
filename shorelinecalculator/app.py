@@ -5,6 +5,11 @@ import os
 from cppext import cppext, Options
 
 
+class Config:
+    def __init__(self, config_path, checkpoint_file) -> None:
+        pass
+
+
 class SCET:
     def __init__(self, config) -> None:
         self.config = config
