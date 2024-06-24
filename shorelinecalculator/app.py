@@ -1,18 +1,17 @@
-from DL_running import process_img_folder, process_single_img
+from DL_running import process_img_folder
 from extract_merge_data import extract_zip, check_folder_exist
 import os
 
 
 class SCET:
     def __init__(self, config) -> None:
-        pass
+        self.config = config
 
     def method1(self, input_naip_zipfiles_folder,
                 output_folder):
-        self._extract_zipfiles(input_naip_zipfiles_folder,
-                               output_folder)
-        output_final_folder = os.path.join(output_folder,
-                                           "final_raster")
+        img_folder = self._extract_zipfiles(input_naip_zipfiles_folder,
+                                            output_folder)
+        self._image_segmentation(img_folder)
 
     def method2(self):
         pass
@@ -44,10 +43,12 @@ class SCET:
                     output_pkl_folder,
                     output_infrared_folder,
                     output_txt_folder)
+        return output_divided_img_folder
 
     def _image_segmentation(self, img_folder, output_folder):
-        process_img_folder(img_folder, output_folder)
-    
-    
+        process_img_folder(img_folder, output_folder,
+                           self.config.config_file,
+                           self.config.checkpoint_file)
+
     def _merge_raster():
         pass
