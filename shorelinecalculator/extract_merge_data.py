@@ -364,7 +364,8 @@ def get_merged_data_by_point(img_folder, pckl_folder,
 
 
 def extract_zip(zip_folder, raster_folder, img_folder,
-                pckl_folder, infrared_folder):
+                pckl_folder, infrared_folder, txt_folder):
+    if_raster_del = False
     zip_files = find_by_suffix(zip_folder, 'ZIP')
     print_list = []
     print_list.append('LON,LAT,SAMPLE_ID,YEAR,FILE_NAME')
@@ -505,88 +506,8 @@ if __name__ == '__main__':
     check_folder_exist(pckl_folder)
     check_folder_exist(infrared_folder)
     if stage == 1:
-        zip_files = find_by_suffix(zip_folder, 'ZIP')
-        print_list = []
-        print_list.append('LON,LAT,SAMPLE_ID,YEAR,FILE_NAME')
-        for z in zip_files:
-            print('Now we are Processing: \n %s' % z)
-            temp_str = ''
-            try:
-                archive = zipfile.ZipFile(zip_folder + z, 'r')
-                file_front = z.split('.')[0]
-                year = file_front.split('_')[-1][:4]
-                sample_id = file_front.split('_')[1]
-                check_id_year_exist(raster_folder, sample_id, year)
-                raster_save_folder = raster_folder + \
-                    str(year) + '/' + str(sample_id) + '/'
-                archive.extract(file_front + '.tif', raster_save_folder)
-                check_id_year_exist(img_folder, sample_id, year)
-                check_id_year_exist(pckl_folder, sample_id, year)
-                check_id_year_exist(infrared_folder, sample_id, year)
-
-                raster_file = file_front + '.tif'
-                img_orig_folder = img_folder + \
-                    str(year) + '/' + str(sample_id) + '/'
-                pckl_orig_folder = pckl_folder + \
-                    str(year) + '/' + str(sample_id) + '/'
-                infrared_orig_folder = infrared_folder + \
-                    str(year) + '/' + str(sample_id) + '/'
-                pckl_name = file_front + '.' + 'pckl'
-                out_meta = extract_raster_meta(raster_save_folder, raster_file)
-                save_pickle(out_meta, pckl_orig_folder, pckl_name)
-                orig_img = get_img_from_raster(raster_save_folder, raster_file)
-                divide_img_by_interval(
-                    orig_img, img_orig_folder, file_front + '.' + 'png', row_interval=1000, col_interval=1000)
-                if raster_file.split('_')[0] == 'm' or raster_file.split('_')[0] == 'M':
-                    infrared_img = get_infrared_img_from_raster(
-                        raster_save_folder, raster_file)
-                    divide_grayscale_img_by_interval_using_pil(
-                        infrared_img, infrared_orig_folder, file_front + '.png', row_interval=1000, col_interval=1000)
-
-                Proj_str = str(out_meta.get('crs')).split(
-                    '(')[-1].split(')')[0]
-                inProj = Proj(init=Proj_str)
-                outProj = Proj(init='epsg:4326')
-                row_num, col_num = out_meta.get(
-                    'height'), out_meta.get('width')
-
-                check_row, check_col = row_num // 2, col_num // 2
-
-                orig_trans = out_meta.get('transform')
-                gdal_trans = Affine.to_gdal(orig_trans)
-
-                check_x = gdal_trans[0] + check_col * \
-                    gdal_trans[1] + check_row * gdal_trans[2]
-                check_y = gdal_trans[3] + check_col * \
-                    gdal_trans[4] + check_row * gdal_trans[5]
-
-                check_lon, check_lat = transform(
-                    inProj, outProj, check_x, check_y)
-                temp_str = '%f,%f,%s,%s,%s' % (
-                    check_lon, check_lat, sample_id, year, z)
-
-                print_list.append(temp_str)
-
-                time.sleep(0.1)
-                if if_raster_del:
-                    shutil.rmtree(raster_save_folder)
-            except:
-                if not temp_str:
-                    file_front = z.split('.')[0]
-                    year = file_front.split('_')[-1][:4]
-                    sample_id = file_front.split('_')[1]
-                    temp_str = '%f,%f,%s,%s,%s' % (-999999, -
-                                                   999999, sample_id, year, z)
-                    print_list.append(temp_str)
-                else:
-                    if not print_list:
-                        print_list.append(temp_str)
-                    elif print_list[-1] != temp_str:
-                        print_list.append(temp_str)
-                continue
-        with open(txt_folder + 'lon_lat_info.txt', 'w') as f:
-            for p in print_list:
-                print(p, file=f)
+        extract_zip(zip_folder, raster_folder, img_folder,
+                    pckl_folder, infrared_folder, txt_folder)
     ##############################################################################
     # The following code is reading imgs in {img_folder}/year/sample_id/ (img_orig_folder),
     # and metadata in {pckl_folder}/year/sample_id/ (pckl_orig_folder),
