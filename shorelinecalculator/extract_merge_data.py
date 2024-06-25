@@ -509,8 +509,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     stage = args.stage
     if stage == 1:
-        extract_NAIP_folder(args.zip_path, args.raster_path, args.img_path, args.infrared_path, args.pickle_path, args.txt_path, sub_folder=args.lake,
-                            is_raster_del=True, is_infrared_record=True, is_txt_record=False)
+        extract_NAIP_folder(args.zip_path, args.raster_path, args.img_path,
+                            args.infrared_path, args.pickle_path,
+                            args.txt_path, sub_folder=args.lake,
+                            is_raster_del=True, is_infrared_record=True,
+                            is_txt_record=False)
     if stage == 2:
         merge_detect_folder(args.detected_img_path, args.pickle_path,
                             args.final_raster_path, print_log=True)
