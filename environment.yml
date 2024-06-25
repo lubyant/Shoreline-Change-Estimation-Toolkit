@@ -9,7 +9,8 @@ dependencies:
   - pybind11
   - compilers
   - openmim
-  - pytorch >= 1.12.0
+  - pytorch 
   - pillow
   - rasterio
   - pyproj
+  - tqdm
