@@ -50,6 +50,15 @@ class SCET:
         
         self._shoreline_analysis(final_save_folder,
                                  output_result_folder)
+        
+        os.rmdir(output_raster_folder)
+        os.rmdir(output_divided_img_folder)
+        os.rmdir(output_infrared_folder)
+        os.rmdir(output_pkl_folder)
+        os.rmdir(output_txt_folder)
+        os.rmdir(output_binary_map_folder)
+        os.rmdir(final_save_folder)
+        os.rmdir(final_save_folder)
 
     def method2(self):
         pass
