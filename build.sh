@@ -1,7 +1,7 @@
 #!/bin/bash
 pip install -U openmim
 mim install mmengine
-mim install "mmcv>=2.0.0"
+mim install "mmcv==2.0.0rc4"
 pip install "mmsegmentation>=1.0.0"
 python setup.py build
 python setup.py install
