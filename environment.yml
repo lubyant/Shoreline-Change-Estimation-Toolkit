@@ -14,7 +14,8 @@ dependencies:
   - rasterio
   - pyproj
   - tqdm
-  - pytorch==1.12.0
-  - torchvision
-  - torchaudio
+  - cudatoolkit=11.3
+  - pytorch==1.12.1 
+  - torchvision==0.13.1 
+  - torchaudio==0.12.1 
   - cudatoolkit=11.3
