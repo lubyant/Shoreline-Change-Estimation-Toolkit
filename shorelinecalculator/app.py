@@ -5,12 +5,13 @@ from cppext import cppext, Options
 
 
 class Config:
-    def __init__(self, config_path, checkpoint_file) -> None:
-        pass
+    def __init__(self, checkpoint_file) -> None:
+        self.config_file = "shorelinecalculator/simple_mmseg/my_model/deeplabv3plus/deeplabv3plus_r50-d8_4xb4-20k_voc12aug-512x512.py"
+        self.checkpoint_file = checkpoint_file
 
 
 class SCET:
-    def __init__(self, config) -> None:
+    def __init__(self, config: Config) -> None:
         self.config = config
 
     def method1(self, input_naip_zipfiles_folder,
@@ -47,10 +48,10 @@ class SCET:
         merge_detect_folder(output_binary_map_folder,
                             output_pkl_folder,
                             final_save_folder)
-        
+
         self._shoreline_analysis(final_save_folder,
                                  output_result_folder)
-        
+
         os.rmdir(output_raster_folder)
         os.rmdir(output_divided_img_folder)
         os.rmdir(output_infrared_folder)
@@ -62,8 +63,6 @@ class SCET:
 
     def method2(self):
         pass
-
-
 
     def _shoreline_analysis(self, final_output_folder,
                             output_result_folder):
