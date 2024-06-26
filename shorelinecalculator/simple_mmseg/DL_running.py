@@ -1,7 +1,7 @@
-from tools.demo.image_demo_folder import main_args, get_all_files_with_suffix,  \
+from .tools.demo.image_demo_folder import main_args, get_all_files_with_suffix,  \
                                                       get_all_subfolders, load_model
-from tools.demo.image_demo import single_img_main_args
-from tools.customize_tools.image_demo_config import image_folder_demo_config, image_demo_config
+from .tools.demo.image_demo import single_img_main_args
+from .tools.customize_tools.image_demo_config import image_folder_demo_config, image_demo_config
 import os
 import argparse
 

@@ -1,5 +1,5 @@
-from simple_mmseg.DL_running import process_img_folder
-from extract_merge_data import (extract_NAIP_folder, merge_detect_folder)
+from .simple_mmseg.DL_running import process_img_folder
+from .extract_merge_data import (extract_NAIP_folder, merge_detect_folder)
 import os
 from cppext import cppext, Options
 
