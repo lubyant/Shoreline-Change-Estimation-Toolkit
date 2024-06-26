@@ -5,6 +5,24 @@ from mmengine.model import revert_sync_batchnorm
 
 from mmseg.apis import inference_model, init_model, show_result_pyplot
 
+def single_img_main_args(args, model = None):
+    if model == None:
+        model = init_model(args.config, args.checkpoint, device=args.device)
+    if args.device == 'cpu':
+        model = revert_sync_batchnorm(model)
+    # test a single image
+    result = inference_model(model, args.img)
+    # show the results
+    show_result_pyplot(
+        model,
+        args.img,
+        result,
+        title=args.title,
+        opacity=args.opacity,
+        with_labels=args.with_labels,
+        draw_gt=False,
+        show=False if args.out_file is not None else True,
+        out_file=args.out_file)
 
 def main():
     parser = ArgumentParser()
