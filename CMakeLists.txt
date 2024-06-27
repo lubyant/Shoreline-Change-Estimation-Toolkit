@@ -3,6 +3,8 @@ project(ShorelineCalculator)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_PREFIX_PATH "$ENV{CONDA_PREFIX}")
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 include_directories(${GDAL_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 
