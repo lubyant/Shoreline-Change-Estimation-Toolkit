@@ -1,3 +1,4 @@
+import shutil
 from .simple_mmseg.DL_running import process_img_folder
 from .extract_merge_data import (extract_NAIP_folder, merge_detect_folder)
 import os
@@ -36,8 +37,8 @@ class SCET:
         extract_NAIP_folder(input_naip_zipfiles_folder,
                             output_raster_folder,
                             output_divided_img_folder,
-                            output_pkl_folder,
                             output_infrared_folder,
+                            output_pkl_folder,
                             output_txt_folder)
 
         process_img_folder(output_divided_img_folder,
@@ -52,14 +53,12 @@ class SCET:
         self._shoreline_analysis(final_save_folder,
                                  output_result_folder)
 
-        os.rmdir(output_raster_folder)
-        os.rmdir(output_divided_img_folder)
-        os.rmdir(output_infrared_folder)
-        os.rmdir(output_pkl_folder)
-        os.rmdir(output_txt_folder)
-        os.rmdir(output_binary_map_folder)
-        os.rmdir(final_save_folder)
-        os.rmdir(final_save_folder)
+        shutil.rmtree(output_raster_folder)
+        shutil.rmtree(output_divided_img_folder)
+        shutil.rmtree(output_infrared_folder)
+        shutil.rmtree(output_pkl_folder)
+        shutil.rmtree(output_binary_map_folder)
+        shutil.rmtree(final_save_folder)
 
     def method2(self):
         pass

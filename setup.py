@@ -46,7 +46,7 @@ class CMakeBuild(build_ext):
 
 
 setup(
-    name='SCEP',
+    name='SCET',
     version='0.1',
     author='Your Name',
     description='A C++ extension for Python',

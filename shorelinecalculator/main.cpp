@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
   options.transect_orient = gm::TransectOrientation::Right;
   options.intersection_mode = gm::IntersectionMode::Closest;
   dsas::digital_shoreline_analysis_system(
-      Path("/home/lby/Desktop/ShorelineCalculator/rasters"),
-      Path("/home/lby/Desktop/ShorelineCalculator/output"), options);
+      Path("/home/lby/Desktop/ShorelineCalculator/output/Final_Folder"),
+      Path("/home/lby/Desktop/ShorelineCalculator/output/Result"), options);
   return 0;
 }

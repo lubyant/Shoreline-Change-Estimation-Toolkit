@@ -25,15 +25,17 @@ void digital_shoreline_analysis_system(const Path &folder,
         std::filesystem::is_directory(folder)) {
       for (const auto &entry : std::filesystem::directory_iterator(folder)) {
         for(const auto &file: std::filesystem::directory_iterator(entry)){
-          if (std::filesystem::is_regular_file(entry.path())) {
-            paths.push_back(entry.path());
+          if (std::filesystem::is_regular_file(file.path())) {
+            paths.push_back(file.path());
           }else{
+            std::cerr << "entry: " << entry.path();
             throw std::runtime_error("no files found!");
           }
         }
       }
     } else {
-      std::cerr << "Folder is not exist!\n";
+      std::cerr << "Folder is not exist:" << folder << std::endl;
+      exit(1);
     }
   } catch (std::filesystem::filesystem_error &err) {
     std::cerr << "Error: " << err.what() << "\n";
