@@ -1,14 +1,23 @@
-import shutil
-from .simple_mmseg.DL_running import process_img_folder
-from .extract_merge_data import (extract_NAIP_folder, merge_detect_folder)
 import os
-from cppext import cppext, Options
+import shutil
+
+from cppext import Options, cppext
+
+from .extract_merge_data import extract_NAIP_folder, merge_detect_folder
+from .simple_mmseg.DL_running import process_img_folder
 
 
 class Config:
-    def __init__(self, checkpoint_file) -> None:
+    def __init__(self, 
+                 checkpoint_file,
+                 transect_spacing: float=30.0,
+                 transect_length: float=500.0) -> None:
+
         self.config_file = "shorelinecalculator/simple_mmseg/my_model/deeplabv3plus/deeplabv3plus_r50-d8_4xb4-20k_voc12aug-512x512.py"
         self.checkpoint_file = checkpoint_file
+        self.options = Options()
+        self.options.transect_length = transect_length
+        self.options.transect_spacing = transect_spacing
 
 
 class SCET:
@@ -65,5 +74,4 @@ class SCET:
 
     def _shoreline_analysis(self, final_output_folder,
                             output_result_folder):
-        options = Options()
-        cppext(final_output_folder, output_result_folder, options)
+        cppext(final_output_folder, output_result_folder, self.config.options)

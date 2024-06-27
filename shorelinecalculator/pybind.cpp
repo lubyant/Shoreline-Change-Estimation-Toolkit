@@ -10,7 +10,6 @@ void cppext(const std::string &input_folder, const std::string &output_folder,
             const dsas::Options &options) {
   dsas::digital_shoreline_analysis_system(input_folder, output_folder,
   options);
-  std::cout << options.edge_distance;
 }
 
 PYBIND11_MODULE(cppext, m) {
