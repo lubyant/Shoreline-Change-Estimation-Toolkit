@@ -1,7 +1,7 @@
 import os
 import sys
 import subprocess
-from setuptools import setup, Extension
+from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 
 
@@ -46,12 +46,13 @@ class CMakeBuild(build_ext):
 
 
 setup(
-    name='cppext',
+    name='SCET',
     version='0.1',
     author='Your Name',
     description='A C++ extension for Python',
     long_description='',
     ext_modules=[CMakeExtension('cppext')],
+    packages=find_packages(),
     cmdclass={'build_ext': CMakeBuild},
     zip_safe=False,
 )

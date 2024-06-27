@@ -1,8 +1,9 @@
-from simple_mmseg.tools.demo.image_demo_folder import main_args, get_all_files_with_suffix,  \
+from .tools.demo.image_demo_folder import main_args, get_all_files_with_suffix,  \
                                                       get_all_subfolders, load_model
-from simple_mmseg.tools.demo.image_demo import single_img_main_args
-from simple_mmseg.tools.customize_tools.image_demo_config import image_folder_demo_config, image_demo_config
+from .tools.demo.image_demo import single_img_main_args
+from .tools.customize_tools.image_demo_config import image_folder_demo_config, image_demo_config
 import os
+import argparse
 
 def process_img_folder(img_folder, output_folder, config_file, checkpoint_file, img_suffix = 'png'):
     """_summary_
@@ -55,3 +56,21 @@ def process_single_img(img_file, out_file, config_file, checkpoint_file, img_suf
     print(args.config)
     model = load_model(args)
     single_img_main_args(args, model = model)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description = 'Environment Settings', formatter_class = argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-imp', '--input_img_path', dest = 'input_img_path', type = str, \
+                        default = '/media/weiwang/easystore/NAIP/Divided_Img/LakeZero/', help = 'Path to divided img(s)')
+    parser.add_argument('-omp', '--out_img_path', dest = 'out_img_path', type = str, \
+                        default = '/media/weiwang/easystore/NAIP/Marked_Img/LakeZero/', help = 'path to save detected img(s)')
+    parser.add_argument('-config', '--config_file', dest = 'config_file', type = str, \
+                        default = './my_model/deeplabv3plus/deeplabv3plus_r50-d8_4xb4-20k_voc12aug-512x512.py',
+                        help = 'path to save the config file')
+    parser.add_argument('-suffix', '--suffix', dest = 'suffix', default = 'png', help = 'the suffix of img files')
+    parser.add_argument('-checkpoint', '--checkpoint_file', dest = 'checkpoint_file', type = str, \
+                        default = '/mnt/ssd1/mmseg_backup/model_res_wo_05-07/iter_100000.pth', help = 'path to save model checkpoint')
+    args = parser.parse_args()
+    if os.path.isdir(args.input_img_path):
+        process_img_folder(args.input_img_path, args.out_img_path, args.config_file, args.checkpoint_file, img_suffix = args.suffix)
+    elif os.path.isfile(args.input_img_path):
+        process_single_img(args.input_img_path, args.out_img_path, args.config_file, args.checkpoint_file, img_suffix = args.suffix)
