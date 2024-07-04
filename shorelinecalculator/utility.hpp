@@ -12,6 +12,7 @@
 #include <filesystem>
 #include <functional>
 #include <future>
+#include <iomanip>
 #include <iostream>
 #include <numeric>
 #include <queue>
@@ -107,9 +108,9 @@ gm::Point<T> computeIntersectPoint(const gm::Point<T> &p1,
   double a0 = y1 - y2, b0 = x2 - x1, c0 = x1 * y2 - x2 * y1;
   double a1 = y3 - y4, b1 = x4 - x3, c1 = x3 * y4 - x4 * y3;
   double d = a0 * b1 - a1 * b0;
-  if (d == 0)
-    return {-999999, -999999};
-  else {
+  if (d == 0) {
+    throw std::runtime_error("two line are the same");
+  } else {
     double x = (b0 * c1 - b1 * c0) / d;
     double y = (c0 * a1 - c1 * a0) / d;
     return {x, y};
@@ -222,6 +223,10 @@ void save_lines(std::vector<T> &lines, const char *pszProj,
 
     // Step 6: Create a line geometry and add points to it
     for (size_t i = 0; i < shape.size(); i++) {
+      if (std::isnan(shape[i].x) || std::isnan(shape[i].y)) {
+        std::cerr << shape[i].x << std::endl;
+        exit(1);
+      }
       line.addPoint(shape[i].x, shape[i].y);
     }
 
@@ -269,7 +274,7 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
                                    const std::string &baseline_proj);
 
 std::vector<gm::IntersectPoint> remove_same_year_intersections(
-    const std::vector<gm::IntersectPoint>&, const gm::IntersectionMode &);
+    const std::vector<gm::IntersectPoint> &, const gm::IntersectionMode &);
 
 }  // namespace util
 #endif  // SHORELINECALCULATOR_UTILITY_HPP

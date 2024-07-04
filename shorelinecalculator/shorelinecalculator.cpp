@@ -24,10 +24,10 @@ void digital_shoreline_analysis_system(const Path &folder,
     if (std::filesystem::exists(folder) &&
         std::filesystem::is_directory(folder)) {
       for (const auto &entry : std::filesystem::directory_iterator(folder)) {
-        for(const auto &file: std::filesystem::directory_iterator(entry)){
+        for (const auto &file : std::filesystem::directory_iterator(entry)) {
           if (std::filesystem::is_regular_file(file.path())) {
             paths.push_back(file.path());
-          }else{
+          } else {
             std::cerr << "entry: " << entry.path();
             throw std::runtime_error("no files found!");
           }
