@@ -8,13 +8,14 @@ from .simple_mmseg.DL_running import process_img_folder
 
 
 class Config:
-    def __init__(self, 
+    def __init__(self,
                  checkpoint_file,
-                 transect_spacing: float=30.0,
-                 transect_length: float=500.0) -> None:
+                 transect_spacing: float = 30.0,
+                 transect_length: float = 500.0) -> None:
 
         self.config_file = "shorelinecalculator/simple_mmseg/my_model/deeplabv3plus/deeplabv3plus_r50-d8_4xb4-20k_voc12aug-512x512.py"
         self.checkpoint_file = checkpoint_file
+        self.keep_raster = False
         self.options = Options()
         self.options.transect_length = transect_length
         self.options.transect_spacing = transect_spacing
@@ -66,7 +67,8 @@ class SCET:
         shutil.rmtree(output_divided_img_folder)
         shutil.rmtree(output_infrared_folder)
         shutil.rmtree(output_pkl_folder)
-        shutil.rmtree(output_binary_map_folder)
+        if not self.config.keep_raster:
+            shutil.rmtree(output_binary_map_folder)
         shutil.rmtree(final_save_folder)
 
     def method2(self):
