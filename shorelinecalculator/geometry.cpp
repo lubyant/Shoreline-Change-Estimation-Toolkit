@@ -122,6 +122,13 @@ LineSegment TransectLine::create_transect(
                                             transect_length / 2);
       rightEdge = transect_base.create_point(baseline_normal_vector,
                                              -transect_length / 2);
+      if (leftEdge == rightEdge) {
+        std::cerr << baseline_normal_vector.first
+                  << baseline_normal_vector.second << std::endl;
+        std::cerr << leftEdge << ", " << rightEdge << std::endl;
+        std::cerr << __FILE__ << std::endl;
+        exit(1);
+      }
       break;
     case TransectOrientation::Left:
       leftEdge =
@@ -146,13 +153,18 @@ std::optional<IntersectPoint> TransectLine::intersection(
   // find out all the available intersection
   for (size_t i = 0; i < shoreline.size() - 1; i++) {
     if (is_intersect(shoreline[i], shoreline[i + 1])) {
-      auto point = find_intersection(shoreline[i], shoreline[i + 1]);
-      auto distance = distance2ref(point);
-      IntersectPoint intersect_point{
-          point,        transect_id_, shoreline.shoreline_id_,
-          baseline_id_, image_id_,    shoreline.year_,
-          distance};
-      intersections.push_back(intersect_point);
+      try{
+        auto point = find_intersection(shoreline[i], shoreline[i + 1]);
+        auto distance = distance2ref(point);
+        IntersectPoint intersect_point{
+            point,        transect_id_, shoreline.shoreline_id_,
+            baseline_id_, image_id_,    shoreline.year_,
+            distance};
+        intersections.push_back(intersect_point);
+      } catch (...){
+        continue;
+      }
+
     }
   }
 
@@ -232,18 +244,29 @@ Baseline::Baseline(const std::vector<BaselinesVertex> &points,
   }
   for (size_t i = 0; i < normal_vectors.size(); i++) {
     size_t start = i;
-    size_t end = i + smooth_factor >= normal_vectors.size()
-                     ? normal_vectors.size() - 1
-                     : i + smooth_factor;
-    std::pair<double, double> normal_vector = std::accumulate(
-        normal_vectors.begin() + start, normal_vectors.begin() + end + 1,
-        std::make_pair(0, 0),
-        [](const std::pair<double, double> &a,
-           const std::pair<double, double> &b) {
-          return std::make_pair(a.first + b.first, a.second + b.second);
-        });
+    size_t num = i + smooth_factor < normal_vectors.size()
+                     ? smooth_factor
+                     : normal_vectors.size() - start;
+
+    double x = 0, y = 0;
+    for (size_t i = start; i < start + num; i++) {
+      x += normal_vectors.at(i).first;
+      y += normal_vectors.at(i).second;
+    }
+    auto smoothed_normal_vector = std::make_pair(x, y);
+    if (smoothed_normal_vector.first == 0 &&
+        smoothed_normal_vector.second == 0) {
+      std::cerr << start << ", " << num << ", " << normal_vectors.size()
+                << std::endl;
+      for (size_t i = start; i < start + num; i++) {
+        std::cerr << normal_vectors.at(i).first << ", "
+                  << normal_vectors.at(i).second << std::endl;
+      }
+      std::cerr << __FILE__ << std::endl;
+      exit(1);
+    }
     transects_lines_.emplace_back(
-        transects_base_points_.at(i), transect_length_, normal_vector,
+        transects_base_points_.at(i), transect_length_, smoothed_normal_vector,
         transect_id++, baseline_id_, image_id_, mode, orient);
   }
 }

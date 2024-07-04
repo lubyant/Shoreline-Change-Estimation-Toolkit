@@ -64,6 +64,9 @@ struct Point {
   Point &operator=(Point &&point) = default;
 
   friend std::ostream &operator<< <T>(std::ostream &os, const Point<T> &point);
+  friend bool operator==(Point<T> &point1, Point<T> &point2) {
+    return (point1.x == point2.x) && (point1.y == point2.y);
+  }
 
   [[nodiscard]] T distance_to_point(const Point<T> &point) const {
     return sqrt(pow(x - point.x, 2) + pow(y - point.y, 2));
