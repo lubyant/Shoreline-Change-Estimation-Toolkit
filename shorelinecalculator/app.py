@@ -4,7 +4,7 @@ import shutil
 from cppext import Options, cppext
 
 from .extract_merge_data import extract_NAIP_folder, merge_detect_folder
-from .simple_mmseg.DL_running import process_img_folder
+from .simple_mmseg.DL_running import process_img_folder, process_single_img
 
 
 class Config:
@@ -71,8 +71,10 @@ class SCET:
             shutil.rmtree(output_binary_map_folder)
         shutil.rmtree(final_save_folder)
 
-    def method2(self):
-        pass
+    def method2(self, input_img_path, output_folder):
+        output_img_path = os.path.join(output_folder, "output.png")
+        process_single_img(input_img_path, output_img_path,
+                           self.config.checkpoint_file)
 
     def _shoreline_analysis(self, final_output_folder,
                             output_result_folder):
