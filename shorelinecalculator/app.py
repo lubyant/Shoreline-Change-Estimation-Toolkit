@@ -13,7 +13,6 @@ class Config:
                  transect_spacing: float = 30.0,
                  transect_length: float = 500.0) -> None:
 
-        self.config_file = "shorelinecalculator/simple_mmseg/my_model/deeplabv3plus/deeplabv3plus_r50-d8_4xb4-20k_voc12aug-512x512.py"
         self.checkpoint_file = checkpoint_file
         self.keep_raster = False
         self.options = Options()
@@ -53,7 +52,6 @@ class SCET:
 
         process_img_folder(output_divided_img_folder,
                            output_binary_map_folder,
-                           self.config.config_file,
                            self.config.checkpoint_file)
 
         merge_detect_folder(output_binary_map_folder,
@@ -76,7 +74,6 @@ class SCET:
         output_img_path = os.path.join(output_folder, "output.png")
         process_single_img(input_img_path,
                            output_img_path,
-                           self.config.config_file,
                            self.config.checkpoint_file)
         generate_result_from_image(input_img_path,
                                    output_folder,
