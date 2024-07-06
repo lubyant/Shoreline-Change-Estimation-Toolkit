@@ -5,8 +5,9 @@ from mmengine.model import revert_sync_batchnorm
 
 from mmseg.apis import inference_model, init_model, show_result_pyplot
 
-def single_img_main_args(args, model = None):
-    if model == None:
+
+def single_img_main_args(args, model=None):
+    if model is None:
         model = init_model(args.config, args.checkpoint, device=args.device)
     if args.device == 'cpu':
         model = revert_sync_batchnorm(model)
@@ -24,12 +25,17 @@ def single_img_main_args(args, model = None):
         show=False if args.out_file is not None else True,
         out_file=args.out_file)
 
+
 def main():
     parser = ArgumentParser()
-    parser.add_argument('--img', help='Image file', default = '/home/weiwang/ResearchProjects/mmsegmentation/demo/11.png')
-    parser.add_argument('--config', help='Config file', default = '/home/weiwang/ResearchProjects/mmsegmentation/my_model/deeplabv3plus/deeplabv3plus_r50-d8_4xb4-20k_voc12aug-512x512.py')
-    parser.add_argument('--checkpoint', help='Checkpoint file', default = '/home/weiwang/ResearchProjects/mmsegmentation/my_model_res/deeplabv3plus/iter_4000.pth')
-    parser.add_argument('--out-file', help='Path to output file', default = '/home/weiwang/ResearchProjects/mmsegmentation/my_model_res/deeplabv3plus/demo_res/11.png')
+    parser.add_argument('--img', help='Image file',
+                        default='/home/weiwang/ResearchProjects/mmsegmentation/demo/11.png')
+    parser.add_argument('--config', help='Config file',
+                        default='/home/weiwang/ResearchProjects/mmsegmentation/my_model/deeplabv3plus/deeplabv3plus_r50-d8_4xb4-20k_voc12aug-512x512.py')
+    parser.add_argument('--checkpoint', help='Checkpoint file',
+                        default='/home/weiwang/ResearchProjects/mmsegmentation/my_model_res/deeplabv3plus/iter_4000.pth')
+    parser.add_argument('--out-file', help='Path to output file',
+                        default='/home/weiwang/ResearchProjects/mmsegmentation/my_model_res/deeplabv3plus/demo_res/11.png')
     parser.add_argument(
         '--device', default='cuda:0', help='Device used for inference')
     parser.add_argument(
