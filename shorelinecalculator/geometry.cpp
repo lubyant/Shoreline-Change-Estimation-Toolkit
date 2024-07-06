@@ -153,7 +153,7 @@ std::optional<IntersectPoint> TransectLine::intersection(
   // find out all the available intersection
   for (size_t i = 0; i < shoreline.size() - 1; i++) {
     if (is_intersect(shoreline[i], shoreline[i + 1])) {
-      try{
+      try {
         auto point = find_intersection(shoreline[i], shoreline[i + 1]);
         auto distance = distance2ref(point);
         IntersectPoint intersect_point{
@@ -161,10 +161,9 @@ std::optional<IntersectPoint> TransectLine::intersection(
             baseline_id_, image_id_,    shoreline.year_,
             distance};
         intersections.push_back(intersect_point);
-      } catch (...){
+      } catch (...) {
         continue;
       }
-
     }
   }
 
@@ -256,14 +255,8 @@ Baseline::Baseline(const std::vector<BaselinesVertex> &points,
     auto smoothed_normal_vector = std::make_pair(x, y);
     if (smoothed_normal_vector.first == 0 &&
         smoothed_normal_vector.second == 0) {
-      std::cerr << start << ", " << num << ", " << normal_vectors.size()
-                << std::endl;
-      for (size_t i = start; i < start + num; i++) {
-        std::cerr << normal_vectors.at(i).first << ", "
-                  << normal_vectors.at(i).second << std::endl;
-      }
-      std::cerr << __FILE__ << std::endl;
-      exit(1);
+      smoothed_normal_vector.first = normal_vectors.at(i).first;
+      smoothed_normal_vector.second = normal_vectors.at(i).second;
     }
     transects_lines_.emplace_back(
         transects_base_points_.at(i), transect_length_, smoothed_normal_vector,
