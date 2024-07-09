@@ -293,7 +293,7 @@ std::vector<gm::IntersectPoint> generate_intersection(
   for (auto &transects : transect_groups) {
     for (auto &transectLine : transects.transects_) {
       for (auto &shoreline : shorelines) {
-        if(shoreline.image_id_ != transectLine.image_id_) {
+        if (shoreline.image_id_ != transectLine.image_id_) {
           continue;
         }
         auto ret = transectLine.intersection(shoreline);
@@ -420,11 +420,15 @@ ShoresIterator::value_type ShoresIterator::operator*() const {
   value_type ret;
   for (const auto &year : shared_years) {
     auto intersect_prev = transect_prev.year_intersect_map_[year];
-    auto shoreline_ver_id_prev = intersect_prev->next_vertex->id_;
-
     auto intersect_next = transect_next.year_intersect_map_[year];
-    auto shoreline_ver_id_next = intersect_next->prev_vertex->id_;
+    for (const auto &shoreline : shorelines_) {
+      if (shoreline.image_id_ != transect_prev.image_id_) {
+        continue;
+      }
+      ret[year] = util::get_subset_of_vertices(
+          shoreline.shoreline_vertices_, *intersect_prev, *intersect_next);
 
+    }
   }
   return ret;
 }
