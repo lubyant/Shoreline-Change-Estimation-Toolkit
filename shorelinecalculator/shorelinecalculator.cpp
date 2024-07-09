@@ -293,6 +293,9 @@ std::vector<gm::IntersectPoint> generate_intersection(
   for (auto &transects : transect_groups) {
     for (auto &transectLine : transects.transects_) {
       for (auto &shoreline : shorelines) {
+        if(shoreline.image_id_ != transectLine.image_id_) {
+          continue;
+        }
         auto ret = transectLine.intersection(shoreline);
         if (ret.has_value()) {
           intersections.push_back(ret.value());
@@ -398,5 +401,31 @@ void create_intersects_by_transects(TransectGroups &transect_groups,
     throw std::runtime_error("No intersections");
   }
   util::save_points(intersections, proj.c_str(), output);
+}
+ShoresIterator::value_type ShoresIterator::operator*() const {
+  auto transect_group = transect_groups_.at(baseline_pos_);
+  auto transect_prev = transect_group.transects_.at(transect_pos_);
+  auto transect_next = transect_group.transects_.at(transect_pos_ + 1);
+  std::unordered_set<int> years_prev, years_next;
+  for (const auto &pair : transect_prev.year_intersect_map_) {
+    years_prev.insert(pair.first);
+  }
+  for (const auto &pair : transect_next.year_intersect_map_) {
+    years_next.insert(pair.first);
+  }
+  std::unordered_set<int> shared_years;
+  std::set_intersection(years_next.begin(), years_next.end(),
+                        years_prev.begin(), years_prev.end(),
+                        std::inserter(shared_years, shared_years.begin()));
+  value_type ret;
+  for (const auto &year : shared_years) {
+    auto intersect_prev = transect_prev.year_intersect_map_[year];
+    auto shoreline_ver_id_prev = intersect_prev->next_vertex->id_;
+
+    auto intersect_next = transect_next.year_intersect_map_[year];
+    auto shoreline_ver_id_next = intersect_next->prev_vertex->id_;
+
+  }
+  return ret;
 }
 }  // namespace dsas

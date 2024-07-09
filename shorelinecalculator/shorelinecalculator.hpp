@@ -5,10 +5,8 @@
 #ifndef SHORELINECALCULATOR_SHORELINECALCULATOR_HPP
 #define SHORELINECALCULATOR_SHORELINECALCULATOR_HPP
 
-#include <algorithm>
 #include <filesystem>
 #include <iterator>
-#include <unordered_set>
 #include <vector>
 
 #include "geometry.hpp"
@@ -77,33 +75,7 @@ class ShoresIterator {
                  const gm::TransectGroups &transect_groups, size_t pos)
       : shorelines_(shorelines), transect_groups_(transect_groups) {}
 
-  value_type operator*() const {
-    auto transect_group = transect_groups_.at(baseline_pos_);
-    auto transect_prev = transect_group.transects_.at(transect_pos_);
-    auto transect_next = transect_group.transects_.at(transect_pos_ + 1);
-    auto baseline_id = transect_next.baseline_id_;
-    auto transect_id = transect_next.transect_id_;
-    auto image_id = transect_next.image_id_;
-    std::unordered_set<int> years_prev, years_next;
-    for (const auto &pair : transect_prev.year_intersect_map_) {
-      years_prev.insert(pair.first);
-    }
-    for (const auto &pair : transect_next.year_intersect_map_) {
-      years_next.insert(pair.first);
-    }
-    std::unordered_set<int> shared_years;
-    std::set_intersection(years_next.begin(), years_next.end(),
-                          years_prev.begin(), years_prev.end(),
-                          std::inserter(shared_years, shared_years.begin()));
-    value_type ret;
-    for(const auto &year: shared_years){
-        auto intersect_prev = transect_prev.year_intersect_map_[year];
-        auto next_point = intersect_prev->next_vertex;
-        auto intersect_next = transect_next.year_intersect_map_[year];
-        auto prev_point = intersect_next->prev_vertex;
-        ret[year] = ...
-    }
-  }
+  value_type operator*() const;
 
  private:
   const gm::Shorelines &shorelines_;

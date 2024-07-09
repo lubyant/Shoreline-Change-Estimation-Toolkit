@@ -66,7 +66,7 @@ struct Point {
   Point &operator=(Point &&point) = default;
 
   friend std::ostream &operator<< <T>(std::ostream &os, const Point<T> &point);
-  friend bool operator==(Point<T> &point1, Point<T> &point2) {
+  friend bool operator==(const Point<T> &point1, const Point<T> &point2) {
     return (point1.x == point2.x) && (point1.y == point2.y);
   }
 

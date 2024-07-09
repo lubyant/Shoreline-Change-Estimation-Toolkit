@@ -3,7 +3,9 @@
 //
 #include "utility.hpp"
 
+#include <limits>
 #include <unordered_set>
+#define MAX_DOUBLE std::numeric_limits<double>::max()
 
 namespace util {
 
@@ -559,7 +561,7 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
   OGRSpatialReference *pszInputProj = poLayer->GetSpatialRef();
   OGRCoordinateTransformation *coordTransform;
   coordTransform = OGRCreateCoordinateTransformation(pszInputProj, &refSRS);
-  if (coordTransform == NULL) {
+  if (coordTransform == nullptr) {
     throw std::runtime_error("Failed to create coordinate transformation.\n");
   }
 
@@ -616,23 +618,82 @@ std::vector<gm::IntersectPoint> remove_same_year_intersections(
       return d1 == d2;
     }
   };
-  std::unordered_map<boost::gregorian::date, std::vector<gm::IntersectPoint>, DateHash, DateEqual>
+  std::unordered_map<boost::gregorian::date, std::vector<gm::IntersectPoint>,
+                     DateHash, DateEqual>
       avail_dates;
-  for(const auto& point: intersect_points) {
+  for (const auto &point : intersect_points) {
     avail_dates[point.date_].push_back(point);
   }
   std::vector<gm::IntersectPoint> new_intersects;
-  for(auto &[date, points]: avail_dates) {
-    auto target_point = std::max_element(points.begin(),
-      points.end(), [&](const gm::IntersectPoint& a,
-        const gm::IntersectPoint &b) {
-        if (mode == gm::IntersectionMode::Closest) {
-          return a.distance_to_ref_ >= b.distance_to_ref_;
-        }
-        return a.distance_to_ref_ < b.distance_to_ref_;
-      });
+  for (auto &[date, points] : avail_dates) {
+    auto target_point = std::max_element(
+        points.begin(), points.end(),
+        [&](const gm::IntersectPoint &a, const gm::IntersectPoint &b) {
+          if (mode == gm::IntersectionMode::Closest) {
+            return a.distance_to_ref_ >= b.distance_to_ref_;
+          }
+          return a.distance_to_ref_ < b.distance_to_ref_;
+        });
     new_intersects.push_back(std::move(*target_point));
   }
   return new_intersects;
+}
+std::vector<gm::Point<>> get_subset_of_vertices(
+    const std::vector<gm::Point<>> &line, const gm::Point<> &p1,
+    const gm::Point<> &p2) {
+  auto isBefore = [](const gm::Point<> &a, const gm::Point<> &b) {
+    return a.x < b.x || (a.x == b.x && a.y < b.y);
+  };
+
+  gm::Point<> before_p1, after_p1, before_p2, after_p2;
+
+  double min_dist_before_p1{MAX_DOUBLE}, min_dist_after_p1{MAX_DOUBLE},
+      min_dist_before_p2{MAX_DOUBLE}, min_dist_after_p2{MAX_DOUBLE};
+  for (const auto &vertex : line) {
+    if (isBefore(vertex, p1)) {
+      auto dist = vertex.distance_to_point((p1));
+      if (dist < min_dist_before_p1) {
+        before_p1 = vertex;
+        min_dist_before_p1 = dist;
+      }
+    } else {
+      auto dist = vertex.distance_to_point((p1));
+      if (dist < min_dist_after_p1) {
+        after_p1 = vertex;
+        min_dist_after_p1 = dist;
+      }
+    }
+
+    if (isBefore(vertex, p2)) {
+      auto dist = vertex.distance_to_point((p2));
+      if (dist < min_dist_before_p2) {
+        before_p2 = vertex;
+        min_dist_before_p2 = dist;
+      }
+    } else {
+      auto dist = vertex.distance_to_point((p2));
+      if (dist < min_dist_after_p2) {
+        after_p2 = vertex;
+        min_dist_after_p2 = dist;
+      }
+    }
+  }
+
+  auto it1 = std::find(line.begin(), line.end(), before_p1);
+  auto it2 = std::find(line.begin(), line.end(), after_p1);
+  auto it3 = std::find(line.begin(), line.end(), before_p2);
+  auto it4 = std::find(line.begin(), line.end(), after_p2);
+
+  if (isBefore(p1, p2)) {
+    if(it2 < it3) {
+      return {it2, it3 + 1};
+    }
+    return {it3, it2+1};
+  }
+
+  if (it4<it1) {
+    return {it4, it1 + 1};
+  }
+  return {it1, it4+1};
 }
 }  // namespace util

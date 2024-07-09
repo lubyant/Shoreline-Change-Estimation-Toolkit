@@ -276,5 +276,8 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
 std::vector<gm::IntersectPoint> remove_same_year_intersections(
     const std::vector<gm::IntersectPoint> &, const gm::IntersectionMode &);
 
+std::vector<gm::Point<>> get_subset_of_vertices(
+    const std::vector<gm::Point<>> &line, const gm::Point<> &p1,
+    const gm::Point<> &p2);
 }  // namespace util
 #endif  // SHORELINECALCULATOR_UTILITY_HPP
