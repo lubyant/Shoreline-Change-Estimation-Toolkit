@@ -68,14 +68,28 @@ class ShoresIterator {
  public:
   using iterator_category = std::forward_iterator_tag;
   using difference_type = std::ptrdiff_t;
-  using value_type = umap<int, std::vector<Point<double>> *>;
+  using value_type = umap<int, std::vector<Point<double>>>;
   using pointer = value_type *;
   using reference = value_type &;
   ShoresIterator(const gm::Shorelines &shorelines,
-                 const gm::TransectGroups &transect_groups, size_t pos)
+                 const gm::TransectGroups &transect_groups)
       : shorelines_(shorelines), transect_groups_(transect_groups) {}
 
   value_type operator*() const;
+  ShoresIterator &operator++();
+  ShoresIterator operator++(int) {
+    ShoresIterator tmp = *this;
+    ++(*this);
+    return tmp;
+  }
+  friend bool operator==(const ShoresIterator &a, const ShoresIterator &b) {
+    return (a.baseline_pos_ == b.baseline_pos_) &&
+           (a.transect_pos_ == b.transect_pos_);
+  }
+
+  friend bool operator!=(const ShoresIterator &a, const ShoresIterator &b) {
+    return !(a == b);
+  }
 
  private:
   const gm::Shorelines &shorelines_;

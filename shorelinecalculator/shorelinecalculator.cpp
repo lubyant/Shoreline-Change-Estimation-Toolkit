@@ -427,9 +427,17 @@ ShoresIterator::value_type ShoresIterator::operator*() const {
       }
       ret[year] = util::get_subset_of_vertices(
           shoreline.shoreline_vertices_, *intersect_prev, *intersect_next);
-
     }
   }
   return ret;
+}
+ShoresIterator &ShoresIterator::operator++() {
+  if(transect_pos_ == transect_groups_[baseline_pos_].transects_.size()-1) {
+    baseline_pos_++;
+    transect_pos_ = 0;
+  } else {
+    transect_pos_++;
+  }
+  return *this;
 }
 }  // namespace dsas
