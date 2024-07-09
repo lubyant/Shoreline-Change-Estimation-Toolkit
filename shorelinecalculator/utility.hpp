@@ -279,5 +279,12 @@ std::vector<gm::IntersectPoint> remove_same_year_intersections(
 std::vector<gm::Point<>> get_subset_of_vertices(
     const std::vector<gm::Point<>> &line, const gm::Point<> &p1,
     const gm::Point<> &p2);
+
+std::vector<gm::Shoreline> trancate_shore_by_transect(
+    const gm::TransectLine &tran1, const gm::TransectLine &tran2,
+    const gm::Shoreline &shoreline);
+
+double frechet_distance(std::vector<gm::Point<>> line1,
+                        std::vector<gm::Point<>> line2);
 }  // namespace util
 #endif  // SHORELINECALCULATOR_UTILITY_HPP

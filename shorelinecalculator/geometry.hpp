@@ -154,7 +154,7 @@ struct TransectLine : public LineSegment,
   double change_rate{};           // change rate for all the intersections
   IntersectionMode mode_;
   TransectOrientation orient_;
-  std::unordered_map<int , IntersectPoint*> year_intersect_map_;
+  std::unordered_map<int, IntersectPoint *> year_intersect_map_;
 
   TransectLine(Point<> &transect_base, double transect_length,
                std::pair<double, double> baseline_normal_vector,
@@ -360,40 +360,46 @@ struct Transects {
 using TransectGroups = std::vector<Transects>;
 using Shorelines = std::vector<gm::Shoreline>;
 
-class ShoresIterator {
+class ShoreSegByTransect {
  public:
-  using iterator_category = std::forward_iterator_tag;
-  using difference_type = std::ptrdiff_t;
-  using value_type = std::unordered_map<int, std::vector<Point<double>>>;
-  using pointer = value_type *;
-  using reference = value_type &;
-  ShoresIterator(const Shorelines &shorelines,
-                 const TransectGroups &transect_groups)
+  class ShoresIterator {
+   public:
+    using iterator_category = std::forward_iterator_tag;
+    using difference_type = std::ptrdiff_t;
+    using value_type = std::unordered_map<int, std::vector<Point<double>>>;
+    using pointer = value_type *;
+    using reference = value_type &;
+    ShoresIterator(size_t transect_pos, size_t baseline_pos)
+        : transect_pos_(transect_pos), baseline_pos_(baseline_pos) {}
+
+    value_type operator*() const;
+    ShoresIterator &operator++();
+    ShoresIterator operator++(int) {
+      ShoresIterator tmp = *this;
+      ++(*this);
+      return tmp;
+    }
+    friend bool operator==(const ShoresIterator &a, const ShoresIterator &b) {
+      return (a.baseline_pos_ == b.baseline_pos_) &&
+             (a.transect_pos_ == b.transect_pos_);
+    }
+
+    friend bool operator!=(const ShoresIterator &a, const ShoresIterator &b) {
+      return !(a == b);
+    }
+
+   private:
+    size_t baseline_pos_ = 0;
+    size_t transect_pos_ = 0;
+  };
+  ShoreSegByTransect(const Shorelines &shorelines,
+                     const TransectGroups &transect_groups)
       : shorelines_(shorelines), transect_groups_(transect_groups) {}
 
-  value_type operator*() const;
-  ShoresIterator &operator++();
-  ShoresIterator operator++(int) {
-    ShoresIterator tmp = *this;
-    ++(*this);
-    return tmp;
-  }
-  friend bool operator==(const ShoresIterator &a, const ShoresIterator &b) {
-    return (a.baseline_pos_ == b.baseline_pos_) &&
-           (a.transect_pos_ == b.transect_pos_);
-  }
-
-  friend bool operator!=(const ShoresIterator &a, const ShoresIterator &b) {
-    return !(a == b);
-  }
-
  private:
-  const Shorelines &shorelines_;
-  const TransectGroups &transect_groups_;
-  size_t baseline_pos_ = 0;
-  size_t transect_pos_ = 0;
+  Shorelines shorelines_;
+  TransectGroups transect_groups_;
 };
-
 }  // namespace gm
 
 #endif  // SHORELINECALCULATOR_GEOMETRY_HPP

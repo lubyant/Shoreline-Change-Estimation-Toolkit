@@ -5,6 +5,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include "shorelinecalculator.hpp"
+
 #define TOL 1e-4
 using namespace gm;
 
@@ -27,7 +29,7 @@ BOOST_AUTO_TEST_CASE(test_slope) {
   Point<double> left{0, 0};
   Point<double> right{1, 1};
   LineSegment lineSegment{left, right};
-  BOOST_CHECK_CLOSE(lineSegment.orient_, (double)45 / 180 * PI, TOL);
+  BOOST_CHECK_CLOSE(lineSegment.orient_, 45.0 / 180.0 * PI, TOL);
 }
 BOOST_AUTO_TEST_SUITE_END()
 
@@ -281,3 +283,23 @@ BOOST_AUTO_TEST_CASE(test_baseline_smooth) {
   }
 }
 BOOST_AUTO_TEST_SUITE_END()
+BOOST_AUTO_TEST_CASE(test_shoreiterator) {
+  std::vector<Point<>> baseline_points{{0, 0}, {1, 0}, {2, 0},
+                                       {3, 0}, {4, 0}, {5, 0}};
+  Baseline baseline{baseline_points, 10, 0.5, 0, 0, 0, 10};
+  Baselines baselines{baseline};
+  auto transect_groups = dsas::generate_transects(baselines);
+
+  std::vector<Point<>> shoreline1_points{
+    {-0.5, 1}, {1.5, 1}, {2.5, 1}, {3.5, 1}, {4.5, 1}
+  };
+  std::vector<Point<>> shoreline2_points{
+    {-0.5, 2}, {1.5, 2}, {2.5, 2}, {3.5, 2}, {4.5, 2}
+  };
+
+  Shoreline shoreline1{shoreline1_points, 0, 0, 0};
+  Shoreline shoreline2{shoreline2_points, 1, 1, 0};
+  Shorelines shorelines {shoreline1, shoreline2};
+
+  auto iter = ShoresIterator(shorelines, transect_groups);
+}

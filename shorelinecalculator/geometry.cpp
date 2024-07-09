@@ -1,8 +1,9 @@
 //
 // Created by lby on 10/20/23.
 //
-#include <unordered_set>
 #include "geometry.hpp"
+
+#include <unordered_set>
 
 #include "utility.hpp"
 
@@ -288,7 +289,8 @@ Shoreline::Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
   year_ = date_.year();
 }
 
-ShoresIterator::value_type ShoresIterator::operator*() const {
+ShoreSegByTransect::ShoresIterator::value_type
+ShoreSegByTransect::ShoresIterator::operator*() const {
   auto transect_group = transect_groups_.at(baseline_pos_);
   auto transect_prev = transect_group.transects_.at(transect_pos_);
   auto transect_next = transect_group.transects_.at(transect_pos_ + 1);
@@ -318,7 +320,7 @@ ShoresIterator::value_type ShoresIterator::operator*() const {
   return ret;
 }
 ShoresIterator &ShoresIterator::operator++() {
-  if(transect_pos_ == transect_groups_[baseline_pos_].transects_.size()-1) {
+  if (transect_pos_ == transect_groups_[baseline_pos_].transects_.size() - 1) {
     baseline_pos_++;
     transect_pos_ = 0;
   } else {

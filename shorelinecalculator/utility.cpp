@@ -685,15 +685,62 @@ std::vector<gm::Point<>> get_subset_of_vertices(
   auto it4 = std::find(line.begin(), line.end(), after_p2);
 
   if (isBefore(p1, p2)) {
-    if(it2 < it3) {
+    if (it2 < it3) {
       return {it2, it3 + 1};
     }
-    return {it3, it2+1};
+    return {it3, it2 + 1};
   }
 
-  if (it4<it1) {
+  if (it4 < it1) {
     return {it4, it1 + 1};
   }
-  return {it1, it4+1};
+  return {it1, it4 + 1};
+}
+std::vector<gm::Shoreline> trancate_shore_by_transect(
+    const gm::TransectLine &tran1, const gm::TransectLine &tran2,
+    const gm::Shoreline &shoreline) {
+  auto vertices = shoreline.shoreline_vertices_;
+  auto year = shoreline.year_;
+  auto year_intersect_map1 = tran1.year_intersect_map_;
+  auto year_intersect_map2 = tran2.year_intersect_map_;
+  std::vector<gm::Shoreline> ret;
+  if (year_intersect_map1.find(year) != year_intersect_map1.end() &&
+      year_intersect_map2.find(year) != year_intersect_map2.end()) {
+    auto intersect1 = year_intersect_map1[year];
+    auto intersect2 = year_intersect_map2[year];
+    auto ret = get_subset_of_vertices(vertices, *intersect1, *intersect2);
+  }
+  return ret;
+}
+double frechet_distance(std::vector<gm::Point<>> line1,
+                        std::vector<gm::Point<>> line2) {
+  size_t m = line1.size();
+  size_t n = line2.size();
+  std::vector<std::vector<double>> D(m, std::vector<double>(n, 0.0));
+  for (int i = 0; i < m; ++i) {
+    for (int j = 0; j < n; ++j) {
+      D[i][j] = line1[i].distance_to_point(line2[j]);
+    }
+  }
+  // Initialize matrix F
+  std::vector<std::vector<double>> F(m, std::vector<double>(n, -1.0));
+  F[0][0] = D[0][0];
+  // Initialize first row and first column of F
+  for (int i = 1; i < m; ++i) {
+    F[i][0] = std::max(F[i - 1][0], D[i][0]);
+  }
+  for (int j = 1; j < n; ++j) {
+    F[0][j] = std::max(F[0][j - 1], D[0][j]);
+  }
+
+  // Fill in the rest of F
+  for (int i = 1; i < m; ++i) {
+    for (int j = 1; j < n; ++j) {
+      F[i][j] = std::max(std::min({F[i - 1][j], F[i - 1][j - 1], F[i][j - 1]}),
+                         D[i][j]);
+    }
+  }
+
+  return F[m - 1][n - 1];
 }
 }  // namespace util
