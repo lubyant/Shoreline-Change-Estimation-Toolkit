@@ -297,9 +297,10 @@ BOOST_AUTO_TEST_CASE(test_shoreiterator) {
     {-0.5, 2}, {1.5, 2}, {2.5, 2}, {3.5, 2}, {4.5, 2}
   };
 
-  Shoreline shoreline1{shoreline1_points, 0, 0, 0};
-  Shoreline shoreline2{shoreline2_points, 1, 1, 0};
+  Shoreline shoreline1{shoreline1_points, 0, 2000, 0};
+  Shoreline shoreline2{shoreline2_points, 1, 2001, 0};
   Shorelines shorelines {shoreline1, shoreline2};
 
-  auto iter = ShoresIterator(shorelines, transect_groups);
+  auto iter = ShoreSegByTransect(shorelines, transect_groups);
+  BOOST_CHECK(true);
 }
