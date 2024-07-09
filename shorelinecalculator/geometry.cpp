@@ -1,6 +1,7 @@
 //
 // Created by lby on 10/20/23.
 //
+#include <unordered_set>
 #include "geometry.hpp"
 
 #include "utility.hpp"
@@ -287,4 +288,42 @@ Shoreline::Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
   year_ = date_.year();
 }
 
+ShoresIterator::value_type ShoresIterator::operator*() const {
+  auto transect_group = transect_groups_.at(baseline_pos_);
+  auto transect_prev = transect_group.transects_.at(transect_pos_);
+  auto transect_next = transect_group.transects_.at(transect_pos_ + 1);
+  std::unordered_set<int> years_prev, years_next;
+  for (const auto &pair : transect_prev.year_intersect_map_) {
+    years_prev.insert(pair.first);
+  }
+  for (const auto &pair : transect_next.year_intersect_map_) {
+    years_next.insert(pair.first);
+  }
+  std::unordered_set<int> shared_years;
+  std::set_intersection(years_next.begin(), years_next.end(),
+                        years_prev.begin(), years_prev.end(),
+                        std::inserter(shared_years, shared_years.begin()));
+  value_type ret;
+  for (const auto &year : shared_years) {
+    auto intersect_prev = transect_prev.year_intersect_map_[year];
+    auto intersect_next = transect_next.year_intersect_map_[year];
+    for (const auto &shoreline : shorelines_) {
+      if (shoreline.image_id_ != transect_prev.image_id_) {
+        continue;
+      }
+      ret[year] = util::get_subset_of_vertices(
+          shoreline.shoreline_vertices_, *intersect_prev, *intersect_next);
+    }
+  }
+  return ret;
+}
+ShoresIterator &ShoresIterator::operator++() {
+  if(transect_pos_ == transect_groups_[baseline_pos_].transects_.size()-1) {
+    baseline_pos_++;
+    transect_pos_ = 0;
+  } else {
+    transect_pos_++;
+  }
+  return *this;
+}
 }  // namespace gm
