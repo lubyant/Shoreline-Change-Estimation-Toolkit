@@ -146,7 +146,32 @@ BOOST_AUTO_TEST_CASE(TestSubsetVertices) {
       BOOST_CHECK_CLOSE(subset[i].y, true_subset[i].y, TOL);
     }
   }
-
 }
 
+BOOST_AUTO_TEST_CASE(TestFrechetDistance) {
+  {
+    std::vector<gm::Point<>> line1{{0, 0}, {1, 1}, {2, 2}};
+    std::vector<gm::Point<>> line2{{0, 0}, {1, 1}, {2, 2}};
+    auto dist = frechet_distance(line1, line2);
+    BOOST_CHECK_CLOSE(dist, 0, TOL);
+  }
+  {
+    std::vector<gm::Point<>> line1{{0, 0}, {1, 1}, {2, 2}};
+    std::vector<gm::Point<>> line2{{1, 1}, {2, 2}, {3, 3}};
+    auto dist = frechet_distance(line1, line2);
+    BOOST_CHECK_CLOSE(dist, 1.414, TOL);
+  }
+  {
+    std::vector<gm::Point<>> line1{{0, 0}, {1, 1}, {2, 2}};
+    std::vector<gm::Point<>> line2{{0, 0}, {1, 1}};
+    auto dist = frechet_distance(line1, line2);
+    BOOST_CHECK_CLOSE(dist, 1.414, TOL);
+  }
+  {
+    std::vector<gm::Point<>> line1{{0, 0}, {1, 0}, {2, 0}};
+    std::vector<gm::Point<>> line2{{0, 1}, {1, 1}, {2, 1}};
+    auto dist = frechet_distance(line1, line2);
+    BOOST_CHECK_CLOSE(dist, 1, TOL);
+  }
+}
 BOOST_AUTO_TEST_SUITE_END()
