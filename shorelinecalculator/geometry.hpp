@@ -360,17 +360,15 @@ struct Transects {
 using TransectGroups = std::vector<Transects>;
 using Shorelines = std::vector<gm::Shoreline>;
 
-class ShoreSegByTransect {
- public:
-  class ShoresIterator {
-   public:
+struct ShoreSegByTransect {
+  struct ShoresIterator {
     using iterator_category = std::forward_iterator_tag;
     using difference_type = std::ptrdiff_t;
     using value_type = std::unordered_map<int, std::vector<Point<double>>>;
     using pointer = value_type *;
     using reference = value_type &;
-    ShoresIterator(size_t transect_pos, size_t baseline_pos)
-        : transect_pos_(transect_pos), baseline_pos_(baseline_pos) {}
+    ShoresIterator(ShoreSegByTransect& shore_seg, size_t transect_pos, size_t baseline_pos)
+        : shore_seg_(shore_seg), transect_pos_(transect_pos), baseline_pos_(baseline_pos) {}
 
     value_type operator*() const;
     ShoresIterator &operator++();
@@ -388,7 +386,7 @@ class ShoreSegByTransect {
       return !(a == b);
     }
 
-   private:
+    ShoreSegByTransect &shore_seg_;
     size_t baseline_pos_ = 0;
     size_t transect_pos_ = 0;
   };
@@ -396,7 +394,6 @@ class ShoreSegByTransect {
                      const TransectGroups &transect_groups)
       : shorelines_(shorelines), transect_groups_(transect_groups) {}
 
- private:
   Shorelines shorelines_;
   TransectGroups transect_groups_;
 };

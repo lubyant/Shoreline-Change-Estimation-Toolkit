@@ -291,7 +291,7 @@ Shoreline::Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
 
 ShoreSegByTransect::ShoresIterator::value_type
 ShoreSegByTransect::ShoresIterator::operator*() const {
-  auto transect_group = transect_groups_.at(baseline_pos_);
+  auto transect_group = shore_seg_.transect_groups_.at(baseline_pos_);
   auto transect_prev = transect_group.transects_.at(transect_pos_);
   auto transect_next = transect_group.transects_.at(transect_pos_ + 1);
   std::unordered_set<int> years_prev, years_next;
@@ -309,7 +309,7 @@ ShoreSegByTransect::ShoresIterator::operator*() const {
   for (const auto &year : shared_years) {
     auto intersect_prev = transect_prev.year_intersect_map_[year];
     auto intersect_next = transect_next.year_intersect_map_[year];
-    for (const auto &shoreline : shorelines_) {
+    for (const auto &shoreline : shore_seg_.shorelines_) {
       if (shoreline.image_id_ != transect_prev.image_id_) {
         continue;
       }
@@ -319,8 +319,10 @@ ShoreSegByTransect::ShoresIterator::operator*() const {
   }
   return ret;
 }
-ShoresIterator &ShoresIterator::operator++() {
-  if (transect_pos_ == transect_groups_[baseline_pos_].transects_.size() - 1) {
+ShoreSegByTransect::ShoresIterator &
+ShoreSegByTransect::ShoresIterator::operator++() {
+  if (transect_pos_ ==
+      shore_seg_.transect_groups_[baseline_pos_].transects_.size() - 1) {
     baseline_pos_++;
     transect_pos_ = 0;
   } else {
