@@ -258,7 +258,7 @@ TransectGroups generate_transects(const Baselines &baselines) {
 }
 
 umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
-    const std::vector<Image> &images, const TransectGroups &transectGroups) {
+    const std::vector<Image> &images, TransectGroups &transectGroups) {
   using tid_points_t = umap<int, std::vector<gm::IntersectPoint>>;
   umap<int, tid_points_t> bid_tid_points;
   for (const auto &image : images) {
@@ -274,7 +274,7 @@ umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
 }
 
 umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
-    const Shorelines &shorelines, const TransectGroups &transect_groups) {
+    const Shorelines &shorelines, TransectGroups &transect_groups) {
   using tid_points_t = umap<int, std::vector<gm::IntersectPoint>>;
   umap<int, tid_points_t> bid_tid_points;
   auto intersections = generate_intersection(shorelines, transect_groups);
@@ -288,14 +288,15 @@ umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
 
 std::vector<gm::IntersectPoint> generate_intersection(
     const std::vector<gm::Shoreline> &shorelines,
-    const TransectGroups &transect_groups) {
+    TransectGroups &transect_groups) {
   std::vector<gm::IntersectPoint> intersections;
-  for (const auto &transects : transect_groups) {
-    for (const auto &transectLine : transects.transects_) {
-      for (const auto &shoreline : shorelines) {
+  for (auto &transects : transect_groups) {
+    for (auto &transectLine : transects.transects_) {
+      for (auto &shoreline : shorelines) {
         auto ret = transectLine.intersection(shoreline);
         if (ret.has_value()) {
           intersections.push_back(ret.value());
+          transectLine.year_intersect_map_[ret.value().year_] = &ret.value();
         }
       }
     }

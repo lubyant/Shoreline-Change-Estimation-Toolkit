@@ -193,17 +193,18 @@ void Image::transform_coordinates() {
   bottom_left_.y = bottom_right_.y;
 
   for (auto &shoreline : shorelines_) {
+    size_t id {0};
     std::transform(
         shoreline.shoreline_vertices_.begin(),
         shoreline.shoreline_vertices_.end(),
         shoreline.shoreline_vertices_.begin(),
-        [adfGeoTransform](const gm::Point<> &point) {
+        [adfGeoTransform, &id](const gm::Point<> &point) {
           const double i = point.x, j = point.y;
           const double X_geo = adfGeoTransform[0] + i * adfGeoTransform[1] +
                                j * adfGeoTransform[2];
           const double Y_geo = adfGeoTransform[3] + i * adfGeoTransform[4] +
                                j * adfGeoTransform[5];
-          return gm::Point<double>(X_geo, Y_geo);
+          return gm::Point<double>(X_geo, Y_geo, id++);
         });
   }
   GDALClose(poDataset);

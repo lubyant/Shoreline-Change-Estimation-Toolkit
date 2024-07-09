@@ -53,9 +53,11 @@ struct GDALShpSaver {
 template <typename T>
 struct Point {
   T x, y;
+  size_t id_{};
 
   Point() : x(0), y(0){};
   Point(T x, T y) : x(x), y(y) {}
+  Point(T x, T y, size_t id) : x(x), y(y), id_(id) {}
 
   Point(const Point &point) = default;
   Point(Point &&point) noexcept = default;
@@ -152,6 +154,7 @@ struct TransectLine : public LineSegment,
   double change_rate{};           // change rate for all the intersections
   IntersectionMode mode_;
   TransectOrientation orient_;
+  std::unordered_map<int , IntersectPoint*> year_intersect_map_;
 
   TransectLine(Point<> &transect_base, double transect_length,
                std::pair<double, double> baseline_normal_vector,
@@ -303,10 +306,15 @@ struct IntersectPoint : public Point<double>, GDALShpSaver<IntersectPoint_t> {
   int year_;
   boost::gregorian::date date_;
   double distance_to_ref_;
+  const TransectLine *transect_line{nullptr};
+  const Point<double> *prev_vertex{nullptr}, *next_vertex{nullptr};
 
   IntersectPoint(Point<double> point, int transect_id, int shoreline_id,
                  int baseline_id, int image_id, int year,
-                 double distance_to_ref)
+                 double distance_to_ref,
+                 const TransectLine *transect_line = nullptr,
+                 const Point<double> *prev_vertex = nullptr,
+                 const Point<double> *next_vertex = nullptr)
       : Point<double>(point),
         transect_id_(transect_id),
         shoreline_id_(shoreline_id),
@@ -314,7 +322,10 @@ struct IntersectPoint : public Point<double>, GDALShpSaver<IntersectPoint_t> {
         image_id_(image_id),
         year_(year),
         date_(year_, 1, 1),
-        distance_to_ref_(distance_to_ref) {}
+        distance_to_ref_(distance_to_ref),
+        transect_line(transect_line),
+        prev_vertex(prev_vertex),
+        next_vertex(next_vertex) {}
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
     return {"BaselineId", "TransectId", "ShoreID", "ImageID",

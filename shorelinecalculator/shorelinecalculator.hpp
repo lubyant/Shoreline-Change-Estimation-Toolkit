@@ -5,7 +5,10 @@
 #ifndef SHORELINECALCULATOR_SHORELINECALCULATOR_HPP
 #define SHORELINECALCULATOR_SHORELINECALCULATOR_HPP
 
+#include <algorithm>
 #include <filesystem>
+#include <iterator>
+#include <unordered_set>
 #include <vector>
 
 #include "geometry.hpp"
@@ -33,7 +36,6 @@ void dsas(const Path &shoreline_folder, const Path &baseline_path,
           const Path &output_transect_path,
           const Path &output_intersections_path, const Options &options);
 
-
 void controller(const std::vector<Path> &paths, const Path &output_path,
                 const Options &options);
 
@@ -43,22 +45,17 @@ Baselines generate_baselines(const std::vector<Image> &images,
 TransectGroups generate_transects(const Baselines &baselines);
 
 umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
-    const std::vector<Image> &images,
-    const TransectGroups &TransectGroups);
+    const std::vector<Image> &images, const TransectGroups &TransectGroups);
 
 umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
-    const Shorelines &shorelines,
-    const TransectGroups &transect_groups);
+    const Shorelines &shorelines, TransectGroups &transect_groups);
 
 std::vector<gm::IntersectPoint> generate_intersection(
-    const Shorelines &shorelines,
-    const TransectGroups &transect_groups);
+    const Shorelines &shorelines, TransectGroups &transect_groups);
 
 void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
                       &intersection_maps,
-                  TransectGroups &transect_groups,
-                  const Options &options);
-
+                  TransectGroups &transect_groups, const Options &options);
 
 void create_transects_from_baseline(const Path &path, const Path &output_path,
                                     TransectGroups *output_transects,
@@ -69,6 +66,51 @@ void create_intersects_by_transects(TransectGroups &transects,
                                     const Path &output, const Options &options,
                                     const std::string &proj);
 
+class ShoresIterator {
+ public:
+  using iterator_category = std::forward_iterator_tag;
+  using difference_type = std::ptrdiff_t;
+  using value_type = umap<int, std::vector<Point<double>> *>;
+  using pointer = value_type *;
+  using reference = value_type &;
+  ShoresIterator(const gm::Shorelines &shorelines,
+                 const gm::TransectGroups &transect_groups, size_t pos)
+      : shorelines_(shorelines), transect_groups_(transect_groups) {}
+
+  value_type operator*() const {
+    auto transect_group = transect_groups_.at(baseline_pos_);
+    auto transect_prev = transect_group.transects_.at(transect_pos_);
+    auto transect_next = transect_group.transects_.at(transect_pos_ + 1);
+    auto baseline_id = transect_next.baseline_id_;
+    auto transect_id = transect_next.transect_id_;
+    auto image_id = transect_next.image_id_;
+    std::unordered_set<int> years_prev, years_next;
+    for (const auto &pair : transect_prev.year_intersect_map_) {
+      years_prev.insert(pair.first);
+    }
+    for (const auto &pair : transect_next.year_intersect_map_) {
+      years_next.insert(pair.first);
+    }
+    std::unordered_set<int> shared_years;
+    std::set_intersection(years_next.begin(), years_next.end(),
+                          years_prev.begin(), years_prev.end(),
+                          std::inserter(shared_years, shared_years.begin()));
+    value_type ret;
+    for(const auto &year: shared_years){
+        auto intersect_prev = transect_prev.year_intersect_map_[year];
+        auto next_point = intersect_prev->next_vertex;
+        auto intersect_next = transect_next.year_intersect_map_[year];
+        auto prev_point = intersect_next->prev_vertex;
+        ret[year] = ...
+    }
+  }
+
+ private:
+  const gm::Shorelines &shorelines_;
+  const gm::TransectGroups &transect_groups_;
+  size_t baseline_pos_ = 0;
+  size_t transect_pos_ = 0;
+};
 
 }  // namespace dsas
 

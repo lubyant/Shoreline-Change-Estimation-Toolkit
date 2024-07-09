@@ -156,10 +156,16 @@ std::optional<IntersectPoint> TransectLine::intersection(
       try {
         auto point = find_intersection(shoreline[i], shoreline[i + 1]);
         auto distance = distance2ref(point);
-        IntersectPoint intersect_point{
-            point,        transect_id_, shoreline.shoreline_id_,
-            baseline_id_, image_id_,    shoreline.year_,
-            distance};
+        IntersectPoint intersect_point{point,
+                                       transect_id_,
+                                       shoreline.shoreline_id_,
+                                       baseline_id_,
+                                       image_id_,
+                                       shoreline.year_,
+                                       distance,
+                                       this,
+                                       &shoreline[i],
+                                       &shoreline[i + 1]};
         intersections.push_back(intersect_point);
       } catch (...) {
         continue;
