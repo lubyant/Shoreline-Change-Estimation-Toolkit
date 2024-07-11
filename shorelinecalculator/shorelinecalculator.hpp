@@ -6,7 +6,6 @@
 #define SHORELINECALCULATOR_SHORELINECALCULATOR_HPP
 
 #include <filesystem>
-#include <iterator>
 #include <vector>
 
 #include "geometry.hpp"
@@ -16,7 +15,6 @@ namespace dsas {
 
 template <typename Key, typename Value>
 using umap = std::unordered_map<Key, Value>;
-using namespace gm;
 using Path = std::filesystem::path;
 
 void dsas(const std::vector<Path> &folders, const Path &output_path,
@@ -37,33 +35,32 @@ void dsas(const Path &shoreline_folder, const Path &baseline_path,
 void controller(const std::vector<Path> &paths, const Path &output_path,
                 const Options &options);
 
-Baselines generate_baselines(const std::vector<Image> &images,
-                             const Options &options);
+gm::Baselines generate_baselines(const std::vector<Image> &images,
+                                 const Options &options);
 
-TransectGroups generate_transects(const Baselines &baselines);
-
-umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
-    const std::vector<Image> &images, const TransectGroups &TransectGroups);
+gm::TransectGroups generate_transects(const gm::Baselines &baselines);
 
 umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
-    const Shorelines &shorelines, TransectGroups &transect_groups);
+    const std::vector<Image> &images, const gm::TransectGroups &TransectGroups);
+
+umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
+    const gm::Shorelines &shorelines, gm::TransectGroups &transect_groups);
 
 std::vector<gm::IntersectPoint> generate_intersection(
-    const Shorelines &shorelines, TransectGroups &transect_groups);
+    const gm::Shorelines &shorelines, gm::TransectGroups &transect_groups);
 
 void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
                       &intersection_maps,
-                  TransectGroups &transect_groups, const Options &options);
+                  gm::TransectGroups &transect_groups, const Options &options);
 
 void create_transects_from_baseline(const Path &path, const Path &output_path,
-                                    TransectGroups *output_transects,
+                                    gm::TransectGroups *output_transects,
                                     const Options &options);
 
-void create_intersects_by_transects(TransectGroups &transects,
+void create_intersects_by_transects(gm::TransectGroups &transects,
                                     const Path &shoreline_folders,
                                     const Path &output, const Options &options,
                                     const std::string &proj);
-
 
 }  // namespace dsas
 

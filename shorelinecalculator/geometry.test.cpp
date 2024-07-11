@@ -286,7 +286,7 @@ BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_CASE(test_shoreiterator) {
   std::vector<Point<>> baseline_points{{0, 0}, {1, 0}, {2, 0},
                                        {3, 0}, {4, 0}, {5, 0}};
-  Baseline baseline{baseline_points, 10, 0.5, 0, 0, 0, 10};
+  Baseline baseline{baseline_points, 10, 0.5, 0, 10, 0, 10};
   Baselines baselines{baseline};
   auto transect_groups = dsas::generate_transects(baselines);
 
@@ -297,10 +297,16 @@ BOOST_AUTO_TEST_CASE(test_shoreiterator) {
     {-0.5, 2}, {1.5, 2}, {2.5, 2}, {3.5, 2}, {4.5, 2}
   };
 
-  Shoreline shoreline1{shoreline1_points, 0, 2000, 0};
-  Shoreline shoreline2{shoreline2_points, 1, 2001, 0};
+  Shoreline shoreline1{shoreline1_points, 0, 2000, 10};
+  Shoreline shoreline2{shoreline2_points, 1, 2001, 10};
   Shorelines shorelines {shoreline1, shoreline2};
 
-  auto iter = ShoreSegByTransect(shorelines, transect_groups);
-  BOOST_CHECK(true);
+  dsas::generate_intersections(shorelines, transect_groups);
+  auto shore_seg = ShoreSegByTransect(shorelines, transect_groups);
+  for (const auto &map: shore_seg){
+    for(auto &[year, vecs]: map){
+      std::cerr << "year: " << year << std::endl;
+      std::cerr << "size: " << vecs.size() << std::endl;
+    }
+  }
 }

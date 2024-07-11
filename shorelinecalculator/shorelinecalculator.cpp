@@ -147,7 +147,7 @@ void dsas(const std::vector<Path> &folders, const Path &output_path,
 void dsas(const Path &shoreline_folder, const Path &baseline_path,
           const Path &output_transect_path,
           const Path &output_intersections_path, const Options &options) {
-  TransectGroups transect_groups;
+  gm::TransectGroups transect_groups;
   create_transects_from_baseline(baseline_path, output_transect_path,
                                  &transect_groups, options);
   std::cout << "transects generated.\n";
@@ -229,8 +229,8 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
                                  output_folder / "baseline.shp");
 }
 
-Baselines generate_baselines(const std::vector<Image> &images,
-                             const Options &options) {
+gm::Baselines generate_baselines(const std::vector<Image> &images,
+                                 const Options &options) {
   std::unordered_map<int, std::vector<const Image *>> year_Images;
   for (const auto &image : images) {
     auto year = image.year_;
@@ -248,17 +248,18 @@ Baselines generate_baselines(const std::vector<Image> &images,
   return Image::merge_baselines_from_images(year_Images[lg_year], options);
 }
 
-TransectGroups generate_transects(const Baselines &baselines) {
-  TransectGroups transectGroups{};
+gm::TransectGroups generate_transects(const gm::Baselines &baselines) {
+  gm::TransectGroups transectGroups{};
+
   for (auto &baseline : baselines) {
-    Transects transects{baseline.baseline_id_, baseline.transects_lines_};
+    gm::Transects transects{baseline.baseline_id_, baseline.transects_lines_};
     transectGroups.push_back(transects);
   }
   return transectGroups;
 }
 
 umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
-    const std::vector<Image> &images, TransectGroups &transectGroups) {
+    const std::vector<Image> &images, gm::TransectGroups &transectGroups) {
   using tid_points_t = umap<int, std::vector<gm::IntersectPoint>>;
   umap<int, tid_points_t> bid_tid_points;
   for (const auto &image : images) {
@@ -274,7 +275,7 @@ umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
 }
 
 umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
-    const Shorelines &shorelines, TransectGroups &transect_groups) {
+    const gm::Shorelines &shorelines, gm::TransectGroups &transect_groups) {
   using tid_points_t = umap<int, std::vector<gm::IntersectPoint>>;
   umap<int, tid_points_t> bid_tid_points;
   auto intersections = generate_intersection(shorelines, transect_groups);
@@ -288,7 +289,7 @@ umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
 
 std::vector<gm::IntersectPoint> generate_intersection(
     const std::vector<gm::Shoreline> &shorelines,
-    TransectGroups &transect_groups) {
+    gm::TransectGroups &transect_groups) {
   std::vector<gm::IntersectPoint> intersections;
   for (auto &transects : transect_groups) {
     for (auto &transectLine : transects.transects_) {
@@ -309,7 +310,7 @@ std::vector<gm::IntersectPoint> generate_intersection(
 
 void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
                       &intersection_maps,
-                  TransectGroups &transect_groups, const Options &options) {
+                  gm::TransectGroups &transect_groups, const Options &options) {
   // baseline_id <-> vector index
   umap<int, size_t> id_map;
   for (size_t i = 0; i < transect_groups.size(); i++) {
@@ -333,7 +334,7 @@ void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
   }
 }
 void create_transects_from_baseline(const Path &path, const Path &output_path,
-                                    TransectGroups *output_transects,
+                                    gm::TransectGroups *output_transects,
                                     const Options &options) {
   std::string field_name{"DSAS_ID"};
   auto baselines = util::load_baselines_shp(path, field_name, options);
@@ -349,7 +350,7 @@ void create_transects_from_baseline(const Path &path, const Path &output_path,
   }
   util::save_lines(output_file, psz_prj_.c_str(), output_path);
 }
-void create_intersects_by_transects(TransectGroups &transect_groups,
+void create_intersects_by_transects(gm::TransectGroups &transect_groups,
                                     const Path &shoreline_folders,
                                     const Path &output, const Options &options,
                                     const std::string &proj) {

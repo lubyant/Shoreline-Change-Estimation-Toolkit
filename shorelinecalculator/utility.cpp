@@ -708,7 +708,7 @@ std::vector<gm::Shoreline> trancate_shore_by_transect(
       year_intersect_map2.find(year) != year_intersect_map2.end()) {
     auto intersect1 = year_intersect_map1[year];
     auto intersect2 = year_intersect_map2[year];
-    auto ret = get_subset_of_vertices(vertices, *intersect1, *intersect2);
+    ret = get_subset_of_vertices(vertices, *intersect1, *intersect2);
   }
   return ret;
 }

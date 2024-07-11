@@ -114,6 +114,17 @@ BaselineSeg::BaselineSeg(double spacing, double offset, const Point<> &leftEdge,
   cumulative_segment_distance += length;
 }
 
+void TransectLine::truncate_shoreline_seg(const Shoreline &shoreline) {
+  assert(prev_transect_line != nullptr && next_transect_line != nullptr);
+  TransectLine *prev=prev_transect_line, *next=next_transect_line;
+  if(prev == nullptr) {
+    prev = this;
+  }
+  if(next == nullptr) {
+    next = this;
+  }
+  auto sub_shore = util::trancate_shore_by_transect(*prev, *next, shoreline);
+}
 LineSegment TransectLine::create_transect(
     Point<> &transect_base, std::pair<double, double> baseline_normal_vector,
     double transect_length, TransectOrientation orient) {
@@ -270,6 +281,17 @@ Baseline::Baseline(const std::vector<BaselinesVertex> &points,
         transects_base_points_.at(i), transect_length_, smoothed_normal_vector,
         transect_id++, baseline_id_, image_id_, mode, orient);
   }
+
+  for (size_t i = 0; i < transects_lines_.size(); i++) {
+    if (i == 0) {
+      transects_lines_[i].next_transect_line = &transects_lines_[i + 1];
+    } else if (i == transects_lines_.size() - 1) {
+      transects_lines_[i].prev_transect_line = &transects_lines_[i - 1];
+    } else {
+      transects_lines_[i].next_transect_line = &transects_lines_[i + 1];
+      transects_lines_[i].prev_transect_line = &transects_lines_[i - 1];
+    }
+  }
 }
 Shoreline::Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
                      int shoreline_id, int year, int image_id)
@@ -289,45 +311,51 @@ Shoreline::Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
   year_ = date_.year();
 }
 
-ShoreSegByTransect::ShoresIterator::value_type
-ShoreSegByTransect::ShoresIterator::operator*() const {
-  auto transect_group = shore_seg_.transect_groups_.at(baseline_pos_);
-  auto transect_prev = transect_group.transects_.at(transect_pos_);
-  auto transect_next = transect_group.transects_.at(transect_pos_ + 1);
-  std::unordered_set<int> years_prev, years_next;
-  for (const auto &pair : transect_prev.year_intersect_map_) {
-    years_prev.insert(pair.first);
-  }
-  for (const auto &pair : transect_next.year_intersect_map_) {
-    years_next.insert(pair.first);
-  }
-  std::unordered_set<int> shared_years;
-  std::set_intersection(years_next.begin(), years_next.end(),
-                        years_prev.begin(), years_prev.end(),
-                        std::inserter(shared_years, shared_years.begin()));
-  value_type ret;
-  for (const auto &year : shared_years) {
-    auto intersect_prev = transect_prev.year_intersect_map_[year];
-    auto intersect_next = transect_next.year_intersect_map_[year];
-    for (const auto &shoreline : shore_seg_.shorelines_) {
-      if (shoreline.image_id_ != transect_prev.image_id_) {
-        continue;
-      }
-      ret[year] = util::get_subset_of_vertices(
-          shoreline.shoreline_vertices_, *intersect_prev, *intersect_next);
-    }
-  }
-  return ret;
-}
-ShoreSegByTransect::ShoresIterator &
-ShoreSegByTransect::ShoresIterator::operator++() {
-  if (transect_pos_ ==
-      shore_seg_.transect_groups_[baseline_pos_].transects_.size() - 1) {
-    baseline_pos_++;
-    transect_pos_ = 0;
-  } else {
-    transect_pos_++;
-  }
-  return *this;
-}
+// ShoreSegByTransect::ShoresIterator::value_type
+// ShoreSegByTransect::ShoresIterator::operator*() const {
+//   auto transect_group = shore_seg_.transect_groups_.at(baseline_pos_);
+//   size_t max_baseline_pos = transect_group.transects_.size() - 1;
+//   auto transect_prev = transect_group.transects_.at(transect_pos_);
+//   auto transect_next = transect_group.transects_.at(
+//       std::min(transect_pos_ + 1, max_baseline_pos));
+//   std::unordered_set<int> years_prev, years_next;
+//   for (const auto &pair : transect_prev.year_intersect_map_) {
+//     years_prev.insert(pair.first);
+//   }
+//   for (const auto &pair : transect_next.year_intersect_map_) {
+//     years_next.insert(pair.first);
+//   }
+//   std::unordered_set<int> shared_years;
+//   std::set_intersection(years_next.begin(), years_next.end(),
+//                         years_prev.begin(), years_prev.end(),
+//                         std::inserter(shared_years, shared_years.begin()));
+//   value_type ret;
+//   for (const auto &year : shared_years) {
+//     auto intersect_prev = transect_prev.year_intersect_map_[year];
+//     auto intersect_next = transect_next.year_intersect_map_[year];
+//     for (const auto &shoreline : shore_seg_.shorelines_) {
+//       if (shoreline.image_id_ != transect_prev.image_id_) {
+//         continue;
+//       }
+//       ret[year] = util::get_subset_of_vertices(
+//           shoreline.shoreline_vertices_, *intersect_prev, *intersect_next);
+//     }
+//   }
+//   return ret;
+// }
+// ShoreSegByTransect::ShoresIterator &
+// ShoreSegByTransect::ShoresIterator::operator++() {
+//   if (transect_pos_ ==
+//       shore_seg_.transect_groups_[baseline_pos_].transects_.size() - 1) {
+//     if (baseline_pos_ != shore_seg_.transect_groups_.size() - 1) {
+//       baseline_pos_++;
+//       transect_pos_ = 0;
+//     } else {
+//       throw std::runtime_error("line: 333");
+//     }
+//   } else {
+//     transect_pos_++;
+//   }
+//   return *this;
+// }
 }  // namespace gm
