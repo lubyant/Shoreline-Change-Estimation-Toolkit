@@ -8,7 +8,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 include_directories(${GDAL_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 
-find_package(Boost REQUIRED COMPONENTS json date_time unit_test_framework)
+find_package(Boost 1.75.0...1.84.0 REQUIRED COMPONENTS json date_time unit_test_framework)
 find_package(GDAL REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(pybind11 REQUIRED)

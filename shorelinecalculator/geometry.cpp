@@ -115,6 +115,7 @@ BaselineSeg::BaselineSeg(double spacing, double offset, const Point<> &leftEdge,
 }
 
 void TransectLine::compute_frechet_dist() {
+  truncate_shoreline_seg();
   auto &shore_seg = shoreline_segs_;
   std::sort(shore_seg.begin(), shore_seg.end(),
             [](const gm::Shoreline &a, const gm::Shoreline &b) {

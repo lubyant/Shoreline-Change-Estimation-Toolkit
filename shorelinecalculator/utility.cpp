@@ -5,6 +5,8 @@
 
 #include <limits>
 #include <unordered_set>
+#include <cassert>
+
 #define MAX_DOUBLE std::numeric_limits<double>::max()
 
 namespace util {
@@ -718,7 +720,7 @@ std::optional<gm::Shoreline> trancate_shore_by_transect(
 std::optional<gm::Shoreline> trancate_shore_by_intersect(
     const gm::IntersectPoint &intersect) {
   auto *transect_line = intersect.transect_line_ptr_;
-  assert(transect_line->prev_transect_line != nullptr &&
+  assert(transect_line->prev_transect_line != nullptr ||
          transect_line->next_transect_line != nullptr);
   const auto year = intersect.year_;
 

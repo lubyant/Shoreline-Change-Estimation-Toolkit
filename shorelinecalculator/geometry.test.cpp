@@ -307,6 +307,7 @@ BOOST_AUTO_TEST_CASE(test_shoreiterator) {
   for(auto& transects: transect_groups){
     for(auto &transect: transects.transects_){
       transect.compute_frechet_dist();
+      BOOST_CHECK_EQUAL(transect.frechet_dist_[0], 0);
     }
   }
 }
