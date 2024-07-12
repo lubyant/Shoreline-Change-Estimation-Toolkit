@@ -317,15 +317,13 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
   int year_;
   boost::gregorian::date date_;
   double distance_to_ref_;
-  const TransectLine *transect_line{nullptr};
-  const Point<double> *prev_vertex{nullptr}, *next_vertex{nullptr};
+  const TransectLine *transect_line_ptr_{nullptr};
+  IntersectPoint *prev_intersect_ptr_{nullptr}, *next_intersect_ptr_{nullptr};
 
   IntersectPoint(Point<double> point, int transect_id, int shoreline_id,
                  int baseline_id, int image_id, int year,
                  double distance_to_ref,
-                 const TransectLine *transect_line = nullptr,
-                 const Point<double> *prev_vertex = nullptr,
-                 const Point<double> *next_vertex = nullptr)
+                 const TransectLine *transect_line_ptr = nullptr)
       : Point<double>(point),
         transect_id_(transect_id),
         shoreline_id_(shoreline_id),
@@ -334,9 +332,7 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
         year_(year),
         date_(year_, 1, 1),
         distance_to_ref_(distance_to_ref),
-        transect_line(transect_line),
-        prev_vertex(prev_vertex),
-        next_vertex(next_vertex) {}
+        transect_line_ptr_(transect_line_ptr) {}
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
     return {"BaselineId", "TransectId", "ShoreID", "ImageID",
@@ -371,54 +367,6 @@ struct Transects {
 using TransectGroups = std::vector<Transects>;
 using Shorelines = std::vector<gm::Shoreline>;
 
-// struct ShoreSegByTransect {
-//   struct ShoresIterator {
-//     using iterator_category = std::forward_iterator_tag;
-//     using difference_type = std::ptrdiff_t;
-//     using value_type = std::unordered_map<int, std::vector<Point<>>>;
-//     using pointer = value_type *;
-//     using reference = value_type &;
-//     ShoresIterator(ShoreSegByTransect &shore_seg, size_t transect_pos,
-//                    size_t baseline_pos)
-//         : shore_seg_(shore_seg),
-//           transect_pos_(transect_pos),
-//           baseline_pos_(baseline_pos) {}
-//
-//     value_type operator*() const;
-//     ShoresIterator &operator++();
-//     ShoresIterator operator++(int) {
-//       ShoresIterator tmp = *this;
-//       ++(*this);
-//       return tmp;
-//     }
-//     friend bool operator==(const ShoresIterator &a, const ShoresIterator &b)
-//     {
-//       return (a.baseline_pos_ == b.baseline_pos_) &&
-//              (a.transect_pos_ == b.transect_pos_);
-//     }
-//
-//     friend bool operator!=(const ShoresIterator &a, const ShoresIterator &b)
-//     {
-//       return !(a == b);
-//     }
-//
-//     ShoreSegByTransect &shore_seg_;
-//     size_t baseline_pos_ = 0;
-//     size_t transect_pos_ = 0;
-//   };
-//   ShoreSegByTransect(Shorelines shorelines, TransectGroups transect_groups)
-//       : shorelines_(std::move(shorelines)),
-//         transect_groups_(std::move(transect_groups)) {}
-//
-//   ShoresIterator begin() { return {*this, 0, 0}; }
-//   ShoresIterator end() {
-//     return {*this, (transect_groups_.end() - 1)->transects_.size() - 1,
-//             transect_groups_.size() - 1};
-//   }
-//
-//   Shorelines shorelines_;
-//   TransectGroups transect_groups_;
-// };
 }  // namespace gm
 
 #endif  // SHORELINECALCULATOR_GEOMETRY_HPP

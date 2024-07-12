@@ -53,6 +53,8 @@ void compute_rate(umap<int, umap<int, std::vector<gm::IntersectPoint>>>
                       &intersection_maps,
                   gm::TransectGroups &transect_groups, const Options &options);
 
+void compute_frechet_distance();
+
 void create_transects_from_baseline(const Path &path, const Path &output_path,
                                     gm::TransectGroups *output_transects,
                                     const Options &options);
