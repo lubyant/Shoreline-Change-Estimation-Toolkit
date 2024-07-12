@@ -698,7 +698,7 @@ std::vector<gm::Point<>> get_subset_of_vertices(
   }
   return {it1, it4 + 1};
 }
-std::optional<gm::Shoreline> trancate_shore_by_transect(
+std::optional<gm::Shoreline> truncate_shore_by_transect(
     const gm::TransectLine &tran1, const gm::TransectLine &tran2,
     const gm::Shoreline &shoreline) {
   auto vertices = shoreline.shoreline_vertices_;
@@ -717,7 +717,7 @@ std::optional<gm::Shoreline> trancate_shore_by_transect(
   return std::nullopt;
 }
 
-std::optional<gm::Shoreline> trancate_shore_by_intersect(
+std::optional<gm::Shoreline> truncate_shore_by_intersect(
     const gm::IntersectPoint &intersect) {
   auto *transect_line = intersect.transect_line_ptr_;
   assert(transect_line->prev_transect_line != nullptr ||

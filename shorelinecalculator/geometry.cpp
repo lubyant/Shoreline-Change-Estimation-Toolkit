@@ -130,7 +130,7 @@ void TransectLine::compute_frechet_dist() {
 
 void TransectLine::truncate_shoreline_seg() {
   for (const auto &pair : year_intersect_map_) {
-    auto ret = util::trancate_shore_by_intersect(*pair.second);
+    auto ret = util::truncate_shore_by_intersect(*pair.second);
     if (ret.has_value()) {
       shoreline_segs_.push_back(std::move(ret.value()));
     }

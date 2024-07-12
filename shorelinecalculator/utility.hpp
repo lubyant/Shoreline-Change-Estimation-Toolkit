@@ -280,11 +280,11 @@ std::vector<gm::Point<>> get_subset_of_vertices(
     const std::vector<gm::Point<>> &line, const gm::Point<> &p1,
     const gm::Point<> &p2);
 
-std::optional<gm::Shoreline> trancate_shore_by_transect(
+std::optional<gm::Shoreline> truncate_shore_by_transect(
     const gm::TransectLine &tran1, const gm::TransectLine &tran2,
     const gm::Shoreline &shoreline);
 
-std::optional<gm::Shoreline> trancate_shore_by_intersect(
+std::optional<gm::Shoreline> truncate_shore_by_intersect(
     const gm::IntersectPoint &intersect);
 
 double frechet_distance(std::vector<gm::Point<>> line1,
