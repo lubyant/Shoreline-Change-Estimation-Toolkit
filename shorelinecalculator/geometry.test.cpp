@@ -288,6 +288,7 @@ BOOST_AUTO_TEST_CASE(test_shoreiterator) {
                                        {3, 0}, {4, 0}, {5, 0}};
   Baseline baseline{baseline_points, 10, 0.5, 0, 10, 0, 10};
   Baselines baselines{baseline};
+  dsas::Options options;
   auto transect_groups = dsas::generate_transects(baselines);
 
   std::vector<Point<>> shoreline1_points{
@@ -301,12 +302,11 @@ BOOST_AUTO_TEST_CASE(test_shoreiterator) {
   Shoreline shoreline2{shoreline2_points, 1, 2001, 10};
   Shorelines shorelines {shoreline1, shoreline2};
 
-  dsas::generate_intersections(shorelines, transect_groups);
-  // auto shore_seg = ShoreSegByTransect(shorelines, transect_groups);
-  // for (const auto &map: shore_seg){
-  //   for(auto &[year, vecs]: map){
-  //     std::cerr << "year: " << year << std::endl;
-  //     std::cerr << "size: " << vecs.size() << std::endl;
-  //   }
-  // }
+  auto intersects_maps = dsas::generate_intersections(shorelines, transect_groups);
+  dsas::compute_rate(intersects_maps, transect_groups, options);
+  for(auto& transects: transect_groups){
+    for(auto &transect: transects.transects_){
+      transect.compute_frechet_dist();
+    }
+  }
 }
