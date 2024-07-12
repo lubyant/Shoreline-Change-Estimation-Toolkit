@@ -603,8 +603,8 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
 
   return shorelines;
 }
-std::vector<gm::IntersectPoint> remove_same_year_intersections(
-    const std::vector<gm::IntersectPoint> &intersect_points,
+void remove_same_year_intersections(
+    std::vector<gm::IntersectPoint> &intersect_points,
     const gm::IntersectionMode &mode) {
   struct DateHash {
     std::size_t operator()(const boost::gregorian::date &d) const {
@@ -636,7 +636,7 @@ std::vector<gm::IntersectPoint> remove_same_year_intersections(
         });
     new_intersects.push_back(std::move(*target_point));
   }
-  return new_intersects;
+  intersect_points = std::move(new_intersects);
 }
 std::vector<gm::Point<>> get_subset_of_vertices(
     const std::vector<gm::Point<>> &line, const gm::Point<> &p1,
@@ -696,21 +696,23 @@ std::vector<gm::Point<>> get_subset_of_vertices(
   }
   return {it1, it4 + 1};
 }
-std::vector<gm::Shoreline> trancate_shore_by_transect(
+std::optional<gm::Shoreline> trancate_shore_by_transect(
     const gm::TransectLine &tran1, const gm::TransectLine &tran2,
     const gm::Shoreline &shoreline) {
   auto vertices = shoreline.shoreline_vertices_;
   auto year = shoreline.year_;
   auto year_intersect_map1 = tran1.year_intersect_map_;
   auto year_intersect_map2 = tran2.year_intersect_map_;
-  std::vector<gm::Shoreline> ret;
   if (year_intersect_map1.find(year) != year_intersect_map1.end() &&
       year_intersect_map2.find(year) != year_intersect_map2.end()) {
+    gm::Shoreline ret_shoreline = shoreline;
     auto intersect1 = year_intersect_map1[year];
     auto intersect2 = year_intersect_map2[year];
-    ret = get_subset_of_vertices(vertices, *intersect1, *intersect2);
+    ret_shoreline.shoreline_vertices_ =
+        std::move(get_subset_of_vertices(vertices, *intersect1, *intersect2));
+    return ret_shoreline;
   }
-  return ret;
+  return std::nullopt;
 }
 double frechet_distance(std::vector<gm::Point<>> line1,
                         std::vector<gm::Point<>> line2) {

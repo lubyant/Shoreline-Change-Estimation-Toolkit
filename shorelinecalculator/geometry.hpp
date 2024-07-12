@@ -154,8 +154,9 @@ struct TransectLine : public LineSegment,
   double change_rate{};           // change rate for all the intersections
   IntersectionMode mode_;
   TransectOrientation orient_;
-  std::unordered_map<int, IntersectPoint *> year_intersect_map_;
-  std::vector<Shoreline> shoreline_segs_; // the shoreline segments nearby
+  std::unordered_map<int, const IntersectPoint *> year_intersect_map_;
+  std::unordered_map<int, const Shoreline *> year_shoreline_map_;
+  std::vector<Shoreline> shoreline_segs_;  // the shoreline segments nearby
 
   TransectLine *prev_transect_line{nullptr}, *next_transect_line{nullptr};
 
@@ -273,13 +274,18 @@ struct Shoreline : public MultiLine<Point<>>, GDALShpSaver<int, int> {
   int image_id_{};
   boost::gregorian::date date_{};
 
-  Shoreline(std::vector<gm::Point<>> &shoreline_vertices,
-            int shoreline_id, int year, int image_id);
+  Shoreline(std::vector<gm::Point<>> &shoreline_vertices, int shoreline_id,
+            int year, int image_id);
 
-  Shoreline(std::vector<gm::Point<>> &shoreline_vertices,
-            int shoreline_id, boost::gregorian::date date, int image_id);
+  Shoreline(std::vector<gm::Point<>> &shoreline_vertices, int shoreline_id,
+            boost::gregorian::date date, int image_id);
 
   Shoreline() = default;
+
+  inline friend bool operator==(const Shoreline &a, const Shoreline &b) {
+    return (a.image_id_ == b.image_id_) && (a.year_ == b.year_) &&
+           (a.shoreline_id_ == b.shoreline_id_);
+  }
 
   [[nodiscard]] size_t size() const override {
     return shoreline_vertices_.size();
@@ -385,12 +391,14 @@ using Shorelines = std::vector<gm::Shoreline>;
 //       ++(*this);
 //       return tmp;
 //     }
-//     friend bool operator==(const ShoresIterator &a, const ShoresIterator &b) {
+//     friend bool operator==(const ShoresIterator &a, const ShoresIterator &b)
+//     {
 //       return (a.baseline_pos_ == b.baseline_pos_) &&
 //              (a.transect_pos_ == b.transect_pos_);
 //     }
 //
-//     friend bool operator!=(const ShoresIterator &a, const ShoresIterator &b) {
+//     friend bool operator!=(const ShoresIterator &a, const ShoresIterator &b)
+//     {
 //       return !(a == b);
 //     }
 //

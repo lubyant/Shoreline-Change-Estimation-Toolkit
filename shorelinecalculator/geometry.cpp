@@ -116,15 +116,19 @@ BaselineSeg::BaselineSeg(double spacing, double offset, const Point<> &leftEdge,
 
 void TransectLine::truncate_shoreline_seg(const Shoreline &shoreline) {
   assert(prev_transect_line != nullptr && next_transect_line != nullptr);
-  TransectLine *prev=prev_transect_line, *next=next_transect_line;
-  if(prev == nullptr) {
+  TransectLine *prev = prev_transect_line, *next = next_transect_line;
+  if (prev == nullptr) {
     prev = this;
   }
-  if(next == nullptr) {
+  if (next == nullptr) {
     next = this;
   }
   auto sub_shore = util::trancate_shore_by_transect(*prev, *next, shoreline);
+  if (sub_shore.has_value()) {
+    shoreline_segs_.push_back(std::move(sub_shore.value()));
+  }
 }
+
 LineSegment TransectLine::create_transect(
     Point<> &transect_base, std::pair<double, double> baseline_normal_vector,
     double transect_length, TransectOrientation orient) {

@@ -300,7 +300,7 @@ std::vector<gm::IntersectPoint> generate_intersection(
         auto ret = transectLine.intersection(shoreline);
         if (ret.has_value()) {
           intersections.push_back(ret.value());
-          transectLine.year_intersect_map_[ret.value().year_] = &ret.value();
+          transectLine.year_shoreline_map_[ret.value().year_] = &shoreline;
         }
       }
     }
@@ -308,7 +308,7 @@ std::vector<gm::IntersectPoint> generate_intersection(
   return intersections;
 }
 
-void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
+void compute_rate(umap<int, umap<int, std::vector<gm::IntersectPoint>>>
                       &intersection_maps,
                   gm::TransectGroups &transect_groups, const Options &options) {
   // baseline_id <-> vector index
@@ -316,8 +316,8 @@ void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
   for (size_t i = 0; i < transect_groups.size(); i++) {
     id_map[transect_groups[i].baseline_id_] = i;
   }
-  for (const auto &[baseline_id, tid_map] : intersection_maps) {
-    for (const auto &[transect_id, intersections] : tid_map) {
+  for (auto &[baseline_id, tid_map] : intersection_maps) {
+    for (auto &[transect_id, intersections] : tid_map) {
       // assign the rate to the transect
       auto it =
           std::find_if(transect_groups[id_map[baseline_id]].transects_.begin(),
@@ -326,10 +326,17 @@ void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
                          return a.transect_id_ == transect_id;
                        });
       // remove the duplicate intersects
-      auto clean_intersects = util::remove_same_year_intersections(
-          intersections, options.intersection_mode);
+      util::remove_same_year_intersections(intersections, options.intersection_mode);
+      auto &transects = transect_groups[id_map[baseline_id]];
+      for(auto& transect : transects.transects_){
+        if(transect.transect_id_ == transect_id){
+          for(const auto& intersect: intersections){
+          transect.year_intersect_map_[intersect.year_] = &intersect;
+          }
+        }
+      }
       // calculate the shoreline rate
-      util::linearRegressRate(clean_intersects, *it, options.outlier_rate);
+      util::linearRegressRate(intersections, *it, options.outlier_rate);
     }
   }
 }

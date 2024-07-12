@@ -49,7 +49,7 @@ umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
 std::vector<gm::IntersectPoint> generate_intersection(
     const gm::Shorelines &shorelines, gm::TransectGroups &transect_groups);
 
-void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
+void compute_rate(umap<int, umap<int, std::vector<gm::IntersectPoint>>>
                       &intersection_maps,
                   gm::TransectGroups &transect_groups, const Options &options);
 
