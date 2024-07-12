@@ -307,9 +307,9 @@ std::vector<gm::IntersectPoint> generate_intersection(
   return intersections;
 }
 
-void compute_rate(umap<int, umap<int, std::vector<gm::IntersectPoint>>>
-                      &intersection_maps,
-                  gm::TransectGroups &transect_groups, const Options &options) {
+void compute_rate(
+    umap<int, umap<int, std::vector<gm::IntersectPoint>>> &intersection_maps,
+    gm::TransectGroups &transect_groups, const Options &options) {
   // baseline_id <-> vector index
   umap<int, size_t> id_map;
   for (size_t i = 0; i < transect_groups.size(); i++) {
@@ -325,12 +325,13 @@ void compute_rate(umap<int, umap<int, std::vector<gm::IntersectPoint>>>
                          return a.transect_id_ == transect_id;
                        });
       // remove the duplicate intersects
-      util::remove_same_year_intersections(intersections, options.intersection_mode);
+      util::remove_same_year_intersections(intersections,
+                                           options.intersection_mode);
       auto &transects = transect_groups[id_map[baseline_id]];
-      for(auto& transect : transects.transects_){
-        if(transect.transect_id_ == transect_id){
-          for(const auto& intersect: intersections){
-          transect.year_intersect_map_[intersect.year_] = &intersect;
+      for (auto &transect : transects.transects_) {
+        if (transect.transect_id_ == transect_id) {
+          for (const auto &intersect : intersections) {
+            transect.year_intersect_map_[intersect.year_] = &intersect;
           }
         }
       }

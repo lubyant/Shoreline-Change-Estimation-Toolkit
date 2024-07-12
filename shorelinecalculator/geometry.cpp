@@ -114,6 +114,19 @@ BaselineSeg::BaselineSeg(double spacing, double offset, const Point<> &leftEdge,
   cumulative_segment_distance += length;
 }
 
+void TransectLine::compute_frechet_dist() {
+  auto &shore_seg = shoreline_segs_;
+  std::sort(shore_seg.begin(), shore_seg.end(),
+            [](const gm::Shoreline &a, const gm::Shoreline &b) {
+              return a.year_ <= b.year_;
+            });
+  for (size_t i = 1; i < shore_seg.size(); i++) {
+    frechet_dist_.push_back(
+        util::frechet_distance(shore_seg[i - 1].shoreline_vertices_,
+                               shore_seg[i].shoreline_vertices_));
+  }
+}
+
 void TransectLine::truncate_shoreline_seg() {
   for (const auto &pair : year_intersect_map_) {
     auto ret = util::trancate_shore_by_intersect(*pair.second);

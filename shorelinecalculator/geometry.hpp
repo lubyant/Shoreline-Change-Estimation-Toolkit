@@ -157,6 +157,7 @@ struct TransectLine : public LineSegment,
   TransectOrientation orient_;
   std::unordered_map<int, const IntersectPoint *> year_intersect_map_;
   std::vector<Shoreline> shoreline_segs_;  // the shoreline segments nearby
+  std::vector<double> frechet_dist_;
 
   TransectLine *prev_transect_line{nullptr}, *next_transect_line{nullptr};
 
