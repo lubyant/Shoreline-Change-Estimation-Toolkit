@@ -287,17 +287,6 @@ Baseline::Baseline(const std::vector<BaselinesVertex> &points,
         transects_base_points_.at(i), transect_length_, smoothed_normal_vector,
         transect_id++, baseline_id_, image_id_, mode, orient);
   }
-
-  for (size_t i = 0; i < transects_lines_.size(); i++) {
-    if (i == 0) {
-      transects_lines_[i].next_transect_line = &transects_lines_[i + 1];
-    } else if (i == transects_lines_.size() - 1) {
-      transects_lines_[i].prev_transect_line = &transects_lines_[i - 1];
-    } else {
-      transects_lines_[i].next_transect_line = &transects_lines_[i + 1];
-      transects_lines_[i].prev_transect_line = &transects_lines_[i - 1];
-    }
-  }
 }
 Shoreline::Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
                      int shoreline_id, int year, int image_id)

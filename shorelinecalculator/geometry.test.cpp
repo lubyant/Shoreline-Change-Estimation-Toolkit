@@ -282,8 +282,7 @@ BOOST_AUTO_TEST_CASE(test_baseline_smooth) {
     BOOST_CHECK_EQUAL(baseline->baseline_vertices_.size(), 7);
   }
 }
-BOOST_AUTO_TEST_SUITE_END()
-BOOST_AUTO_TEST_CASE(test_shoreiterator) {
+BOOST_AUTO_TEST_CASE(test_frechetdistance) {
   std::vector<Point<>> baseline_points{{0, 0}, {1, 0}, {2, 0},
                                        {3, 0}, {4, 0}, {5, 0}};
   Baseline baseline{baseline_points, 10, 0.5, 0, 10, 0, 10};
@@ -292,22 +291,30 @@ BOOST_AUTO_TEST_CASE(test_shoreiterator) {
   auto transect_groups = dsas::generate_transects(baselines);
 
   std::vector<Point<>> shoreline1_points{
-    {-0.5, 1}, {1.5, 1}, {2.5, 1}, {3.5, 1}, {4.5, 1}
+      {-0.5, 1}, {1.25, 1}, {1.5, 1},  {1.75, 1}, {2.25, 1},
+      {2.5, 1},  {2.75, 1}, {3.25, 1}, {3.5, 1},  {3.75, 1},
+      {4.25, 1}, {4.5, 1},  {4.75, 1}
   };
   std::vector<Point<>> shoreline2_points{
-    {-0.5, 2}, {1.5, 2}, {2.5, 2}, {3.5, 2}, {4.5, 2}
+      {-0.5, 2}, {1.25, 2}, {1.5, 2},  {1.75, 2}, {2.25, 2},
+      {2.5, 2},  {2.75, 2}, {3.25, 2}, {3.5, 2},  {3.75, 2},
+      {4.25, 2}, {4.5, 2},  {4.75, 2}
   };
 
   Shoreline shoreline1{shoreline1_points, 0, 2000, 10};
   Shoreline shoreline2{shoreline2_points, 1, 2001, 10};
-  Shorelines shorelines {shoreline1, shoreline2};
+  Shorelines shorelines{shoreline1, shoreline2};
 
-  auto intersects_maps = dsas::generate_intersections(shorelines, transect_groups);
-  dsas::compute_rate(intersects_maps, transect_groups, options);
-  for(auto& transects: transect_groups){
-    for(auto &transect: transects.transects_){
+  auto intersects_maps =
+      dsas::generate_intersections(shorelines, transect_groups);
+  compute_rate(intersects_maps, transect_groups, options);
+  for (auto &transects : transect_groups) {
+    for (auto &transect : transects.transects_) {
       transect.compute_frechet_dist();
-      BOOST_CHECK_EQUAL(transect.frechet_dist_[0], 0);
+      for(const auto dist : transect.frechet_dist_) {
+        BOOST_CHECK_EQUAL(dist, 1);
+      }
     }
   }
 }
+BOOST_AUTO_TEST_SUITE_END()

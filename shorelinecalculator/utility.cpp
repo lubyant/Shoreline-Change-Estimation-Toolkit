@@ -727,7 +727,7 @@ std::optional<gm::Shoreline> trancate_shore_by_intersect(
   auto *prev_transect{transect_line}, *next_transect{transect_line};
 
   if (transect_line->prev_transect_line != nullptr) {
-    prev_transect = transect_line;
+    prev_transect = transect_line->prev_transect_line;
   }
   if (transect_line->next_transect_line != nullptr) {
     next_transect = transect_line->next_transect_line;

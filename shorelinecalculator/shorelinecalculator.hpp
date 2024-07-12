@@ -38,7 +38,7 @@ void controller(const std::vector<Path> &paths, const Path &output_path,
 gm::Baselines generate_baselines(const std::vector<Image> &images,
                                  const Options &options);
 
-gm::TransectGroups generate_transects(const gm::Baselines &baselines);
+gm::TransectGroups generate_transects(gm::Baselines &baselines);
 
 umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
     const std::vector<Image> &images, const gm::TransectGroups &TransectGroups);
@@ -49,11 +49,9 @@ umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
 std::vector<gm::IntersectPoint> generate_intersection(
     const gm::Shorelines &shorelines, gm::TransectGroups &transect_groups);
 
-void compute_rate(umap<int, umap<int, std::vector<gm::IntersectPoint>>>
-                      &intersection_maps,
-                  gm::TransectGroups &transect_groups, const Options &options);
-
-void compute_frechet_distance();
+void compute_rate(
+    umap<int, umap<int, std::vector<gm::IntersectPoint>>> &intersection_maps,
+    gm::TransectGroups &transect_groups, const Options &options);
 
 void create_transects_from_baseline(const Path &path, const Path &output_path,
                                     gm::TransectGroups *output_transects,

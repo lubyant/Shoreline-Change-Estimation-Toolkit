@@ -248,12 +248,12 @@ gm::Baselines generate_baselines(const std::vector<Image> &images,
   return Image::merge_baselines_from_images(year_Images[lg_year], options);
 }
 
-gm::TransectGroups generate_transects(const gm::Baselines &baselines) {
+gm::TransectGroups generate_transects(gm::Baselines &baselines) {
   gm::TransectGroups transectGroups{};
 
   for (auto &baseline : baselines) {
-    gm::Transects transects{baseline.baseline_id_, baseline.transects_lines_};
-    transectGroups.push_back(transects);
+    gm::Transects transects{baseline.baseline_id_, std::move(baseline.transects_lines_)};
+    transectGroups.push_back(std::move(transects));
   }
   return transectGroups;
 }
@@ -333,6 +333,16 @@ void compute_rate(
           for (const auto &intersect : intersections) {
             transect.year_intersect_map_[intersect.year_] = &intersect;
           }
+        }
+      }
+      for (size_t i = 0; i < transects.transects_.size(); i++) {
+        if (i == 0) {
+          transects.transects_[i].next_transect_line = &transects.transects_[i + 1];
+        } else if (i == transects.transects_.size() - 1) {
+          transects.transects_[i].prev_transect_line = &transects.transects_[i - 1];
+        } else {
+          transects.transects_[i].next_transect_line = &transects.transects_[i + 1];
+          transects.transects_[i].prev_transect_line = &transects.transects_[i - 1];
         }
       }
       // calculate the shoreline rate
