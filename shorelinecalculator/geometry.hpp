@@ -182,7 +182,7 @@ struct TransectLine : public LineSegment,
     }
   }
 
-  void truncate_shoreline_seg(const Shorelines &shorelines);
+  void truncate_shoreline_seg();
 
   static LineSegment create_transect(
       Point<> &transect_base, std::pair<double, double> baseline_normal_vector,

@@ -114,20 +114,13 @@ BaselineSeg::BaselineSeg(double spacing, double offset, const Point<> &leftEdge,
   cumulative_segment_distance += length;
 }
 
-void TransectLine::truncate_shoreline_seg(const Shorelines &shorelines) {
-  assert(prev_transect_line != nullptr && next_transect_line != nullptr);
-  TransectLine *prev = prev_transect_line, *next = next_transect_line;
-  if (prev == nullptr) {
-    prev = this;
+void TransectLine::truncate_shoreline_seg() {
+  for (const auto &pair : year_intersect_map_) {
+    auto ret = util::trancate_shore_by_intersect(*pair.second);
+    if (ret.has_value()) {
+      shoreline_segs_.push_back(std::move(ret.value()));
+    }
   }
-  if (next == nullptr) {
-    next = this;
-  }
-
-  // auto sub_shore = util::trancate_shore_by_transect(*prev, *next, shoreline);
-  // if (sub_shore.has_value()) {
-  //   shoreline_segs_.push_back(std::move(sub_shore.value()));
-  // }
 }
 
 LineSegment TransectLine::create_transect(
