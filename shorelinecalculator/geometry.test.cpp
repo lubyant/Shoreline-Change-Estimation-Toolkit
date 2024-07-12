@@ -302,11 +302,11 @@ BOOST_AUTO_TEST_CASE(test_shoreiterator) {
   Shorelines shorelines {shoreline1, shoreline2};
 
   dsas::generate_intersections(shorelines, transect_groups);
-  auto shore_seg = ShoreSegByTransect(shorelines, transect_groups);
-  for (const auto &map: shore_seg){
-    for(auto &[year, vecs]: map){
-      std::cerr << "year: " << year << std::endl;
-      std::cerr << "size: " << vecs.size() << std::endl;
-    }
-  }
+  // auto shore_seg = ShoreSegByTransect(shorelines, transect_groups);
+  // for (const auto &map: shore_seg){
+  //   for(auto &[year, vecs]: map){
+  //     std::cerr << "year: " << year << std::endl;
+  //     std::cerr << "size: " << vecs.size() << std::endl;
+  //   }
+  // }
 }

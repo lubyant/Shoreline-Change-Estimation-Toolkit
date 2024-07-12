@@ -114,7 +114,7 @@ BaselineSeg::BaselineSeg(double spacing, double offset, const Point<> &leftEdge,
   cumulative_segment_distance += length;
 }
 
-void TransectLine::truncate_shoreline_seg(const Shoreline &shoreline) {
+void TransectLine::truncate_shoreline_seg(const Shorelines &shorelines) {
   assert(prev_transect_line != nullptr && next_transect_line != nullptr);
   TransectLine *prev = prev_transect_line, *next = next_transect_line;
   if (prev == nullptr) {
@@ -123,10 +123,11 @@ void TransectLine::truncate_shoreline_seg(const Shoreline &shoreline) {
   if (next == nullptr) {
     next = this;
   }
-  auto sub_shore = util::trancate_shore_by_transect(*prev, *next, shoreline);
-  if (sub_shore.has_value()) {
-    shoreline_segs_.push_back(std::move(sub_shore.value()));
-  }
+
+  // auto sub_shore = util::trancate_shore_by_transect(*prev, *next, shoreline);
+  // if (sub_shore.has_value()) {
+  //   shoreline_segs_.push_back(std::move(sub_shore.value()));
+  // }
 }
 
 LineSegment TransectLine::create_transect(
@@ -173,16 +174,10 @@ std::optional<IntersectPoint> TransectLine::intersection(
       try {
         auto point = find_intersection(shoreline[i], shoreline[i + 1]);
         auto distance = distance2ref(point);
-        IntersectPoint intersect_point{point,
-                                       transect_id_,
-                                       shoreline.shoreline_id_,
-                                       baseline_id_,
-                                       image_id_,
-                                       shoreline.year_,
-                                       distance,
-                                       this,
-                                       &shoreline[i],
-                                       &shoreline[i + 1]};
+        IntersectPoint intersect_point{
+            point,        transect_id_, shoreline.shoreline_id_,
+            baseline_id_, image_id_,    shoreline.year_,
+            distance,     this,         &shoreline};
         intersections.push_back(intersect_point);
       } catch (...) {
         continue;

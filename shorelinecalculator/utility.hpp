@@ -273,8 +273,8 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
 gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
                                    const std::string &baseline_proj);
 
-void remove_same_year_intersections(
-    std::vector<gm::IntersectPoint> &, const gm::IntersectionMode &);
+void remove_same_year_intersections(std::vector<gm::IntersectPoint> &,
+                                    const gm::IntersectionMode &);
 
 std::vector<gm::Point<>> get_subset_of_vertices(
     const std::vector<gm::Point<>> &line, const gm::Point<> &p1,
@@ -283,6 +283,9 @@ std::vector<gm::Point<>> get_subset_of_vertices(
 std::optional<gm::Shoreline> trancate_shore_by_transect(
     const gm::TransectLine &tran1, const gm::TransectLine &tran2,
     const gm::Shoreline &shoreline);
+
+std::optional<gm::Shoreline> trancate_shore_by_intersect(
+    const gm::IntersectPoint &intersect);
 
 double frechet_distance(std::vector<gm::Point<>> line1,
                         std::vector<gm::Point<>> line2);

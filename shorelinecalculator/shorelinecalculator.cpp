@@ -300,7 +300,6 @@ std::vector<gm::IntersectPoint> generate_intersection(
         auto ret = transectLine.intersection(shoreline);
         if (ret.has_value()) {
           intersections.push_back(ret.value());
-          transectLine.year_shoreline_map_[ret.value().year_] = &shoreline;
         }
       }
     }

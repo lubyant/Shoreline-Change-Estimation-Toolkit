@@ -714,6 +714,42 @@ std::optional<gm::Shoreline> trancate_shore_by_transect(
   }
   return std::nullopt;
 }
+
+std::optional<gm::Shoreline> trancate_shore_by_intersect(
+    const gm::IntersectPoint &intersect) {
+  auto *transect_line = intersect.transect_line_ptr_;
+  assert(transect_line->prev_transect_line != nullptr &&
+         transect_line->next_transect_line != nullptr);
+  const auto year = intersect.year_;
+
+  auto *prev_transect{transect_line}, *next_transect{transect_line};
+
+  if (transect_line->prev_transect_line != nullptr) {
+    prev_transect = transect_line;
+  }
+  if (transect_line->next_transect_line != nullptr) {
+    next_transect = transect_line->next_transect_line;
+  }
+  if (prev_transect->year_intersect_map_.find(year) ==
+          prev_transect->year_intersect_map_.end() ||
+      next_transect->year_intersect_map_.find(year) ==
+          next_transect->year_intersect_map_.end()) {
+    return std::nullopt;
+  }
+  const gm::IntersectPoint *prev_intersect =
+      prev_transect->year_intersect_map_.find(year)->second;
+  const gm::IntersectPoint *next_intersect =
+      (next_transect->year_intersect_map_).find(year)->second;
+  if (prev_intersect->shoreline_ptr_ != next_intersect->shoreline_ptr_) {
+    return std::nullopt;
+  }
+  gm::Shoreline truncate_shoreline = *(prev_intersect->shoreline_ptr_);
+  auto vertices = prev_intersect->shoreline_ptr_->shoreline_vertices_;
+  truncate_shoreline.shoreline_vertices_ = std::move(
+      get_subset_of_vertices(vertices, *prev_intersect, *next_intersect));
+  return truncate_shoreline;
+}
+
 double frechet_distance(std::vector<gm::Point<>> line1,
                         std::vector<gm::Point<>> line2) {
   size_t m = line1.size();

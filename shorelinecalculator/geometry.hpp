@@ -25,6 +25,7 @@ template <typename T = double>
 struct Point;
 
 struct Shoreline;
+using Shorelines = std::vector<gm::Shoreline>;
 struct IntersectPoint;
 
 template <typename T>
@@ -155,7 +156,6 @@ struct TransectLine : public LineSegment,
   IntersectionMode mode_;
   TransectOrientation orient_;
   std::unordered_map<int, const IntersectPoint *> year_intersect_map_;
-  std::unordered_map<int, const Shoreline *> year_shoreline_map_;
   std::vector<Shoreline> shoreline_segs_;  // the shoreline segments nearby
 
   TransectLine *prev_transect_line{nullptr}, *next_transect_line{nullptr};
@@ -182,7 +182,7 @@ struct TransectLine : public LineSegment,
     }
   }
 
-  void truncate_shoreline_seg(const Shoreline &shoreline);
+  void truncate_shoreline_seg(const Shorelines &shorelines);
 
   static LineSegment create_transect(
       Point<> &transect_base, std::pair<double, double> baseline_normal_vector,
@@ -318,12 +318,12 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
   boost::gregorian::date date_;
   double distance_to_ref_;
   const TransectLine *transect_line_ptr_{nullptr};
-  IntersectPoint *prev_intersect_ptr_{nullptr}, *next_intersect_ptr_{nullptr};
+  const Shoreline *shoreline_ptr_{nullptr};  // the shoreline intersect stands
 
   IntersectPoint(Point<double> point, int transect_id, int shoreline_id,
                  int baseline_id, int image_id, int year,
-                 double distance_to_ref,
-                 const TransectLine *transect_line_ptr = nullptr)
+                 double distance_to_ref, const TransectLine *transect_line_ptr,
+                 const Shoreline *shoreline_ptr)
       : Point<double>(point),
         transect_id_(transect_id),
         shoreline_id_(shoreline_id),
@@ -332,7 +332,8 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
         year_(year),
         date_(year_, 1, 1),
         distance_to_ref_(distance_to_ref),
-        transect_line_ptr_(transect_line_ptr) {}
+        transect_line_ptr_(transect_line_ptr),
+        shoreline_ptr_(shoreline_ptr) {}
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
     return {"BaselineId", "TransectId", "ShoreID", "ImageID",
@@ -365,7 +366,6 @@ struct Transects {
   std::vector<TransectLine> transects_;
 };
 using TransectGroups = std::vector<Transects>;
-using Shorelines = std::vector<gm::Shoreline>;
 
 }  // namespace gm
 
