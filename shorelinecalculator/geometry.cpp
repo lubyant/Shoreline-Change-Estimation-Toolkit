@@ -124,6 +124,10 @@ void TransectLine::compute_frechet_dist() {
   if (shoreline_segs_.size() == 2) {
     fre_dist = util::frechet_distance(shoreline_segs_[0].shoreline_vertices_,
                                       shoreline_segs_[1].shoreline_vertices_);
+    year_intersect_map_[shoreline_segs_[0].year_]->frechet_distance_diff_ =
+        fre_dist;
+    year_intersect_map_[shoreline_segs_[0].year_]->frechet_distance_diff_ =
+        fre_dist;
     frechet_dist_.push_back(fre_dist);
     return;
   }
@@ -147,6 +151,8 @@ void TransectLine::compute_frechet_dist() {
           util::frechet_distance(shoreline_segs_[i].shoreline_vertices_,
                                  shoreline_segs_[i + 1].shoreline_vertices_));
     }
+    auto year = shoreline_segs_[i].year_;
+    year_intersect_map_[year]->frechet_distance_diff_ = fre_dist;
     frechet_dist_.push_back(fre_dist);
   }
 }

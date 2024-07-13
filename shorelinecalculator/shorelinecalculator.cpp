@@ -330,7 +330,7 @@ void compute_rate(
       auto &transects = transect_groups[id_map[baseline_id]];
       for (auto &transect : transects.transects_) {
         if (transect.transect_id_ == transect_id) {
-          for (const auto &intersect : intersections) {
+          for (auto &intersect : intersections) {
             transect.year_intersect_map_[intersect.year_] = &intersect;
           }
         }

@@ -155,7 +155,7 @@ struct TransectLine : public LineSegment,
   double change_rate{};           // change rate for all the intersections
   IntersectionMode mode_;
   TransectOrientation orient_;
-  std::unordered_map<int, const IntersectPoint *> year_intersect_map_;
+  std::unordered_map<int, IntersectPoint *> year_intersect_map_;
   std::vector<Shoreline> shoreline_segs_;  // the shoreline segments nearby
   std::vector<double> frechet_dist_;
 
@@ -319,6 +319,8 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
   int year_;
   boost::gregorian::date date_;
   double distance_to_ref_;
+  double frechet_distance_diff_;  // the frechet distance difference between
+                                  // year[i-1], year[i], year[i+1]
   const TransectLine *transect_line_ptr_{nullptr};
   const Shoreline *shoreline_ptr_{nullptr};  // the shoreline intersect stands
 

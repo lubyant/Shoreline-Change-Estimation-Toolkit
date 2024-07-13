@@ -63,7 +63,7 @@ void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
     return;
   }
 
-  // sort the vector
+  // copy the intersections and sort the vector
   std::vector<gm::IntersectPoint> copy = intersections;
   std::sort(copy.begin(), copy.end(),
             [](const gm::IntersectPoint &a, const gm::IntersectPoint &b) {
@@ -82,10 +82,12 @@ void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
     transect.intersect_info_ = ss.str();
   }
 
-  // if more than two intersections
-  // first remove outlier
-  // , then compute the rates for consecutive years
-  // and set the value to transect
+
+  /*
+  if more than two intersections first remove outlier, then compute the
+   rates for consecutive years and set the value to transect
+  */
+  // remove outlier based on distance to baseline
   std::vector<double> y{copy[0].distance_to_ref_};
   std::vector<double> x{static_cast<double>(copy[0].year_)};
   for (size_t i = 1; i < copy.size(); ++i) {
@@ -99,8 +101,13 @@ void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
     x.push_back(copy[i].year_);
     y.push_back(copy[i].distance_to_ref_);
   }
+  remove_outliers(x, y, outlier_rate); // remove outliers in x, y
 
-  // remove the outliers
+  // remove the outliers based on frechet distance
+  y.clear();
+  for(size_t i = 0; i<copy.size(); i++){
+    y.push_back(copy[i].frechet_distance_diff_);
+  }
   remove_outliers(x, y, outlier_rate);
 
   // change rate
