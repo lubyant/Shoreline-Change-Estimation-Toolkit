@@ -116,15 +116,38 @@ BaselineSeg::BaselineSeg(double spacing, double offset, const Point<> &leftEdge,
 
 void TransectLine::compute_frechet_dist() {
   truncate_shoreline_seg();
-  auto &shore_seg = shoreline_segs_;
-  std::sort(shore_seg.begin(), shore_seg.end(),
+  std::sort(shoreline_segs_.begin(), shoreline_segs_.end(),
             [](const gm::Shoreline &a, const gm::Shoreline &b) {
               return a.year_ <= b.year_;
             });
-  for (size_t i = 1; i < shore_seg.size(); i++) {
-    frechet_dist_.push_back(
-        util::frechet_distance(shore_seg[i - 1].shoreline_vertices_,
-                               shore_seg[i].shoreline_vertices_));
+  double fre_dist;
+  if (shoreline_segs_.size() == 2) {
+    fre_dist = util::frechet_distance(shoreline_segs_[0].shoreline_vertices_,
+                                      shoreline_segs_[1].shoreline_vertices_);
+    frechet_dist_.push_back(fre_dist);
+    return;
+  }
+  for (size_t i = 0; i < shoreline_segs_.size(); i++) {
+    if (i == 0) {
+      fre_dist = std::fabs(
+          util::frechet_distance(shoreline_segs_[i].shoreline_vertices_,
+                                 shoreline_segs_[i + 1].shoreline_vertices_) -
+          util::frechet_distance(shoreline_segs_[i + 1].shoreline_vertices_,
+                                 shoreline_segs_[i + 2].shoreline_vertices_));
+    } else if (i == shoreline_segs_.size() - 1) {
+      fre_dist = std::fabs(
+          util::frechet_distance(shoreline_segs_[i - 2].shoreline_vertices_,
+                                 shoreline_segs_[i - 1].shoreline_vertices_) -
+          util::frechet_distance(shoreline_segs_[i - 1].shoreline_vertices_,
+                                 shoreline_segs_[i].shoreline_vertices_));
+    } else {
+      fre_dist = std::fabs(
+          util::frechet_distance(shoreline_segs_[i - 1].shoreline_vertices_,
+                                 shoreline_segs_[i].shoreline_vertices_) -
+          util::frechet_distance(shoreline_segs_[i].shoreline_vertices_,
+                                 shoreline_segs_[i + 1].shoreline_vertices_));
+    }
+    frechet_dist_.push_back(fre_dist);
   }
 }
 

@@ -5,6 +5,8 @@
 #include "utility.hpp"
 
 #include <boost/test/unit_test.hpp>
+
+#include "shorelinecalculator.hpp"
 #define TOL 1e-4
 using namespace util;
 BOOST_AUTO_TEST_SUITE(UtilityTest)
@@ -172,6 +174,39 @@ BOOST_AUTO_TEST_CASE(TestFrechetDistance) {
     std::vector<gm::Point<>> line2{{0, 1}, {1, 1}, {2, 1}};
     auto dist = frechet_distance(line1, line2);
     BOOST_CHECK_CLOSE(dist, 1, TOL);
+  }
+}
+BOOST_AUTO_TEST_CASE(Test_truncatebyintersect) {
+  using namespace gm;
+  std::vector<Point<>> baseline_points{{0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}};
+  Baseline baseline{baseline_points, 10, 0.5, 0, 10, 0, 10};
+  Baselines baselines{baseline};
+  dsas::Options options;
+  auto transect_groups = dsas::generate_transects(baselines);
+
+  std::vector<Point<>> shoreline1_points{
+      {-0.5, 1}, {0.25, 1}, {0.5, 1}, {0.75, 1}, {1.25, 1}, {1.5, 1},
+      {1.75, 1}, {2.25, 1}, {2.5, 1}, {2.75, 1}, {3.25, 1}, {3.5, 1},
+      {3.75, 1}, {4.25, 1}, {4.5, 1}, {4.75, 1}};
+  std::vector<Point<>> shoreline2_points{
+      {-0.5, 2}, {0.25, 1}, {0.5, 1}, {0.75, 1}, {1.25, 2}, {1.5, 2},
+      {1.75, 2}, {2.25, 2}, {2.5, 2}, {2.75, 2}, {3.25, 2}, {3.5, 2},
+      {3.75, 2}, {4.25, 2}, {4.5, 2}, {4.75, 2}};
+
+  Shoreline shoreline1{shoreline1_points, 0, 2000, 10};
+  Shoreline shoreline2{shoreline2_points, 1, 2001, 10};
+  Shorelines shorelines{shoreline1, shoreline2};
+
+  auto intersects_maps =
+      dsas::generate_intersections(shorelines, transect_groups);
+  compute_rate(intersects_maps, transect_groups, options);
+  for (auto &[baseline_id, maps] : intersects_maps) {
+    for (auto &[transect_id, intersects] : maps) {
+      for (auto &intersect : intersects) {
+        auto shore_seg = util::truncate_shore_by_intersect(intersect);
+        BOOST_CHECK(shore_seg.has_value());
+      }
+    }
   }
 }
 BOOST_AUTO_TEST_SUITE_END()

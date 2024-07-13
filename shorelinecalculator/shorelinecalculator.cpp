@@ -349,6 +349,13 @@ void compute_rate(
       util::linearRegressRate(intersections, *it, options.outlier_rate);
     }
   }
+  
+  // compute the frechet distance
+  for (auto& transects: transect_groups){
+    for(auto& transect: transects.transects_){
+      transect.compute_frechet_dist();
+    }
+  }
 }
 void create_transects_from_baseline(const Path &path, const Path &output_path,
                                     gm::TransectGroups *output_transects,
