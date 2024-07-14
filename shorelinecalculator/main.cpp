@@ -14,8 +14,10 @@ int main(int argc, char **argv) {
   options.transect_offset = 0;
   options.transect_orient = gm::TransectOrientation::Right;
   options.intersection_mode = gm::IntersectionMode::Closest;
+  options.outlier_metric = dsas::Options::OutlierMetric::FrechetDistance;
   dsas::digital_shoreline_analysis_system(
       Path("/home/lby/Desktop/ShorelineCalculator/METHOD_SITE"),
-      Path("/home/lby/Desktop/ShorelineCalculator/METHOD_SITE_OUTPUT"), options);
+      Path("/home/lby/Desktop/ShorelineCalculator/METHOD_SITE_OUTPUT"),
+      options);
   return 0;
 }

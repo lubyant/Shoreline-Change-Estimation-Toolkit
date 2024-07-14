@@ -310,7 +310,7 @@ struct Shoreline : public MultiLine<Point<>>, GDALShpSaver<int, int> {
   }
 };
 
-#define IntersectPoint_t int, int, int, int, int, double, double, double
+#define IntersectPoint_t int, int, int, int, int, double, double, double, double
 struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
   int image_id_;
   int transect_id_;
@@ -318,9 +318,9 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
   int baseline_id_;
   int year_;
   boost::gregorian::date date_;
-  double distance_to_ref_;
-  double frechet_distance_diff_;  // the frechet distance difference between
-                                  // year[i-1], year[i], year[i+1]
+  double distance_to_ref_{-1};
+  double frechet_distance_diff_{-1};  // the frechet distance difference between
+                                      // year[i-1], year[i], year[i+1]
   const TransectLine *transect_line_ptr_{nullptr};
   const Shoreline *shoreline_ptr_{nullptr};  // the shoreline intersect stands
 
@@ -340,15 +340,16 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
         shoreline_ptr_(shoreline_ptr) {}
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
-    return {"BaselineId", "TransectId", "ShoreID", "ImageID",
-            "Year",       "Dist",       "X",       "Y"};
+    return {"BaselineId", "TransectId", "ShoreID", "ImageID", "Year",
+            "base_dist",  "fre_dist",   "X",       "Y"};
   }
 
   [[nodiscard]] std::vector<OGRFieldType> get_types() const override {
     return {OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
             OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
             OGRFieldType::OFTInteger, OGRFieldType::OFTReal,
-            OGRFieldType::OFTReal,    OGRFieldType::OFTReal};
+            OGRFieldType::OFTReal,    OGRFieldType::OFTReal,
+            OGRFieldType::OFTReal};
   }
 
   [[nodiscard]] std::tuple<IntersectPoint_t> get_values() const override {
@@ -358,6 +359,7 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
             image_id_,
             year_,
             distance_to_ref_,
+            frechet_distance_diff_,
             x,
             y};
   }

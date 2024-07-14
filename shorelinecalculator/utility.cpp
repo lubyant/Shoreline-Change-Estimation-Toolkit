@@ -3,9 +3,9 @@
 //
 #include "utility.hpp"
 
+#include <cassert>
 #include <limits>
 #include <unordered_set>
-#include <cassert>
 
 #define MAX_DOUBLE std::numeric_limits<double>::max()
 
@@ -49,7 +49,8 @@ ThreadPool::~ThreadPool() {
 }
 
 void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
-                       gm::TransectLine &transect, double outlier_rate) {
+                       gm::TransectLine &transect,
+                       const dsas::Options &options) {
   // if no intersection
   if (intersections.empty()) {
     throw std::runtime_error("It should not empty");
@@ -82,34 +83,40 @@ void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
     transect.intersect_info_ = ss.str();
   }
 
-
   /*
   if more than two intersections first remove outlier, then compute the
    rates for consecutive years and set the value to transect
   */
   // remove outlier based on distance to baseline
-  std::vector<double> y{copy[0].distance_to_ref_};
-  std::vector<double> x{static_cast<double>(copy[0].year_)};
-  for (size_t i = 1; i < copy.size(); ++i) {
-    int yearChange = copy[i].year_ - copy[i - 1].year_;
+  std::vector<double> y, x;
+  switch (options.outlier_metric) {
+    case dsas::Options::OutlierMetric::BaseDistance:
+      y.push_back(copy[0].distance_to_ref_);
+      x.push_back(static_cast<double>(copy[0].year_));
+      for (size_t i = 1; i < copy.size(); ++i) {
+        int yearChange = copy[i].year_ - copy[i - 1].year_;
 
-    if (yearChange == 0) {
-      // Prevent division by zero
-      continue;
-    }
-
-    x.push_back(copy[i].year_);
-    y.push_back(copy[i].distance_to_ref_);
+        if (yearChange == 0) {
+          // Prevent division by zero
+          continue;
+        }
+        x.push_back(copy[i].year_);
+        y.push_back(copy[i].distance_to_ref_);
+      }
+      remove_outliers(x, y, options.outlier_rate);  // remove outliers in x, y
+      break;
+    case dsas::Options::OutlierMetric::FrechetDistance:
+      // remove the outliers based on frechet distance
+      for (size_t i = 0; i < copy.size(); i++) {
+        y.push_back(copy[i].frechet_distance_diff_);
+        x.push_back(copy[i].year_);
+      }
+      remove_outliers(x, y, options.outlier_rate);
+      break;
+    default:
+      std::cerr << __FILE__;
+      throw std::runtime_error(": not a valid metric");
   }
-  remove_outliers(x, y, outlier_rate); // remove outliers in x, y
-
-  // remove the outliers based on frechet distance
-  y.clear();
-  for(size_t i = 0; i<copy.size(); i++){
-    y.push_back(copy[i].frechet_distance_diff_);
-  }
-  remove_outliers(x, y, outlier_rate);
-
   // change rate
   transect.set_info(x, y);
 }

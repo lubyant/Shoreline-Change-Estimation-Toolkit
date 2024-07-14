@@ -346,14 +346,18 @@ void compute_rate(
         }
       }
       // calculate the shoreline rate
-      util::linearRegressRate(intersections, *it, options.outlier_rate);
     }
   }
   
   // compute the frechet distance
+  std::vector<gm::IntersectPoint> tmp_intersects;
   for (auto& transects: transect_groups){
     for(auto& transect: transects.transects_){
       transect.compute_frechet_dist();
+      for(const auto& pair: transect.year_intersect_map_){
+        tmp_intersects.push_back(*pair.second);
+      }
+      util::linearRegressRate(tmp_intersects, transect, options);
     }
   }
 }

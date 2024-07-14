@@ -94,7 +94,8 @@ bool isTwoSegmentIntersected(const gm::Point<T> &p1, const gm::Point<T> &p2,
 }
 
 void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
-                       gm::TransectLine &transect, double outlier_rate);
+                       gm::TransectLine &transect,
+                       const dsas::Options &options);
 
 template <typename T>
 gm::Point<T> computeIntersectPoint(const gm::Point<T> &p1,

@@ -116,6 +116,9 @@ BaselineSeg::BaselineSeg(double spacing, double offset, const Point<> &leftEdge,
 
 void TransectLine::compute_frechet_dist() {
   truncate_shoreline_seg();
+  if(shoreline_segs_.size() <= 2){
+    return;
+  }
   std::sort(shoreline_segs_.begin(), shoreline_segs_.end(),
             [](const gm::Shoreline &a, const gm::Shoreline &b) {
               return a.year_ <= b.year_;
