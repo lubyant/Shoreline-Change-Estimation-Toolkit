@@ -190,7 +190,6 @@ void save_lines(std::vector<T> &lines, const char *pszProj,
       GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
 
   // Step 3: Create a new shapefile
-  std::cout << output_path << std::endl;
   GDALDataset *dataset = driver->Create(output_path.string().c_str(), 0, 0, 0,
                                         GDT_Unknown, nullptr);
   if (!dataset) {
