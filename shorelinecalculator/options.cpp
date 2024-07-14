@@ -38,9 +38,9 @@ Options::Options(const boost::json::value &json_value) {
   if (json_options.contains("intersection_mode")) {
     auto mode = json_options.at("intersection_mode").as_string();
     if (mode == "closest") {
-      intersection_mode = gm::IntersectionMode::Closest;
+      intersection_mode = IntersectionMode::Closest;
     } else if (mode == "farthest") {
-      intersection_mode = gm::IntersectionMode::Farthest;
+      intersection_mode = IntersectionMode::Farthest;
     } else {
       throw std::runtime_error("not a valid intersection mode");
     }
@@ -49,11 +49,11 @@ Options::Options(const boost::json::value &json_value) {
   if (json_options.contains("transect_orientation")) {
     auto orient = json_options.at("transect_orientation").as_string();
     if (orient == "left") {
-      transect_orient = gm::TransectOrientation::Left;
+      transect_orient = TransectOrientation::Left;
     } else if (orient == "right") {
-      transect_orient = gm::TransectOrientation::Right;
+      transect_orient = TransectOrientation::Right;
     } else if (orient == "mix") {
-      transect_orient = gm::TransectOrientation::Mix;
+      transect_orient = TransectOrientation::Mix;
     } else {
       throw std::runtime_error("not a valid orientation");
     }

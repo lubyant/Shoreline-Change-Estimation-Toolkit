@@ -1,17 +1,14 @@
 #ifndef SHORELINECALCULATOR_OPTIONS_HPP
 #define SHORELINECALCULATOR_OPTIONS_HPP
 
-#include <thread>
 #include <boost/json.hpp>
-
-#include "geometry.hpp"
+#include <thread>
 
 namespace dsas {
 struct Options {
-  enum class OutlierMetric{
-    BaseDistance,
-    FrechetDistance 
-  };
+  enum class OutlierMetric { BaseDistance, FrechetDistance };
+  enum class IntersectionMode { Closest, Farthest };
+  enum class TransectOrientation { Left, Right, Mix };
   int smooth_factor{1};
   int edge_distance{100};
   double shoreline_least_factor{0.5};
@@ -21,12 +18,11 @@ struct Options {
   double outlier_rate{3};
   OutlierMetric outlier_metric{OutlierMetric::BaseDistance};
   size_t thread_num{std::thread::hardware_concurrency()};
-  gm::IntersectionMode intersection_mode{gm::IntersectionMode::Closest};
-  gm::TransectOrientation transect_orient{gm::TransectOrientation::Mix};
+  IntersectionMode intersection_mode{IntersectionMode::Closest};
+  TransectOrientation transect_orient{TransectOrientation::Mix};
 
   Options() = default;
   explicit Options(const boost::json::value &json_value);
-
 };
 }  // namespace dsas
 

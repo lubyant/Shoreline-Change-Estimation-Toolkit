@@ -252,7 +252,8 @@ gm::TransectGroups generate_transects(gm::Baselines &baselines) {
   gm::TransectGroups transectGroups{};
 
   for (auto &baseline : baselines) {
-    gm::Transects transects{baseline.baseline_id_, std::move(baseline.transects_lines_)};
+    auto transects = baseline.create_transects();
+    baseline.transects_lines_ = &transects.transects_;
     transectGroups.push_back(std::move(transects));
   }
   return transectGroups;
@@ -317,13 +318,6 @@ void compute_rate(
   }
   for (auto &[baseline_id, tid_map] : intersection_maps) {
     for (auto &[transect_id, intersections] : tid_map) {
-      // assign the rate to the transect
-      auto it =
-          std::find_if(transect_groups[id_map[baseline_id]].transects_.begin(),
-                       transect_groups[id_map[baseline_id]].transects_.end(),
-                       [&](const gm::TransectLine &a) {
-                         return a.transect_id_ == transect_id;
-                       });
       // remove the duplicate intersects
       util::remove_same_year_intersections(intersections,
                                            options.intersection_mode);
@@ -337,24 +331,28 @@ void compute_rate(
       }
       for (size_t i = 0; i < transects.transects_.size(); i++) {
         if (i == 0) {
-          transects.transects_[i].next_transect_line = &transects.transects_[i + 1];
+          transects.transects_[i].next_transect_line =
+              &transects.transects_[i + 1];
         } else if (i == transects.transects_.size() - 1) {
-          transects.transects_[i].prev_transect_line = &transects.transects_[i - 1];
+          transects.transects_[i].prev_transect_line =
+              &transects.transects_[i - 1];
         } else {
-          transects.transects_[i].next_transect_line = &transects.transects_[i + 1];
-          transects.transects_[i].prev_transect_line = &transects.transects_[i - 1];
+          transects.transects_[i].next_transect_line =
+              &transects.transects_[i + 1];
+          transects.transects_[i].prev_transect_line =
+              &transects.transects_[i - 1];
         }
       }
       // calculate the shoreline rate
     }
   }
-  
+
   // compute the frechet distance
   std::vector<gm::IntersectPoint> tmp_intersects;
-  for (auto& transects: transect_groups){
-    for(auto& transect: transects.transects_){
+  for (auto &transects : transect_groups) {
+    for (auto &transect : transects.transects_) {
       transect.compute_frechet_dist();
-      for(const auto& pair: transect.year_intersect_map_){
+      for (const auto &pair : transect.year_intersect_map_) {
         tmp_intersects.push_back(*pair.second);
       }
       util::linearRegressRate(tmp_intersects, transect, options);
@@ -415,8 +413,8 @@ void create_intersects_by_transects(gm::TransectGroups &transect_groups,
     }
   }
 
-  umap<int, std::vector<gm::IntersectPoint>> tid_points;
-  umap<int, decltype(tid_points)> bid_tid_points;
+  using tid_points_t = umap<int, std::vector<gm::IntersectPoint>>;
+  umap<int, tid_points_t> bid_tid_points;
   for (const auto &intersect : intersections) {
     int baseline_id = intersect.baseline_id_;
     int transect_id = intersect.transect_id_;

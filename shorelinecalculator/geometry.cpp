@@ -116,7 +116,7 @@ BaselineSeg::BaselineSeg(double spacing, double offset, const Point<> &leftEdge,
 
 void TransectLine::compute_frechet_dist() {
   truncate_shoreline_seg();
-  if(shoreline_segs_.size() <= 2){
+  if (shoreline_segs_.size() <= 2) {
     return;
   }
   std::sort(shoreline_segs_.begin(), shoreline_segs_.end(),
@@ -267,59 +267,62 @@ void TransectLine::set_info(const std::vector<double> &years,
   change_rate = util::least_square(years, distances);
 }
 
-Baseline::Baseline(const std::vector<BaselinesVertex> &points,
-                   double transect_length, double spacing, int baseline_id,
-                   int image_id, double offset, int smooth_factor,
-                   gm::IntersectionMode mode, gm::TransectOrientation orient)
-    : baseline_id_(baseline_id),
-      image_id_(image_id),
-      spacing_(spacing),
-      transect_length_(transect_length),
-      offset_(offset) {
+Baseline::Baseline(const std::vector<BaselinesVertex> &points, int baseline_id,
+                   int image_id, const dsas::Options &options)
+    : baseline_id_(baseline_id), image_id_(image_id), options_(options) {
   // create the baselineSeq
-  int transect_id{0};
-  std::vector<std::pair<double, double>> normal_vectors;
   for (size_t i = 0; i < points.size() - 1; i++) {
-    BaselineSeg baselineSeg{spacing_, offset_, points.at(i), points.at(i + 1)};
+    BaselineSeg baselineSeg{options_.transect_spacing, options_.transect_offset,
+                            points.at(i), points.at(i + 1)};
     // starting point
     if (i == 0) {
       transects_base_points_.push_back(baselineSeg.leftEdge_);
-      normal_vectors.push_back(baselineSeg.normal_vector_);
+      normal_vectors_.push_back(baselineSeg.normal_vector_);
       baseline_vertices_.push_back(baselineSeg.leftEdge_);
     }
     baseline_vertices_.push_back(baselineSeg.rightEdge_);
     for (auto &point : baselineSeg.transects_base_points_) {
       transects_base_points_.push_back(point);
-      normal_vectors.push_back(baselineSeg.normal_vector_);
+      normal_vectors_.push_back(baselineSeg.normal_vector_);
     }
   }
+}
 
+Transects Baseline::create_transects() {
+  std::vector<TransectLine> transect_lines;
   // smoothing the transects
-  if (smooth_factor < 0) {
+  auto smooth_factor = options_.smooth_factor;
+  if (options_.smooth_factor < 0) {
     throw std::runtime_error("smooth factor should no less than 0");
   }
-  for (size_t i = 0; i < normal_vectors.size(); i++) {
+  auto transect_length = options_.transect_length;
+  auto mode = options_.intersection_mode;
+  auto orient = options_.transect_orient;
+  int transect_id{0};
+  for (size_t i = 0; i < normal_vectors_.size(); i++) {
     size_t start = i;
-    size_t num = i + smooth_factor < normal_vectors.size()
+    size_t num = i + smooth_factor < normal_vectors_.size()
                      ? smooth_factor
-                     : normal_vectors.size() - start;
+                     : normal_vectors_.size() - start;
 
     double x = 0, y = 0;
-    for (size_t i = start; i < start + num; i++) {
-      x += normal_vectors.at(i).first;
-      y += normal_vectors.at(i).second;
+    for (size_t j = start; j < start + num; j++) {
+      x += normal_vectors_.at(j).first;
+      y += normal_vectors_.at(j).second;
     }
     auto smoothed_normal_vector = std::make_pair(x, y);
     if (smoothed_normal_vector.first == 0 &&
         smoothed_normal_vector.second == 0) {
-      smoothed_normal_vector.first = normal_vectors.at(i).first;
-      smoothed_normal_vector.second = normal_vectors.at(i).second;
+      smoothed_normal_vector.first = normal_vectors_.at(i).first;
+      smoothed_normal_vector.second = normal_vectors_.at(i).second;
     }
-    transects_lines_.emplace_back(
-        transects_base_points_.at(i), transect_length_, smoothed_normal_vector,
-        transect_id++, baseline_id_, image_id_, mode, orient);
+    transect_lines.emplace_back(transects_base_points_.at(i), transect_length,
+                                smoothed_normal_vector, transect_id++,
+                                baseline_id_, image_id_, mode, orient);
   }
+  return {baseline_id_, transect_lines};
 }
+
 Shoreline::Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
                      int shoreline_id, int year, int image_id)
     : shoreline_vertices_(shoreline_vertices),

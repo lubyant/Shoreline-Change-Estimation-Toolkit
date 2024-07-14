@@ -107,9 +107,9 @@ void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
       break;
     case dsas::Options::OutlierMetric::FrechetDistance:
       // remove the outliers based on frechet distance
-      for (size_t i = 0; i < copy.size(); i++) {
-        y.push_back(copy[i].frechet_distance_diff_);
-        x.push_back(copy[i].year_);
+      for (const auto &copy_e : copy) {
+        y.push_back(copy_e.frechet_distance_diff_);
+        x.push_back(copy_e.year_);
       }
       remove_outliers(x, y, options.outlier_rate);
       break;
@@ -455,15 +455,8 @@ gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
         baseline_vertices.emplace_back(point.getX(), point.getY());
       }
       int baseline_id{poFeature->GetFieldAsInteger(field_name.c_str())};
-      gm::Baseline baseline{baseline_vertices,
-                            options.transect_length,
-                            options.transect_spacing,
-                            baseline_id,
-                            baseline_id,
-                            options.transect_offset,
-                            options.smooth_factor,
-                            options.intersection_mode,
-                            options.transect_orient};
+      gm::Baseline baseline{baseline_vertices, baseline_id, baseline_id,
+                            options};
       baselines.push_back(std::move(baseline));
     } else {
       std::cout << "No geometry\n";
@@ -507,7 +500,7 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
   OGRSpatialReference *pszInputProj = poLayer->GetSpatialRef();
   OGRCoordinateTransformation *coordTransform;
   coordTransform = OGRCreateCoordinateTransformation(pszInputProj, &refSRS);
-  if (coordTransform == NULL) {
+  if (coordTransform == nullptr) {
     throw std::runtime_error("Failed to create coordinate transformation.\n");
   }
 
@@ -621,7 +614,7 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
 }
 void remove_same_year_intersections(
     std::vector<gm::IntersectPoint> &intersect_points,
-    const gm::IntersectionMode &mode) {
+    const dsas::Options::IntersectionMode &mode) {
   struct DateHash {
     std::size_t operator()(const boost::gregorian::date &d) const {
       constexpr std::hash<int> int_hash;
@@ -645,7 +638,7 @@ void remove_same_year_intersections(
     auto target_point = std::max_element(
         points.begin(), points.end(),
         [&](const gm::IntersectPoint &a, const gm::IntersectPoint &b) {
-          if (mode == gm::IntersectionMode::Closest) {
+          if (mode == dsas::Options::IntersectionMode::Closest) {
             return a.distance_to_ref_ >= b.distance_to_ref_;
           }
           return a.distance_to_ref_ < b.distance_to_ref_;

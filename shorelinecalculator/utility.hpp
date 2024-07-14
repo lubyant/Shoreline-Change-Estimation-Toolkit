@@ -12,7 +12,6 @@
 #include <filesystem>
 #include <functional>
 #include <future>
-#include <iomanip>
 #include <iostream>
 #include <numeric>
 #include <queue>
@@ -275,7 +274,7 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
                                    const std::string &baseline_proj);
 
 void remove_same_year_intersections(std::vector<gm::IntersectPoint> &,
-                                    const gm::IntersectionMode &);
+                                    const dsas::Options::IntersectionMode &);
 
 std::vector<gm::Point<>> get_subset_of_vertices(
     const std::vector<gm::Point<>> &line, const gm::Point<> &p1,

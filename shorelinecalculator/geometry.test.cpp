@@ -5,6 +5,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include "options.hpp"
 #include "shorelinecalculator.hpp"
 
 #define TOL 1e-4
@@ -112,8 +113,13 @@ struct BaselineTestConfig {
 BOOST_FIXTURE_TEST_SUITE(BaselineTest, BaselineTestConfig)
 BOOST_AUTO_TEST_CASE(test_baseline_transect_points1) {
   std::vector<Point<double>> points{{0, 0}, {0, 1}, {1, 1}, {1, 0}};
-  gm::IntersectionMode mode{gm::IntersectionMode::Closest};
-  auto baseline = std::make_unique<Baseline>(points, 10, 0.5, 0, 1, 0, 1, mode);
+  dsas::Options options;
+  options.transect_length = 10;
+  options.transect_spacing = 0.5;
+  options.transect_offset = 0;
+  options.smooth_factor = 1;
+  options.intersection_mode = dsas::Options::IntersectionMode::Closest;
+  auto baseline = std::make_unique<Baseline>(points, 0, 1, options);
   auto transects_points = baseline->transects_base_points_;
 
   BOOST_CHECK_EQUAL(transects_points.size(), 7);
@@ -127,9 +133,14 @@ BOOST_AUTO_TEST_CASE(test_baseline_transect_points1) {
 }
 
 BOOST_AUTO_TEST_CASE(test_baseline_transect_points2) {
-  gm::IntersectionMode mode{gm::IntersectionMode::Closest};
-  std::vector<Point<double>> points{{0, 0}, {0, 1}, {1, 1}, {1, 0}};
-  auto baseline = std::make_unique<Baseline>(points, 10, 1.5, 0, 1, 0, 1, mode);
+  std::vector<Point<>> points{{0, 0}, {0, 1}, {1, 1}, {1, 0}};
+  dsas::Options options;
+  options.transect_length = 10;
+  options.transect_spacing = 1.5;
+  options.transect_offset = 0;
+  options.smooth_factor = 1;
+  options.intersection_mode = dsas::Options::IntersectionMode::Closest;
+  auto baseline = std::make_unique<Baseline>(points, 0, 1, options);
   auto transects_points = baseline->transects_base_points_;
 
   BOOST_CHECK_EQUAL(transects_points.size(), 3);
@@ -143,9 +154,14 @@ BOOST_AUTO_TEST_CASE(test_baseline_transect_points2) {
 
 BOOST_AUTO_TEST_CASE(test_baseline_transect_lines) {
   std::vector<Point<double>> points{{0, 0}, {0, 1}, {1, 1}, {1, 0}};
-  gm::IntersectionMode mode{gm::IntersectionMode::Closest};
-  auto baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 1, 0, 0, mode);
-  auto transects_lines = baseline->transects_lines_;
+  dsas::Options options;
+  options.transect_length = 1;
+  options.transect_spacing = 0.5;
+  options.transect_offset = 0;
+  options.smooth_factor = 0;
+  options.intersection_mode = dsas::Options::IntersectionMode::Closest;
+  auto baseline = std::make_unique<Baseline>(points, 0, 1, options);
+  auto transects_lines = baseline->create_transects().transects_;
 
   BOOST_CHECK_EQUAL(transects_lines.size(), 7);
   double x[]{0.5, 0.5, 0.5, 0.5, 1, 0.5, 0.5};
@@ -158,12 +174,16 @@ BOOST_AUTO_TEST_CASE(test_baseline_transect_lines) {
 }
 
 BOOST_AUTO_TEST_CASE(test_baseline_transect_lines_right) {
-  std::vector<Point<double>> points{{0, 0}, {0, 1}, {1, 1}, {1, 0}};
-  gm::IntersectionMode mode{gm::IntersectionMode::Closest};
-  gm::TransectOrientation orient{gm::TransectOrientation::Right};
-  auto baseline =
-      std::make_unique<Baseline>(points, 1, 0.5, 0, 1, 0, 0, mode, orient);
-  auto transects_lines = baseline->transects_lines_;
+  std::vector<Point<>> points{{0, 0}, {0, 1}, {1, 1}, {1, 0}};
+  dsas::Options options;
+  options.transect_length = 1;
+  options.transect_spacing = 0.5;
+  options.transect_offset = 0;
+  options.smooth_factor = 0;
+  options.intersection_mode = dsas::Options::IntersectionMode::Closest;
+  options.transect_orient = dsas::Options::TransectOrientation::Right;
+  auto baseline = std::make_unique<Baseline>(points, 0, 1, options);
+  auto transects_lines = baseline->create_transects().transects_;
 
   // assert if the number of transects is correct
   BOOST_CHECK_EQUAL(transects_lines.size(), 7);
@@ -183,11 +203,15 @@ BOOST_AUTO_TEST_CASE(test_baseline_transect_lines_right) {
 
 BOOST_AUTO_TEST_CASE(test_baseline_transect_lines_mix) {
   std::vector<Point<double>> points{{0, 0}, {0, 1}, {1, 1}, {1, 0}};
-  gm::IntersectionMode mode{gm::IntersectionMode::Closest};
-  gm::TransectOrientation orient{gm::TransectOrientation::Mix};
-  auto baseline =
-      std::make_unique<Baseline>(points, 1, 0.5, 0, 1, 0, 0, mode, orient);
-  auto transects_lines = baseline->transects_lines_;
+  dsas::Options options;
+  options.transect_length = 1;
+  options.transect_spacing = 0.5;
+  options.transect_offset = 0;
+  options.smooth_factor = 0;
+  options.intersection_mode = dsas::Options::IntersectionMode::Closest;
+  options.transect_orient = dsas::Options::TransectOrientation::Mix;
+  auto baseline = std::make_unique<Baseline>(points, 0, 1, options);
+  auto transects_lines = baseline->create_transects().transects_;
 
   // assert if the number of transects is correct
   BOOST_CHECK_EQUAL(transects_lines.size(), 7);
@@ -207,11 +231,15 @@ BOOST_AUTO_TEST_CASE(test_baseline_transect_lines_mix) {
 
 BOOST_AUTO_TEST_CASE(test_baseline_transect_lines_left) {
   std::vector<Point<double>> points{{0, 0}, {0, 1}, {1, 1}, {1, 0}};
-  gm::IntersectionMode mode{gm::IntersectionMode::Closest};
-  gm::TransectOrientation orient{gm::TransectOrientation::Left};
-  auto baseline =
-      std::make_unique<Baseline>(points, 1, 0.5, 0, 1, 0, 0, mode, orient);
-  auto transects_lines = baseline->transects_lines_;
+  dsas::Options options;
+  options.transect_length = 1;
+  options.transect_spacing = 0.5;
+  options.transect_offset = 0;
+  options.smooth_factor = 0;
+  options.intersection_mode = dsas::Options::IntersectionMode::Closest;
+  options.transect_orient = dsas::Options::TransectOrientation::Left;
+  auto baseline = std::make_unique<Baseline>(points, 0, 1, options);
+  auto transects_lines = baseline->create_transects().transects_;
 
   BOOST_CHECK_EQUAL(transects_lines.size(), 7);
 
@@ -230,9 +258,14 @@ BOOST_AUTO_TEST_CASE(test_baseline_transect_lines_left) {
 
 BOOST_AUTO_TEST_CASE(test_baseline_transect_length1) {
   std::vector<Point<double>> points{{0, 0}, {0, 1}, {1, 1}, {1, 0}};
-  gm::IntersectionMode mode{gm::IntersectionMode::Closest};
-  auto baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1, 0, mode);
-  auto transects_lines = baseline->transects_lines_;
+  dsas::Options options;
+  options.transect_length = 1;
+  options.transect_spacing = 0.5;
+  options.transect_offset = 1;
+  options.smooth_factor = 0;
+  options.intersection_mode = dsas::Options::IntersectionMode::Closest;
+  auto baseline = std::make_unique<Baseline>(points, 0, 0, options);
+  auto transects_lines = baseline->create_transects().transects_;
   for (const auto &transect : transects_lines) {
     BOOST_CHECK_CLOSE(transect.leftEdge_.distance_to_point(transect.rightEdge_),
                       1, TOL);
@@ -241,9 +274,14 @@ BOOST_AUTO_TEST_CASE(test_baseline_transect_length1) {
 
 BOOST_AUTO_TEST_CASE(test_baseline_transect_length2) {
   std::vector<Point<double>> points{{0, 0}, {1, 1}, {2, 0}, {3, 1}};
-  gm::IntersectionMode mode{gm::IntersectionMode::Closest};
-  auto baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1, 0, mode);
-  auto transects_lines = baseline->transects_lines_;
+  dsas::Options options;
+  options.transect_length = 1;
+  options.transect_spacing = 0.5;
+  options.transect_offset = 1;
+  options.smooth_factor = 0;
+  options.intersection_mode = dsas::Options::IntersectionMode::Closest;
+  auto baseline = std::make_unique<Baseline>(points, 0, 0, options);
+  auto transects_lines = baseline->create_transects().transects_;
   for (const auto &transect : transects_lines) {
     BOOST_CHECK_CLOSE(transect.leftEdge_.distance_to_point(transect.rightEdge_),
                       1, TOL);
@@ -253,53 +291,66 @@ BOOST_AUTO_TEST_CASE(test_baseline_transect_length2) {
 BOOST_AUTO_TEST_CASE(test_baseline_smooth) {
   // TODO: need more test cases
   {
-    int smooth_factor{1};
     std::vector<Point<double>> points{{0, 0}, {1, 1}, {2, 0}, {3, 1}};
-    gm::IntersectionMode mode{gm::IntersectionMode::Closest};
-    auto baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1,
-                                               smooth_factor, mode);
+    dsas::Options options;
+    options.transect_length = 1;
+    options.transect_spacing = 0.5;
+    options.transect_offset = 1;
+    options.smooth_factor = 1;
+    options.intersection_mode = dsas::Options::IntersectionMode::Closest;
+    auto baseline = std::make_unique<Baseline>(points, 0, 0, options);
     BOOST_CHECK_EQUAL(baseline->baseline_vertices_.size(), 4);
-    double slope{baseline->transects_lines_[0].normal_vector_.first /
-                 baseline->transects_lines_[0].normal_vector_.second};
+    auto transect = baseline->create_transects().transects_[0];
+    double slope{transect.normal_vector_.first /
+                 transect.normal_vector_.second};
     BOOST_CHECK_CLOSE(slope, 1, TOL);
   }
   {
-    int smooth_factor{2};
-    std::vector<Point<double>> points{{0, 0}, {1, 1}, {2, 0}, {3, 1},
-                                      {3, 0}, {4, 1}, {4, 0}};
-    gm::IntersectionMode mode{gm::IntersectionMode::Closest};
-    auto baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1,
-                                               smooth_factor, mode);
+    std::vector<Point<>> points{{0, 0}, {1, 1}, {2, 0}, {3, 1},
+                                {3, 0}, {4, 1}, {4, 0}};
+    dsas::Options options;
+    options.transect_length = 1;
+    options.transect_spacing = 0.5;
+    options.transect_offset = 1;
+    options.smooth_factor = 2;
+    options.intersection_mode = dsas::Options::IntersectionMode::Closest;
+    auto baseline = std::make_unique<Baseline>(points, 0, 0, options);
     BOOST_CHECK_EQUAL(baseline->baseline_vertices_.size(), 7);
   }
   {
-    int smooth_factor{8};
     std::vector<Point<double>> points{{0, 0}, {1, 1}, {2, 0}, {3, 1},
                                       {3, 0}, {4, 1}, {4, 0}};
-    gm::IntersectionMode mode{gm::IntersectionMode::Closest};
-    auto baseline = std::make_unique<Baseline>(points, 1, 0.5, 0, 0, 1,
-                                               smooth_factor, mode);
+    dsas::Options options;
+    options.transect_length = 1;
+    options.transect_spacing = 0.5;
+    options.transect_offset = 1;
+    options.smooth_factor = 8;
+    options.intersection_mode = dsas::Options::IntersectionMode::Closest;
+    auto baseline = std::make_unique<Baseline>(points, 0, 0, options);
     BOOST_CHECK_EQUAL(baseline->baseline_vertices_.size(), 7);
   }
 }
 BOOST_AUTO_TEST_CASE(test_frechetdistance) {
   std::vector<Point<>> baseline_points{{0, 0}, {1, 0}, {2, 0},
                                        {3, 0}, {4, 0}, {5, 0}};
-  Baseline baseline{baseline_points, 10, 0.5, 0, 10, 0, 10};
-  Baselines baselines{baseline};
   dsas::Options options;
+  options.transect_length = 10;
+  options.transect_spacing = 0.5;
+  options.transect_offset = 0;
+  options.smooth_factor = 10;
+  options.intersection_mode = dsas::Options::IntersectionMode::Closest;
+  Baseline baseline{baseline_points, 0, 10, options};
+  Baselines baselines{baseline};
   auto transect_groups = dsas::generate_transects(baselines);
 
   std::vector<Point<>> shoreline1_points{
       {-0.5, 1}, {1.25, 1}, {1.5, 1},  {1.75, 1}, {2.25, 1},
       {2.5, 1},  {2.75, 1}, {3.25, 1}, {3.5, 1},  {3.75, 1},
-      {4.25, 1}, {4.5, 1},  {4.75, 1}
-  };
+      {4.25, 1}, {4.5, 1},  {4.75, 1}};
   std::vector<Point<>> shoreline2_points{
       {-0.5, 2}, {1.25, 2}, {1.5, 2},  {1.75, 2}, {2.25, 2},
       {2.5, 2},  {2.75, 2}, {3.25, 2}, {3.5, 2},  {3.75, 2},
-      {4.25, 2}, {4.5, 2},  {4.75, 2}
-  };
+      {4.25, 2}, {4.5, 2},  {4.75, 2}};
 
   Shoreline shoreline1{shoreline1_points, 0, 2000, 10};
   Shoreline shoreline2{shoreline2_points, 1, 2001, 10};
@@ -311,7 +362,7 @@ BOOST_AUTO_TEST_CASE(test_frechetdistance) {
   for (auto &transects : transect_groups) {
     for (auto &transect : transects.transects_) {
       transect.compute_frechet_dist();
-      for(const auto dist : transect.frechet_dist_) {
+      for (const auto dist : transect.frechet_dist_) {
         BOOST_CHECK_EQUAL(dist, 1);
       }
     }

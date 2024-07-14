@@ -18,6 +18,8 @@
 #include <utility>
 #include <vector>
 
+#include "options.hpp"
+
 // classes
 namespace gm {
 
@@ -27,6 +29,7 @@ struct Point;
 struct Shoreline;
 using Shorelines = std::vector<gm::Shoreline>;
 struct IntersectPoint;
+struct Transects;
 
 template <typename T>
 std::ostream &operator<<(std::ostream &os, const Point<T> &point);
@@ -39,9 +42,6 @@ struct MultiLine {
 
   virtual ~MultiLine() = default;
 };
-
-enum class IntersectionMode { Closest, Farthest };
-enum class TransectOrientation { Left, Right, Mix };
 
 template <typename... Arg>
 struct GDALShpSaver {
@@ -145,6 +145,8 @@ struct BaselineSeg : public LineSegment {
 struct TransectLine : public LineSegment,
                       MultiLine<Point<>>,
                       GDALShpSaver<transect_t> {
+  using IntersectionMode = dsas::Options::IntersectionMode;
+  using TransectOrientation = dsas::Options::TransectOrientation;
   Point<> transect_ref_point_;   // point to calculate the erosion
   Point<> transect_base_point_;  // point to generate the shapefile
   int transect_id_;
@@ -233,27 +235,24 @@ struct TransectLine : public LineSegment,
 struct Baseline : public MultiLine<Point<>>, GDALShpSaver<int, int> {
   using BaselinesVertex = Point<>;
 
-  double transect_length_;
-  double spacing_;
-  double offset_;
   int baseline_id_;
   int image_id_;
   std::vector<Point<>> transects_base_points_;
   std::vector<BaselinesVertex> baseline_vertices_;
-  std::vector<TransectLine> transects_lines_;
+  std::vector<TransectLine> *transects_lines_{nullptr};
+  std::vector<std::pair<double, double>> normal_vectors_;
 
-  Baseline(const std::vector<BaselinesVertex> &points, double transect_length,
-           double spacing, int baseline_id, int image_id, double offset,
-           int smooth_factor,
-           gm::IntersectionMode mode = gm::IntersectionMode::Closest,
-           gm::TransectOrientation orient = gm::TransectOrientation::Mix);
+  const dsas::Options &options_;
+
+  Baseline(const std::vector<BaselinesVertex> &points, int baseline_id,
+           int image_id, const dsas::Options &options);
 
   [[nodiscard]] size_t size() const override {
-    return transects_lines_.size();
+    return transects_lines_->size();
   };
 
   [[nodiscard]] const Point<> &operator[](size_t i) const override {
-    return transects_lines_.at(i).transect_ref_point_;
+    return transects_lines_->at(i).transect_ref_point_;
   }
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
@@ -267,6 +266,8 @@ struct Baseline : public MultiLine<Point<>>, GDALShpSaver<int, int> {
   [[nodiscard]] std::tuple<int, int> get_values() const override {
     return {baseline_id_, image_id_};
   }
+
+  Transects create_transects();
 };
 
 struct Shoreline : public MultiLine<Point<>>, GDALShpSaver<int, int> {

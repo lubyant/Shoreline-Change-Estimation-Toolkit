@@ -179,9 +179,13 @@ BOOST_AUTO_TEST_CASE(TestFrechetDistance) {
 BOOST_AUTO_TEST_CASE(Test_truncatebyintersect) {
   using namespace gm;
   std::vector<Point<>> baseline_points{{0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}};
-  Baseline baseline{baseline_points, 10, 0.5, 0, 10, 0, 10};
-  Baselines baselines{baseline};
   dsas::Options options;
+  options.transect_length = 10;
+  options.transect_spacing = 0.5;
+  options.transect_offset = 0;
+  options.smooth_factor = 10;
+  Baseline baseline{baseline_points, 0, 10, options};
+  Baselines baselines{baseline};
   auto transect_groups = dsas::generate_transects(baselines);
 
   std::vector<Point<>> shoreline1_points{
