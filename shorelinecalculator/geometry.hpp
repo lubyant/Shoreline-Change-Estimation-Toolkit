@@ -18,6 +18,8 @@
 #include <utility>
 #include <vector>
 
+#include "options.hpp"
+
 // classes
 namespace gm {
 
@@ -25,7 +27,9 @@ template <typename T = double>
 struct Point;
 
 struct Shoreline;
+using Shorelines = std::vector<gm::Shoreline>;
 struct IntersectPoint;
+struct Transects;
 
 template <typename T>
 std::ostream &operator<<(std::ostream &os, const Point<T> &point);
@@ -39,9 +43,6 @@ struct MultiLine {
   virtual ~MultiLine() = default;
 };
 
-enum class IntersectionMode { Closest, Farthest };
-enum class TransectOrientation { Left, Right, Mix };
-
 template <typename... Arg>
 struct GDALShpSaver {
   [[nodiscard]] virtual std::vector<std::string> get_names() const = 0;
@@ -53,9 +54,11 @@ struct GDALShpSaver {
 template <typename T>
 struct Point {
   T x, y;
+  size_t id_{};
 
   Point() : x(0), y(0){};
   Point(T x, T y) : x(x), y(y) {}
+  Point(T x, T y, size_t id) : x(x), y(y), id_(id) {}
 
   Point(const Point &point) = default;
   Point(Point &&point) noexcept = default;
@@ -64,7 +67,7 @@ struct Point {
   Point &operator=(Point &&point) = default;
 
   friend std::ostream &operator<< <T>(std::ostream &os, const Point<T> &point);
-  friend bool operator==(Point<T> &point1, Point<T> &point2) {
+  friend bool operator==(const Point<T> &point1, const Point<T> &point2) {
     return (point1.x == point2.x) && (point1.y == point2.y);
   }
 
@@ -140,10 +143,12 @@ struct BaselineSeg : public LineSegment {
 
 #define transect_t int, int, int, double, int, const char *
 struct TransectLine : public LineSegment,
-                      MultiLine<Point<double>>,
+                      MultiLine<Point<>>,
                       GDALShpSaver<transect_t> {
-  Point<double> transect_ref_point_;   // point to calculate the erosion
-  Point<double> transect_base_point_;  // point to generate the shapefile
+  using IntersectionMode = dsas::Options::IntersectionMode;
+  using TransectOrientation = dsas::Options::TransectOrientation;
+  Point<> transect_ref_point_;   // point to calculate the erosion
+  Point<> transect_base_point_;  // point to generate the shapefile
   int transect_id_;
   int baseline_id_;
   int image_id_;
@@ -152,6 +157,11 @@ struct TransectLine : public LineSegment,
   double change_rate{};           // change rate for all the intersections
   IntersectionMode mode_;
   TransectOrientation orient_;
+  std::unordered_map<int, IntersectPoint *> year_intersect_map_;
+  std::vector<Shoreline> shoreline_segs_;  // the shoreline segments nearby
+  std::vector<double> frechet_dist_;
+
+  TransectLine *prev_transect_line{nullptr}, *next_transect_line{nullptr};
 
   TransectLine(Point<> &transect_base, double transect_length,
                std::pair<double, double> baseline_normal_vector,
@@ -175,6 +185,9 @@ struct TransectLine : public LineSegment,
     }
   }
 
+  void truncate_shoreline_seg();
+  void compute_frechet_dist();
+
   static LineSegment create_transect(
       Point<> &transect_base, std::pair<double, double> baseline_normal_vector,
       double transect_length, TransectOrientation orient);
@@ -182,7 +195,7 @@ struct TransectLine : public LineSegment,
   [[nodiscard]] std::optional<IntersectPoint> intersection(
       const Shoreline &shoreline) const;
 
-  double distance2ref(Point<double> &point) const {
+  double distance2ref(Point<> &point) const {
     return transect_ref_point_.distance_to_point(point);
   }
 
@@ -191,7 +204,7 @@ struct TransectLine : public LineSegment,
 
   [[nodiscard]] size_t size() const override { return 3; }
 
-  [[nodiscard]] const Point<double> &operator[](size_t i) const override {
+  [[nodiscard]] const Point<> &operator[](size_t i) const override {
     switch (i) {
       case 0:
         return leftEdge_;
@@ -219,30 +232,27 @@ struct TransectLine : public LineSegment,
   }
 };
 
-struct Baseline : public MultiLine<Point<double>>, GDALShpSaver<int, int> {
-  using BaselinesVertex = Point<double>;
+struct Baseline : public MultiLine<Point<>>, GDALShpSaver<int, int> {
+  using BaselinesVertex = Point<>;
 
-  double transect_length_;
-  double spacing_;
-  double offset_;
   int baseline_id_;
   int image_id_;
-  std::vector<Point<double>> transects_base_points_;
+  std::vector<Point<>> transects_base_points_;
   std::vector<BaselinesVertex> baseline_vertices_;
-  std::vector<TransectLine> transects_lines_;
+  std::vector<TransectLine> *transects_lines_{nullptr};
+  std::vector<std::pair<double, double>> normal_vectors_;
 
-  Baseline(const std::vector<BaselinesVertex> &points, double transect_length,
-           double spacing, int baseline_id, int image_id, double offset,
-           int smooth_factor,
-           gm::IntersectionMode mode = gm::IntersectionMode::Closest,
-           gm::TransectOrientation orient = gm::TransectOrientation::Mix);
+  const dsas::Options &options_;
+
+  Baseline(const std::vector<BaselinesVertex> &points, int baseline_id,
+           int image_id, const dsas::Options &options);
 
   [[nodiscard]] size_t size() const override {
-    return transects_lines_.size();
+    return transects_lines_->size();
   };
 
-  [[nodiscard]] const Point<double> &operator[](size_t i) const override {
-    return transects_lines_.at(i).transect_ref_point_;
+  [[nodiscard]] const Point<> &operator[](size_t i) const override {
+    return transects_lines_->at(i).transect_ref_point_;
   }
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
@@ -256,28 +266,35 @@ struct Baseline : public MultiLine<Point<double>>, GDALShpSaver<int, int> {
   [[nodiscard]] std::tuple<int, int> get_values() const override {
     return {baseline_id_, image_id_};
   }
+
+  Transects create_transects();
 };
 
-struct Shoreline : public MultiLine<Point<double>>, GDALShpSaver<int, int> {
+struct Shoreline : public MultiLine<Point<>>, GDALShpSaver<int, int> {
   std::vector<gm::Point<double>> shoreline_vertices_;  // shoreline vertices
   int shoreline_id_{};                                 // shoreline id
   int year_{};                                         // shoreline year
   int image_id_{};
   boost::gregorian::date date_{};
 
-  Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
-            int shoreline_id, int year, int image_id);
+  Shoreline(std::vector<gm::Point<>> &shoreline_vertices, int shoreline_id,
+            int year, int image_id);
 
-  Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
-            int shoreline_id, boost::gregorian::date date, int image_id);
+  Shoreline(std::vector<gm::Point<>> &shoreline_vertices, int shoreline_id,
+            boost::gregorian::date date, int image_id);
 
   Shoreline() = default;
+
+  inline friend bool operator==(const Shoreline &a, const Shoreline &b) {
+    return (a.image_id_ == b.image_id_) && (a.year_ == b.year_) &&
+           (a.shoreline_id_ == b.shoreline_id_);
+  }
 
   [[nodiscard]] size_t size() const override {
     return shoreline_vertices_.size();
   }
 
-  [[nodiscard]] const Point<double> &operator[](size_t i) const override {
+  [[nodiscard]] const Point<> &operator[](size_t i) const override {
     return shoreline_vertices_[i];
   }
 
@@ -294,19 +311,24 @@ struct Shoreline : public MultiLine<Point<double>>, GDALShpSaver<int, int> {
   }
 };
 
-#define IntersectPoint_t int, int, int, int, int, double, double, double
-struct IntersectPoint : public Point<double>, GDALShpSaver<IntersectPoint_t> {
+#define IntersectPoint_t int, int, int, int, int, double, double, double, double
+struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
   int image_id_;
   int transect_id_;
   int shoreline_id_;
   int baseline_id_;
   int year_;
   boost::gregorian::date date_;
-  double distance_to_ref_;
+  double distance_to_ref_{-1};
+  double frechet_distance_diff_{-1};  // the frechet distance difference between
+                                      // year[i-1], year[i], year[i+1]
+  const TransectLine *transect_line_ptr_{nullptr};
+  const Shoreline *shoreline_ptr_{nullptr};  // the shoreline intersect stands
 
   IntersectPoint(Point<double> point, int transect_id, int shoreline_id,
                  int baseline_id, int image_id, int year,
-                 double distance_to_ref)
+                 double distance_to_ref, const TransectLine *transect_line_ptr,
+                 const Shoreline *shoreline_ptr)
       : Point<double>(point),
         transect_id_(transect_id),
         shoreline_id_(shoreline_id),
@@ -314,18 +336,21 @@ struct IntersectPoint : public Point<double>, GDALShpSaver<IntersectPoint_t> {
         image_id_(image_id),
         year_(year),
         date_(year_, 1, 1),
-        distance_to_ref_(distance_to_ref) {}
+        distance_to_ref_(distance_to_ref),
+        transect_line_ptr_(transect_line_ptr),
+        shoreline_ptr_(shoreline_ptr) {}
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
-    return {"BaselineId", "TransectId", "ShoreID", "ImageID",
-            "Year",       "Dist",       "X",       "Y"};
+    return {"BaselineId", "TransectId", "ShoreID", "ImageID", "Year",
+            "base_dist",  "fre_dist",   "X",       "Y"};
   }
 
   [[nodiscard]] std::vector<OGRFieldType> get_types() const override {
     return {OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
             OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
             OGRFieldType::OFTInteger, OGRFieldType::OFTReal,
-            OGRFieldType::OFTReal,    OGRFieldType::OFTReal};
+            OGRFieldType::OFTReal,    OGRFieldType::OFTReal,
+            OGRFieldType::OFTReal};
   }
 
   [[nodiscard]] std::tuple<IntersectPoint_t> get_values() const override {
@@ -335,21 +360,20 @@ struct IntersectPoint : public Point<double>, GDALShpSaver<IntersectPoint_t> {
             image_id_,
             year_,
             distance_to_ref_,
+            frechet_distance_diff_,
             x,
             y};
   }
 };
 
+using Path = std::filesystem::path;
+using Baselines = std::vector<Baseline>;
 struct Transects {
   int baseline_id_;
   std::vector<TransectLine> transects_;
 };
-
-using Path = std::filesystem::path;
-using Baselines = std::vector<Baseline>;
-
 using TransectGroups = std::vector<Transects>;
-using Shorelines = std::vector<gm::Shoreline>;
+
 }  // namespace gm
 
 #endif  // SHORELINECALCULATOR_GEOMETRY_HPP

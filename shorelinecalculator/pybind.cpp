@@ -7,7 +7,7 @@ namespace py = pybind11;
 void generate_result_from_folder(const std::string &input_folder,
                                  const std::string &output_folder,
                                  const dsas::Options &options) {
-  dsas::digital_shoreline_analysis_system(input_folder, output_folder, options);
+  digital_shoreline_analysis_system(input_folder, output_folder, options);
 }
 
 void generate_result_from_image(const std::string &image_path,
@@ -29,28 +29,28 @@ PYBIND11_MODULE(cppext, m) {
         "function take string of input folder and outputfoler\n");
   m.def("generate_result_from_image", &generate_result_from_image,
         "function take string of input image path and outputfoler\n");
+  using namespace dsas;
 
-  py::enum_<gm::IntersectionMode>(m, "IntersectionMode")
-      .value("Closest", gm::IntersectionMode::Closest)
-      .value("Farthest", gm::IntersectionMode::Farthest)
+  py::enum_<Options::IntersectionMode>(m, "IntersectionMode")
+      .value("Closest", Options::IntersectionMode::Closest)
+      .value("Farthest", Options::IntersectionMode::Farthest)
       .export_values();
 
-  py::enum_<gm::TransectOrientation>(m, "TransectOrientation")
-      .value("Mix", gm::TransectOrientation::Mix)
-      .value("Left", gm::TransectOrientation::Left)
-      .value("Right", gm::TransectOrientation::Right)
+  py::enum_<Options::TransectOrientation>(m, "TransectOrientation")
+      .value("Mix", Options::TransectOrientation::Mix)
+      .value("Left", Options::TransectOrientation::Left)
+      .value("Right", Options::TransectOrientation::Right)
       .export_values();
   py::class_<dsas::Options>(m, "Options")
       .def(py::init<>())  // Default constructor
-      .def_readwrite("smooth_factor", &dsas::Options::smooth_factor)
-      .def_readwrite("edge_distance", &dsas::Options::edge_distance)
-      .def_readwrite("shoreline_least_factor",
-                     &dsas::Options::shoreline_least_factor)
-      .def_readwrite("transect_length", &dsas::Options::transect_length)
-      .def_readwrite("transect_spacing", &dsas::Options::transect_spacing)
-      .def_readwrite("transect_offset", &dsas::Options::transect_offset)
-      .def_readwrite("outlier_rate", &dsas::Options::outlier_rate)
-      .def_readwrite("thread_num", &dsas::Options::thread_num)
-      .def_readwrite("intersection_mode", &dsas::Options::intersection_mode)
-      .def_readwrite("transect_orient", &dsas::Options::transect_orient);
+      .def_readwrite("smooth_factor", &Options::smooth_factor)
+      .def_readwrite("edge_distance", &Options::edge_distance)
+      .def_readwrite("shoreline_least_factor", &Options::shoreline_least_factor)
+      .def_readwrite("transect_length", &Options::transect_length)
+      .def_readwrite("transect_spacing", &Options::transect_spacing)
+      .def_readwrite("transect_offset", &Options::transect_offset)
+      .def_readwrite("outlier_rate", &Options::outlier_rate)
+      .def_readwrite("thread_num", &Options::thread_num)
+      .def_readwrite("intersection_mode", &Options::intersection_mode)
+      .def_readwrite("transect_orient", &Options::transect_orient);
 }

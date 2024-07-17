@@ -12,7 +12,6 @@
 #include <filesystem>
 #include <functional>
 #include <future>
-#include <iomanip>
 #include <iostream>
 #include <numeric>
 #include <queue>
@@ -94,7 +93,8 @@ bool isTwoSegmentIntersected(const gm::Point<T> &p1, const gm::Point<T> &p2,
 }
 
 void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
-                       gm::TransectLine &transect, double outlier_rate);
+                       gm::TransectLine &transect,
+                       const dsas::Options &options);
 
 template <typename T>
 gm::Point<T> computeIntersectPoint(const gm::Point<T> &p1,
@@ -190,7 +190,6 @@ void save_lines(std::vector<T> &lines, const char *pszProj,
       GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
 
   // Step 3: Create a new shapefile
-  std::cout << output_path << std::endl;
   GDALDataset *dataset = driver->Create(output_path.string().c_str(), 0, 0, 0,
                                         GDT_Unknown, nullptr);
   if (!dataset) {
@@ -262,6 +261,9 @@ std::string get_shp_proj(const char *path);
 void remove_outliers(std::vector<double> &x, std::vector<double> &y,
                      double threshold);
 
+void remove_outliers(std::vector<gm::IntersectPoint> & intersects,
+                     const dsas::Options &options);
+
 gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
                                  const std::string &field_name,
                                  const dsas::Options &options);
@@ -273,8 +275,21 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
 gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
                                    const std::string &baseline_proj);
 
-std::vector<gm::IntersectPoint> remove_same_year_intersections(
-    const std::vector<gm::IntersectPoint> &, const gm::IntersectionMode &);
+void remove_same_year_intersections(std::vector<gm::IntersectPoint> &,
+                                    const dsas::Options::IntersectionMode &);
 
+std::vector<gm::Point<>> get_subset_of_vertices(
+    const std::vector<gm::Point<>> &line, const gm::Point<> &p1,
+    const gm::Point<> &p2);
+
+std::optional<gm::Shoreline> truncate_shore_by_transect(
+    const gm::TransectLine &tran1, const gm::TransectLine &tran2,
+    const gm::Shoreline &shoreline);
+
+std::optional<gm::Shoreline> truncate_shore_by_intersect(
+    const gm::IntersectPoint &intersect);
+
+double frechet_distance(std::vector<gm::Point<>> line1,
+                        std::vector<gm::Point<>> line2);
 }  // namespace util
 #endif  // SHORELINECALCULATOR_UTILITY_HPP

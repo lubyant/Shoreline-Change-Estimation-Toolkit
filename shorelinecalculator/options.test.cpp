@@ -10,11 +10,13 @@ BOOST_AUTO_TEST_CASE(TestDefault) {
   BOOST_CHECK_EQUAL(options.transect_spacing, 30);
   BOOST_CHECK_EQUAL(options.transect_offset, 0);
   BOOST_CHECK_EQUAL(options.outlier_rate, 3);
-  BOOST_CHECK(options.intersection_mode == gm::IntersectionMode::Closest);
-  BOOST_CHECK(options.transect_orient == gm::TransectOrientation::Mix);
+  BOOST_CHECK(options.intersection_mode ==
+              dsas::Options::IntersectionMode::Closest);
+  BOOST_CHECK(options.transect_orient ==
+              dsas::Options::TransectOrientation::Mix);
   BOOST_CHECK_EQUAL(options.thread_num, std::thread::hardware_concurrency());
 }
-BOOST_AUTO_TEST_CASE(JsonInput){
+BOOST_AUTO_TEST_CASE(JsonInput) {
   std::string json_string = R"(
     {
       "options":{
@@ -32,8 +34,8 @@ BOOST_AUTO_TEST_CASE(JsonInput){
     }
   )";
   boost::system::error_code ec;
-  auto json_value  = boost::json::parse(json_string, ec);
-  if (ec){
+  auto json_value = boost::json::parse(json_string, ec);
+  if (ec) {
     std::cerr << "json parser err\n";
     BOOST_CHECK(false);
   }
@@ -46,7 +48,9 @@ BOOST_AUTO_TEST_CASE(JsonInput){
   BOOST_CHECK_EQUAL(options.transect_offset, 10.0);
   BOOST_CHECK_EQUAL(options.outlier_rate, 10.0);
   BOOST_CHECK_EQUAL(options.thread_num, 100);
-  BOOST_CHECK(options.intersection_mode==gm::IntersectionMode::Farthest);
-  BOOST_CHECK(options.transect_orient==gm::TransectOrientation::Left);
+  BOOST_CHECK(options.intersection_mode ==
+              dsas::Options::IntersectionMode::Farthest);
+  BOOST_CHECK(options.transect_orient ==
+              dsas::Options::TransectOrientation::Left);
 }
 BOOST_AUTO_TEST_SUITE_END()

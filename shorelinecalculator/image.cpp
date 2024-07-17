@@ -193,17 +193,18 @@ void Image::transform_coordinates() {
   bottom_left_.y = bottom_right_.y;
 
   for (auto &shoreline : shorelines_) {
+    size_t id{0};
     std::transform(
         shoreline.shoreline_vertices_.begin(),
         shoreline.shoreline_vertices_.end(),
         shoreline.shoreline_vertices_.begin(),
-        [adfGeoTransform](const gm::Point<> &point) {
+        [adfGeoTransform, &id](const gm::Point<> &point) {
           const double i = point.x, j = point.y;
           const double X_geo = adfGeoTransform[0] + i * adfGeoTransform[1] +
                                j * adfGeoTransform[2];
           const double Y_geo = adfGeoTransform[3] + i * adfGeoTransform[4] +
                                j * adfGeoTransform[5];
-          return gm::Point<double>(X_geo, Y_geo);
+          return gm::Point<double>(X_geo, Y_geo, id++);
         });
   }
   GDALClose(poDataset);
@@ -264,14 +265,8 @@ gm::Baselines Image::merge_baselines_from_images(
     if (shoreline.shoreline_vertices_.empty()) {
       continue;
     }
-    double transect_length{options.transect_length};
-    double spacing{options.transect_spacing};
-    double offset{options.transect_offset};
-    int smooth_factor{options.smooth_factor};
-    gm::IntersectionMode mode{options.intersection_mode};
-    baselines.emplace_back(shoreline.shoreline_vertices_, transect_length,
-                           spacing, baseline_id++, shoreline.image_id_, offset,
-                           smooth_factor, mode);
+    baselines.emplace_back(shoreline.shoreline_vertices_, baseline_id++,
+                           shoreline.image_id_, options);
   }
   return baselines;
 }

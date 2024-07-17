@@ -3,7 +3,11 @@
 //
 #include "utility.hpp"
 
+#include <cassert>
+#include <limits>
 #include <unordered_set>
+
+#define MAX_DOUBLE std::numeric_limits<double>::max()
 
 namespace util {
 
@@ -45,7 +49,8 @@ ThreadPool::~ThreadPool() {
 }
 
 void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
-                       gm::TransectLine &transect, double outlier_rate) {
+                       gm::TransectLine &transect,
+                       const dsas::Options &options) {
   // if no intersection
   if (intersections.empty()) {
     throw std::runtime_error("It should not empty");
@@ -59,7 +64,7 @@ void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
     return;
   }
 
-  // sort the vector
+  // copy the intersections and sort the vector
   std::vector<gm::IntersectPoint> copy = intersections;
   std::sort(copy.begin(), copy.end(),
             [](const gm::IntersectPoint &a, const gm::IntersectPoint &b) {
@@ -78,12 +83,16 @@ void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
     transect.intersect_info_ = ss.str();
   }
 
-  // if more than two intersections
-  // first remove outlier
-  // , then compute the rates for consecutive years
-  // and set the value to transect
-  std::vector<double> y{copy[0].distance_to_ref_};
-  std::vector<double> x{static_cast<double>(copy[0].year_)};
+  /*
+  if more than two intersections first remove outlier, then compute the
+   rates for consecutive years and set the value to transect
+  */
+  remove_outliers(copy, options);
+
+  // change rate
+  std::vector<double> y, x;
+  y.push_back(copy[0].distance_to_ref_);
+  x.push_back(static_cast<double>(copy[0].year_));
   for (size_t i = 1; i < copy.size(); ++i) {
     int yearChange = copy[i].year_ - copy[i - 1].year_;
 
@@ -91,15 +100,9 @@ void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
       // Prevent division by zero
       continue;
     }
-
     x.push_back(copy[i].year_);
     y.push_back(copy[i].distance_to_ref_);
   }
-
-  // remove the outliers
-  remove_outliers(x, y, outlier_rate);
-
-  // change rate
   transect.set_info(x, y);
 }
 
@@ -399,6 +402,69 @@ void remove_outliers(std::vector<double> &x, std::vector<double> &y,
   }
 }
 
+void remove_outliers(std::vector<gm::IntersectPoint> &intersects,
+                     const dsas::Options &options) {
+  double standard_dev;
+  double mean;
+  switch (options.outlier_metric) {
+    case dsas::Options::OutlierMetric::None:
+      return;
+    case dsas::Options::OutlierMetric::FrechetDistance:
+      // compute the standard deviation
+      mean =
+          std::accumulate(intersects.begin(), intersects.end(), 0.0,
+                          [](int pre_sum, const gm::IntersectPoint &intersect) {
+                            return pre_sum + intersect.frechet_distance_diff_;
+                          }) /
+          static_cast<double>(intersects.size());
+      standard_dev = std::sqrt(
+          std::accumulate(
+              intersects.begin(), intersects.end(), 0.0,
+              [mean](double pre_sum, const gm::IntersectPoint &intersect) {
+                return pre_sum + (intersect.frechet_distance_diff_ - mean) *
+                                     (intersect.frechet_distance_diff_ - mean);
+              }) /
+          static_cast<double>(intersects.size() - 1));
+      // remove outlier
+      for (size_t i = 0; i < intersects.size(); i++) {
+        if (std::abs(intersects[i].frechet_distance_diff_ - mean) >
+            options.outlier_rate * standard_dev) {
+          intersects.erase(intersects.begin() + i);
+          i--;
+        }
+      }
+      break;
+    case dsas::Options::OutlierMetric::BaseDistance:
+      // remove the outliers based on base distance
+      mean =
+          std::accumulate(intersects.begin(), intersects.end(), 0.0,
+                          [](int pre_sum, const gm::IntersectPoint &intersect) {
+                            return pre_sum + intersect.distance_to_ref_;
+                          }) /
+          static_cast<double>(intersects.size());
+      standard_dev = std::sqrt(
+          std::accumulate(
+              intersects.begin(), intersects.end(), 0.0,
+              [mean](double pre_sum, const gm::IntersectPoint &intersect) {
+                return pre_sum + (intersect.distance_to_ref_ - mean) *
+                                     (intersect.distance_to_ref_ - mean);
+              }) /
+          static_cast<double>(intersects.size() - 1));
+      // remove outlier
+      for (size_t i = 0; i < intersects.size(); i++) {
+        if (std::abs(intersects[i].distance_to_ref_ - mean) >
+            options.outlier_rate * standard_dev) {
+          intersects.erase(intersects.begin() + i);
+          i--;
+        }
+      }
+      break;
+    default:
+      std::cerr << __FILE__;
+      throw std::runtime_error(": not a valid metric");
+  }
+}
+
 gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
                                  const std::string &field_name,
                                  const dsas::Options &options) {
@@ -437,15 +503,8 @@ gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
         baseline_vertices.emplace_back(point.getX(), point.getY());
       }
       int baseline_id{poFeature->GetFieldAsInteger(field_name.c_str())};
-      gm::Baseline baseline{baseline_vertices,
-                            options.transect_length,
-                            options.transect_spacing,
-                            baseline_id,
-                            baseline_id,
-                            options.transect_offset,
-                            options.smooth_factor,
-                            options.intersection_mode,
-                            options.transect_orient};
+      gm::Baseline baseline{baseline_vertices, baseline_id, baseline_id,
+                            options};
       baselines.push_back(std::move(baseline));
     } else {
       std::cout << "No geometry\n";
@@ -489,7 +548,7 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
   OGRSpatialReference *pszInputProj = poLayer->GetSpatialRef();
   OGRCoordinateTransformation *coordTransform;
   coordTransform = OGRCreateCoordinateTransformation(pszInputProj, &refSRS);
-  if (coordTransform == NULL) {
+  if (coordTransform == nullptr) {
     throw std::runtime_error("Failed to create coordinate transformation.\n");
   }
 
@@ -559,7 +618,7 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
   OGRSpatialReference *pszInputProj = poLayer->GetSpatialRef();
   OGRCoordinateTransformation *coordTransform;
   coordTransform = OGRCreateCoordinateTransformation(pszInputProj, &refSRS);
-  if (coordTransform == NULL) {
+  if (coordTransform == nullptr) {
     throw std::runtime_error("Failed to create coordinate transformation.\n");
   }
 
@@ -601,9 +660,9 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
 
   return shorelines;
 }
-std::vector<gm::IntersectPoint> remove_same_year_intersections(
-    const std::vector<gm::IntersectPoint> &intersect_points,
-    const gm::IntersectionMode &mode) {
+void remove_same_year_intersections(
+    std::vector<gm::IntersectPoint> &intersect_points,
+    const dsas::Options::IntersectionMode &mode) {
   struct DateHash {
     std::size_t operator()(const boost::gregorian::date &d) const {
       constexpr std::hash<int> int_hash;
@@ -616,23 +675,167 @@ std::vector<gm::IntersectPoint> remove_same_year_intersections(
       return d1 == d2;
     }
   };
-  std::unordered_map<boost::gregorian::date, std::vector<gm::IntersectPoint>, DateHash, DateEqual>
+  std::unordered_map<boost::gregorian::date, std::vector<gm::IntersectPoint>,
+                     DateHash, DateEqual>
       avail_dates;
-  for(const auto& point: intersect_points) {
+  for (const auto &point : intersect_points) {
     avail_dates[point.date_].push_back(point);
   }
   std::vector<gm::IntersectPoint> new_intersects;
-  for(auto &[date, points]: avail_dates) {
-    auto target_point = std::max_element(points.begin(),
-      points.end(), [&](const gm::IntersectPoint& a,
-        const gm::IntersectPoint &b) {
-        if (mode == gm::IntersectionMode::Closest) {
-          return a.distance_to_ref_ >= b.distance_to_ref_;
-        }
-        return a.distance_to_ref_ < b.distance_to_ref_;
-      });
+  for (auto &[date, points] : avail_dates) {
+    auto target_point = std::max_element(
+        points.begin(), points.end(),
+        [&](const gm::IntersectPoint &a, const gm::IntersectPoint &b) {
+          if (mode == dsas::Options::IntersectionMode::Closest) {
+            return a.distance_to_ref_ >= b.distance_to_ref_;
+          }
+          return a.distance_to_ref_ < b.distance_to_ref_;
+        });
     new_intersects.push_back(std::move(*target_point));
   }
-  return new_intersects;
+  intersect_points = std::move(new_intersects);
+}
+std::vector<gm::Point<>> get_subset_of_vertices(
+    const std::vector<gm::Point<>> &line, const gm::Point<> &p1,
+    const gm::Point<> &p2) {
+  auto isBefore = [](const gm::Point<> &a, const gm::Point<> &b) {
+    return a.x < b.x || (a.x == b.x && a.y < b.y);
+  };
+
+  gm::Point<> before_p1, after_p1, before_p2, after_p2;
+
+  double min_dist_before_p1{MAX_DOUBLE}, min_dist_after_p1{MAX_DOUBLE},
+      min_dist_before_p2{MAX_DOUBLE}, min_dist_after_p2{MAX_DOUBLE};
+  for (const auto &vertex : line) {
+    if (isBefore(vertex, p1)) {
+      auto dist = vertex.distance_to_point((p1));
+      if (dist < min_dist_before_p1) {
+        before_p1 = vertex;
+        min_dist_before_p1 = dist;
+      }
+    } else {
+      auto dist = vertex.distance_to_point((p1));
+      if (dist < min_dist_after_p1) {
+        after_p1 = vertex;
+        min_dist_after_p1 = dist;
+      }
+    }
+
+    if (isBefore(vertex, p2)) {
+      auto dist = vertex.distance_to_point((p2));
+      if (dist < min_dist_before_p2) {
+        before_p2 = vertex;
+        min_dist_before_p2 = dist;
+      }
+    } else {
+      auto dist = vertex.distance_to_point((p2));
+      if (dist < min_dist_after_p2) {
+        after_p2 = vertex;
+        min_dist_after_p2 = dist;
+      }
+    }
+  }
+
+  auto it1 = std::find(line.begin(), line.end(), before_p1);
+  auto it2 = std::find(line.begin(), line.end(), after_p1);
+  auto it3 = std::find(line.begin(), line.end(), before_p2);
+  auto it4 = std::find(line.begin(), line.end(), after_p2);
+
+  if (isBefore(p1, p2)) {
+    if (it2 < it3) {
+      return {it2, it3 + 1};
+    }
+    return {it3, it2 + 1};
+  }
+
+  if (it4 < it1) {
+    return {it4, it1 + 1};
+  }
+  return {it1, it4 + 1};
+}
+std::optional<gm::Shoreline> truncate_shore_by_transect(
+    const gm::TransectLine &tran1, const gm::TransectLine &tran2,
+    const gm::Shoreline &shoreline) {
+  auto vertices = shoreline.shoreline_vertices_;
+  auto year = shoreline.year_;
+  auto year_intersect_map1 = tran1.year_intersect_map_;
+  auto year_intersect_map2 = tran2.year_intersect_map_;
+  if (year_intersect_map1.find(year) != year_intersect_map1.end() &&
+      year_intersect_map2.find(year) != year_intersect_map2.end()) {
+    gm::Shoreline ret_shoreline = shoreline;
+    auto intersect1 = year_intersect_map1[year];
+    auto intersect2 = year_intersect_map2[year];
+    ret_shoreline.shoreline_vertices_ =
+        std::move(get_subset_of_vertices(vertices, *intersect1, *intersect2));
+    return ret_shoreline;
+  }
+  return std::nullopt;
+}
+
+std::optional<gm::Shoreline> truncate_shore_by_intersect(
+    const gm::IntersectPoint &intersect) {
+  auto *transect_line = intersect.transect_line_ptr_;
+  assert(transect_line->prev_transect_line != nullptr ||
+         transect_line->next_transect_line != nullptr);
+  const auto year = intersect.year_;
+
+  auto *prev_transect{transect_line}, *next_transect{transect_line};
+
+  if (transect_line->prev_transect_line != nullptr) {
+    prev_transect = transect_line->prev_transect_line;
+  }
+  if (transect_line->next_transect_line != nullptr) {
+    next_transect = transect_line->next_transect_line;
+  }
+  if (prev_transect->year_intersect_map_.find(year) ==
+          prev_transect->year_intersect_map_.end() ||
+      next_transect->year_intersect_map_.find(year) ==
+          next_transect->year_intersect_map_.end()) {
+    return std::nullopt;
+  }
+  const gm::IntersectPoint *prev_intersect =
+      prev_transect->year_intersect_map_.find(year)->second;
+  const gm::IntersectPoint *next_intersect =
+      (next_transect->year_intersect_map_).find(year)->second;
+  if (prev_intersect->shoreline_ptr_ != next_intersect->shoreline_ptr_) {
+    return std::nullopt;
+  }
+  gm::Shoreline truncate_shoreline = *(prev_intersect->shoreline_ptr_);
+  auto vertices = prev_intersect->shoreline_ptr_->shoreline_vertices_;
+  truncate_shoreline.shoreline_vertices_ = std::move(
+      get_subset_of_vertices(vertices, *prev_intersect, *next_intersect));
+  return truncate_shoreline;
+}
+
+double frechet_distance(std::vector<gm::Point<>> line1,
+                        std::vector<gm::Point<>> line2) {
+  size_t m = line1.size();
+  size_t n = line2.size();
+  std::vector<std::vector<double>> D(m, std::vector<double>(n, 0.0));
+  for (int i = 0; i < m; ++i) {
+    for (int j = 0; j < n; ++j) {
+      D[i][j] = line1[i].distance_to_point(line2[j]);
+    }
+  }
+  // Initialize matrix F
+  std::vector<std::vector<double>> F(m, std::vector<double>(n, -1.0));
+  F[0][0] = D[0][0];
+  // Initialize first row and first column of F
+  for (int i = 1; i < m; ++i) {
+    F[i][0] = std::max(F[i - 1][0], D[i][0]);
+  }
+  for (int j = 1; j < n; ++j) {
+    F[0][j] = std::max(F[0][j - 1], D[0][j]);
+  }
+
+  // Fill in the rest of F
+  for (int i = 1; i < m; ++i) {
+    for (int j = 1; j < n; ++j) {
+      F[i][j] = std::max(std::min({F[i - 1][j], F[i - 1][j - 1], F[i][j - 1]}),
+                         D[i][j]);
+    }
+  }
+
+  return F[m - 1][n - 1];
 }
 }  // namespace util

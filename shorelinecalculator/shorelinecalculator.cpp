@@ -147,7 +147,7 @@ void dsas(const std::vector<Path> &folders, const Path &output_path,
 void dsas(const Path &shoreline_folder, const Path &baseline_path,
           const Path &output_transect_path,
           const Path &output_intersections_path, const Options &options) {
-  TransectGroups transect_groups;
+  gm::TransectGroups transect_groups;
   create_transects_from_baseline(baseline_path, output_transect_path,
                                  &transect_groups, options);
   std::cout << "transects generated.\n";
@@ -225,12 +225,12 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
                                   output_folder / "shoreline.shp");
 
   // save the baseline to shp
-  util::save_lines<gm::Baseline>(baselines, psz_prj_.c_str(),
-                                 output_folder / "baseline.shp");
+  /**/ util::save_lines<gm::Baseline>(baselines, psz_prj_.c_str(),
+                                      output_folder / "baseline.shp");
 }
 
-Baselines generate_baselines(const std::vector<Image> &images,
-                             const Options &options) {
+gm::Baselines generate_baselines(const std::vector<Image> &images,
+                                 const Options &options) {
   std::unordered_map<int, std::vector<const Image *>> year_Images;
   for (const auto &image : images) {
     auto year = image.year_;
@@ -248,17 +248,20 @@ Baselines generate_baselines(const std::vector<Image> &images,
   return Image::merge_baselines_from_images(year_Images[lg_year], options);
 }
 
-TransectGroups generate_transects(const Baselines &baselines) {
-  TransectGroups transectGroups{};
+gm::TransectGroups generate_transects(gm::Baselines &baselines) {
+  gm::TransectGroups transectGroups;
+
   for (auto &baseline : baselines) {
-    Transects transects{baseline.baseline_id_, baseline.transects_lines_};
-    transectGroups.push_back(transects);
+    auto transects = baseline.create_transects();
+    transectGroups.push_back(std::move(transects));
+    baseline.transects_lines_ =
+        &transectGroups[transectGroups.size() - 1].transects_;
   }
   return transectGroups;
 }
 
 umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
-    const std::vector<Image> &images, const TransectGroups &transectGroups) {
+    const std::vector<Image> &images, gm::TransectGroups &transectGroups) {
   using tid_points_t = umap<int, std::vector<gm::IntersectPoint>>;
   umap<int, tid_points_t> bid_tid_points;
   for (const auto &image : images) {
@@ -274,7 +277,7 @@ umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
 }
 
 umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
-    const Shorelines &shorelines, const TransectGroups &transect_groups) {
+    const gm::Shorelines &shorelines, gm::TransectGroups &transect_groups) {
   using tid_points_t = umap<int, std::vector<gm::IntersectPoint>>;
   umap<int, tid_points_t> bid_tid_points;
   auto intersections = generate_intersection(shorelines, transect_groups);
@@ -288,11 +291,14 @@ umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
 
 std::vector<gm::IntersectPoint> generate_intersection(
     const std::vector<gm::Shoreline> &shorelines,
-    const TransectGroups &transect_groups) {
+    gm::TransectGroups &transect_groups) {
   std::vector<gm::IntersectPoint> intersections;
-  for (const auto &transects : transect_groups) {
-    for (const auto &transectLine : transects.transects_) {
-      for (const auto &shoreline : shorelines) {
+  for (auto &transects : transect_groups) {
+    for (auto &transectLine : transects.transects_) {
+      for (auto &shoreline : shorelines) {
+        if (shoreline.image_id_ != transectLine.image_id_) {
+          continue;
+        }
         auto ret = transectLine.intersection(shoreline);
         if (ret.has_value()) {
           intersections.push_back(ret.value());
@@ -303,33 +309,59 @@ std::vector<gm::IntersectPoint> generate_intersection(
   return intersections;
 }
 
-void compute_rate(const umap<int, umap<int, std::vector<gm::IntersectPoint>>>
-                      &intersection_maps,
-                  TransectGroups &transect_groups, const Options &options) {
+void compute_rate(
+    umap<int, umap<int, std::vector<gm::IntersectPoint>>> &intersection_maps,
+    gm::TransectGroups &transect_groups, const Options &options) {
   // baseline_id <-> vector index
   umap<int, size_t> id_map;
   for (size_t i = 0; i < transect_groups.size(); i++) {
     id_map[transect_groups[i].baseline_id_] = i;
   }
-  for (const auto &[baseline_id, tid_map] : intersection_maps) {
-    for (const auto &[transect_id, intersections] : tid_map) {
-      // assign the rate to the transect
-      auto it =
-          std::find_if(transect_groups[id_map[baseline_id]].transects_.begin(),
-                       transect_groups[id_map[baseline_id]].transects_.end(),
-                       [&](const gm::TransectLine &a) {
-                         return a.transect_id_ == transect_id;
-                       });
+  for (auto &[baseline_id, tid_map] : intersection_maps) {
+    for (auto &[transect_id, intersections] : tid_map) {
       // remove the duplicate intersects
-      auto clean_intersects = util::remove_same_year_intersections(
-          intersections, options.intersection_mode);
+      util::remove_same_year_intersections(intersections,
+                                           options.intersection_mode);
+      auto &transects = transect_groups[id_map[baseline_id]];
+      for (auto &transect : transects.transects_) {
+        if (transect.transect_id_ == transect_id) {
+          for (auto &intersect : intersections) {
+            transect.year_intersect_map_[intersect.year_] = &intersect;
+          }
+        }
+      }
+      for (size_t i = 0; i < transects.transects_.size(); i++) {
+        if (i == 0) {
+          transects.transects_[i].next_transect_line =
+              &transects.transects_[i + 1];
+        } else if (i == transects.transects_.size() - 1) {
+          transects.transects_[i].prev_transect_line =
+              &transects.transects_[i - 1];
+        } else {
+          transects.transects_[i].next_transect_line =
+              &transects.transects_[i + 1];
+          transects.transects_[i].prev_transect_line =
+              &transects.transects_[i - 1];
+        }
+      }
       // calculate the shoreline rate
-      util::linearRegressRate(clean_intersects, *it, options.outlier_rate);
+    }
+  }
+
+  // compute the frechet distance
+  std::vector<gm::IntersectPoint> tmp_intersects;
+  for (auto &transects : transect_groups) {
+    for (auto &transect : transects.transects_) {
+      transect.compute_frechet_dist();
+      for (const auto &pair : transect.year_intersect_map_) {
+        tmp_intersects.push_back(*pair.second);
+      }
+      util::linearRegressRate(tmp_intersects, transect, options);
     }
   }
 }
 void create_transects_from_baseline(const Path &path, const Path &output_path,
-                                    TransectGroups *output_transects,
+                                    gm::TransectGroups *output_transects,
                                     const Options &options) {
   std::string field_name{"DSAS_ID"};
   auto baselines = util::load_baselines_shp(path, field_name, options);
@@ -345,7 +377,7 @@ void create_transects_from_baseline(const Path &path, const Path &output_path,
   }
   util::save_lines(output_file, psz_prj_.c_str(), output_path);
 }
-void create_intersects_by_transects(TransectGroups &transect_groups,
+void create_intersects_by_transects(gm::TransectGroups &transect_groups,
                                     const Path &shoreline_folders,
                                     const Path &output, const Options &options,
                                     const std::string &proj) {
@@ -382,8 +414,8 @@ void create_intersects_by_transects(TransectGroups &transect_groups,
     }
   }
 
-  umap<int, std::vector<gm::IntersectPoint>> tid_points;
-  umap<int, decltype(tid_points)> bid_tid_points;
+  using tid_points_t = umap<int, std::vector<gm::IntersectPoint>>;
+  umap<int, tid_points_t> bid_tid_points;
   for (const auto &intersect : intersections) {
     int baseline_id = intersect.baseline_id_;
     int transect_id = intersect.transect_id_;
