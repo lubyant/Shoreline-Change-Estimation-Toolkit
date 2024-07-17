@@ -90,6 +90,64 @@ BOOST_AUTO_TEST_CASE(TestRemoveOutliers) {
     BOOST_CHECK_EQUAL(x.size(), 8);
     BOOST_CHECK_EQUAL(data.size(), 8);
   }
+  {
+    std::vector<double> data = {1, 2, 3, 100, 5, 6, -20, 8, 9, 10};
+    std::vector<double> x = {2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010};
+    std::vector<gm::IntersectPoint> intersects;
+    for(size_t i=0; i<data.size(); i++){
+      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, x[i], data[i], nullptr, nullptr);
+    }
+    dsas::Options options;
+    options.outlier_metric = dsas::Options::OutlierMetric::BaseDistance;
+    options.outlier_rate = 2.0;
+    util::remove_outliers(intersects, options);
+
+    BOOST_CHECK_EQUAL(intersects.size(), 9);
+  }
+  {
+    std::vector<double> data = {1, 2, 3, 100, 5, 6, -20, 8, 9, 10};
+    std::vector<double> x = {2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010};
+    std::vector<gm::IntersectPoint> intersects;
+    for(size_t i=0; i<data.size(); i++){
+      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, x[i], data[i], nullptr, nullptr);
+    }
+    dsas::Options options;
+    options.outlier_metric = dsas::Options::OutlierMetric::BaseDistance;
+    options.outlier_rate = 1.0;
+    util::remove_outliers(intersects, options);
+
+    BOOST_CHECK_EQUAL(intersects.size(), 8);
+  }
+  {
+    std::vector<double> data = {1, 2, 3, 100, 5, 6, -20, 8, 9, 10};
+    std::vector<double> x = {2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010};
+    std::vector<gm::IntersectPoint> intersects;
+    for(size_t i=0; i<data.size(); i++){
+      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, x[i], data[i], nullptr, nullptr);
+      intersects[intersects.size()-1].frechet_distance_diff_ = data[i];
+    }
+    dsas::Options options;
+    options.outlier_metric = dsas::Options::OutlierMetric::FrechetDistance;
+    options.outlier_rate = 2.0;
+    util::remove_outliers(intersects, options);
+
+    BOOST_CHECK_EQUAL(intersects.size(), 9);
+  }
+  {
+    std::vector<double> data = {1, 2, 3, 100, 5, 6, -20, 8, 9, 10};
+    std::vector<double> x = {2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010};
+    std::vector<gm::IntersectPoint> intersects;
+    for(size_t i=0; i<data.size(); i++){
+      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, x[i], data[i], nullptr, nullptr);
+      intersects[intersects.size()-1].frechet_distance_diff_ = data[i];
+    }
+    dsas::Options options;
+    options.outlier_metric = dsas::Options::OutlierMetric::FrechetDistance;
+    options.outlier_rate = 1.0;
+    util::remove_outliers(intersects, options);
+
+    BOOST_CHECK_EQUAL(intersects.size(), 8);
+  }
 }
 BOOST_AUTO_TEST_CASE(TestSubsetVertices) {
   {

@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
   options.edge_distance = 200;
   options.shoreline_least_factor = 0.1;
   options.transect_offset = 0;
-  options.transect_orient = Options::TransectOrientation::Right;
+  options.transect_orient = Options::TransectOrientation::Mix;
   options.intersection_mode = Options::IntersectionMode::Closest;
   options.outlier_metric = Options::OutlierMetric::FrechetDistance;
   digital_shoreline_analysis_system(

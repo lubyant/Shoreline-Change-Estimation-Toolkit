@@ -87,37 +87,22 @@ void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
   if more than two intersections first remove outlier, then compute the
    rates for consecutive years and set the value to transect
   */
-  // remove outlier based on distance to baseline
-  std::vector<double> y, x;
-  switch (options.outlier_metric) {
-    case dsas::Options::OutlierMetric::BaseDistance:
-      y.push_back(copy[0].distance_to_ref_);
-      x.push_back(static_cast<double>(copy[0].year_));
-      for (size_t i = 1; i < copy.size(); ++i) {
-        int yearChange = copy[i].year_ - copy[i - 1].year_;
+  remove_outliers(copy, options);
 
-        if (yearChange == 0) {
-          // Prevent division by zero
-          continue;
-        }
-        x.push_back(copy[i].year_);
-        y.push_back(copy[i].distance_to_ref_);
-      }
-      remove_outliers(x, y, options.outlier_rate);  // remove outliers in x, y
-      break;
-    case dsas::Options::OutlierMetric::FrechetDistance:
-      // remove the outliers based on frechet distance
-      for (const auto &copy_e : copy) {
-        y.push_back(copy_e.frechet_distance_diff_);
-        x.push_back(copy_e.year_);
-      }
-      remove_outliers(x, y, options.outlier_rate);
-      break;
-    default:
-      std::cerr << __FILE__;
-      throw std::runtime_error(": not a valid metric");
-  }
   // change rate
+  std::vector<double> y, x;
+  y.push_back(copy[0].distance_to_ref_);
+  x.push_back(static_cast<double>(copy[0].year_));
+  for (size_t i = 1; i < copy.size(); ++i) {
+    int yearChange = copy[i].year_ - copy[i - 1].year_;
+
+    if (yearChange == 0) {
+      // Prevent division by zero
+      continue;
+    }
+    x.push_back(copy[i].year_);
+    y.push_back(copy[i].distance_to_ref_);
+  }
   transect.set_info(x, y);
 }
 
@@ -414,6 +399,69 @@ void remove_outliers(std::vector<double> &x, std::vector<double> &y,
       y.erase(y.begin() + static_cast<std::vector<double>::difference_type>(i));
       i--;
     }
+  }
+}
+
+void remove_outliers(std::vector<gm::IntersectPoint> &intersects,
+                     const dsas::Options &options) {
+  double standard_dev;
+  double mean;
+  switch (options.outlier_metric) {
+    case dsas::Options::OutlierMetric::None:
+      return;
+    case dsas::Options::OutlierMetric::FrechetDistance:
+      // compute the standard deviation
+      mean =
+          std::accumulate(intersects.begin(), intersects.end(), 0.0,
+                          [](int pre_sum, const gm::IntersectPoint &intersect) {
+                            return pre_sum + intersect.frechet_distance_diff_;
+                          }) /
+          static_cast<double>(intersects.size());
+      standard_dev = std::sqrt(
+          std::accumulate(
+              intersects.begin(), intersects.end(), 0.0,
+              [mean](double pre_sum, const gm::IntersectPoint &intersect) {
+                return pre_sum + (intersect.frechet_distance_diff_ - mean) *
+                                     (intersect.frechet_distance_diff_ - mean);
+              }) /
+          static_cast<double>(intersects.size() - 1));
+      // remove outlier
+      for (size_t i = 0; i < intersects.size(); i++) {
+        if (std::abs(intersects[i].frechet_distance_diff_ - mean) >
+            options.outlier_rate * standard_dev) {
+          intersects.erase(intersects.begin() + i);
+          i--;
+        }
+      }
+      break;
+    case dsas::Options::OutlierMetric::BaseDistance:
+      // remove the outliers based on base distance
+      mean =
+          std::accumulate(intersects.begin(), intersects.end(), 0.0,
+                          [](int pre_sum, const gm::IntersectPoint &intersect) {
+                            return pre_sum + intersect.distance_to_ref_;
+                          }) /
+          static_cast<double>(intersects.size());
+      standard_dev = std::sqrt(
+          std::accumulate(
+              intersects.begin(), intersects.end(), 0.0,
+              [mean](double pre_sum, const gm::IntersectPoint &intersect) {
+                return pre_sum + (intersect.distance_to_ref_ - mean) *
+                                     (intersect.distance_to_ref_ - mean);
+              }) /
+          static_cast<double>(intersects.size() - 1));
+      // remove outlier
+      for (size_t i = 0; i < intersects.size(); i++) {
+        if (std::abs(intersects[i].distance_to_ref_ - mean) >
+            options.outlier_rate * standard_dev) {
+          intersects.erase(intersects.begin() + i);
+          i--;
+        }
+      }
+      break;
+    default:
+      std::cerr << __FILE__;
+      throw std::runtime_error(": not a valid metric");
   }
 }
 
