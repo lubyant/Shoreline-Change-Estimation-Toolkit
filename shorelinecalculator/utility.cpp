@@ -292,7 +292,7 @@ std::string get_shp_proj(const char *path) {
 }
 
 template <>
-void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
+void save_lines<gm::TransectLine>(const std::vector<gm::TransectLine> &lines,
                                   const char *pszProj,
                                   const std::filesystem::path &output_path) {
   GDALAllRegister();

@@ -171,7 +171,7 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
       exit(1);
     }
   }
-  auto psz_prj_ = images[0].psz_prj_;
+  const auto psz_prj_ = images[0].psz_prj_;
 
   if (images.size() <= 1) {
     throw std::runtime_error("Too few images to process: ");
@@ -225,8 +225,8 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
                                   output_folder / "shoreline.shp");
 
   // save the baseline to shp
-  /**/ util::save_lines<gm::Baseline>(baselines, psz_prj_.c_str(),
-                                      output_folder / "baseline.shp");
+  util::save_lines<gm::Baseline>(baselines, psz_prj_.c_str(),
+                                 output_folder / "baseline.shp");
 }
 
 gm::Baselines generate_baselines(const std::vector<Image> &images,
@@ -252,10 +252,8 @@ gm::TransectGroups generate_transects(gm::Baselines &baselines) {
   gm::TransectGroups transectGroups;
 
   for (auto &baseline : baselines) {
-    auto transects = baseline.create_transects();
+    auto transects = baseline.set_transects();
     transectGroups.push_back(std::move(transects));
-    baseline.transects_lines_ =
-        &transectGroups[transectGroups.size() - 1].transects_;
   }
   return transectGroups;
 }

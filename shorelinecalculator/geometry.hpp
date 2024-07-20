@@ -13,6 +13,7 @@
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <cmath>
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <tuple>
 #include <utility>
@@ -232,14 +233,21 @@ struct TransectLine : public LineSegment,
   }
 };
 
+struct Transects {
+  int baseline_id_;
+  std::vector<TransectLine> transects_;
+};
+
 struct Baseline : public MultiLine<Point<>>, GDALShpSaver<int, int> {
   using BaselinesVertex = Point<>;
 
   int baseline_id_;
   int image_id_;
   std::vector<Point<>> transects_base_points_;
-  std::vector<BaselinesVertex> baseline_vertices_;
-  std::vector<TransectLine> *transects_lines_{nullptr};
+  std::vector<BaselinesVertex>
+      origin_vertices_;  // the shoreline vertices for generate baseline
+  std::vector<BaselinesVertex>
+      baseline_vertices_;  // final baseline vertices for compute the rate
   std::vector<std::pair<double, double>> normal_vectors_;
 
   const dsas::Options &options_;
@@ -248,11 +256,13 @@ struct Baseline : public MultiLine<Point<>>, GDALShpSaver<int, int> {
            int image_id, const dsas::Options &options);
 
   [[nodiscard]] size_t size() const override {
-    return transects_lines_->size();
+    assert(baseline_vertices_.size() > 1);
+    return baseline_vertices_.size();
   };
 
   [[nodiscard]] const Point<> &operator[](size_t i) const override {
-    return transects_lines_->at(i).transect_ref_point_;
+    assert(baseline_vertices_.size() > 1);
+    return baseline_vertices_.at(i);
   }
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
@@ -267,7 +277,11 @@ struct Baseline : public MultiLine<Point<>>, GDALShpSaver<int, int> {
     return {baseline_id_, image_id_};
   }
 
-  Transects create_transects();
+  Transects set_transects() { return transects_; }
+
+ private:
+  void create_transects();
+  Transects transects_;
 };
 
 struct Shoreline : public MultiLine<Point<>>, GDALShpSaver<int, int> {
@@ -368,10 +382,6 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
 
 using Path = std::filesystem::path;
 using Baselines = std::vector<Baseline>;
-struct Transects {
-  int baseline_id_;
-  std::vector<TransectLine> transects_;
-};
 using TransectGroups = std::vector<Transects>;
 
 }  // namespace gm

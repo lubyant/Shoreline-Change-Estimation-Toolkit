@@ -278,17 +278,18 @@ Baseline::Baseline(const std::vector<BaselinesVertex> &points, int baseline_id,
     if (i == 0) {
       transects_base_points_.push_back(baselineSeg.leftEdge_);
       normal_vectors_.push_back(baselineSeg.normal_vector_);
-      baseline_vertices_.push_back(baselineSeg.leftEdge_);
+      origin_vertices_.push_back(baselineSeg.leftEdge_);
     }
-    baseline_vertices_.push_back(baselineSeg.rightEdge_);
+    origin_vertices_.push_back(baselineSeg.rightEdge_);
     for (auto &point : baselineSeg.transects_base_points_) {
       transects_base_points_.push_back(point);
       normal_vectors_.push_back(baselineSeg.normal_vector_);
     }
   }
+  create_transects();
 }
 
-Transects Baseline::create_transects() {
+void Baseline::create_transects() {
   std::vector<TransectLine> transect_lines;
   // smoothing the transects
   auto smooth_factor = options_.smooth_factor;
@@ -319,8 +320,12 @@ Transects Baseline::create_transects() {
     transect_lines.emplace_back(transects_base_points_.at(i), transect_length,
                                 smoothed_normal_vector, transect_id++,
                                 baseline_id_, image_id_, mode, orient);
+    baseline_vertices_.push_back(
+        transect_lines.at(transect_lines.size() - 1).transect_ref_point_);
   }
-  return {baseline_id_, transect_lines};
+  // transects_ = Transects({baseline_id_, transect_lines});
+  transects_.baseline_id_ = baseline_id_;
+  transects_.transects_ = std::move(transect_lines);
 }
 
 Shoreline::Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,

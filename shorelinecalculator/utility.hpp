@@ -36,7 +36,7 @@
 namespace util {
 
 template <typename T>
-void save_lines(std::vector<T> &lines, std::filesystem::path &output_path);
+void save_lines(const std::vector<T> &lines, std::filesystem::path &output_path);
 
 template <typename T>
 T crossProduct(std::vector<T> &vec1, std::vector<T> &vec2) {
@@ -176,7 +176,7 @@ void save_points(const std::vector<gm::TransectLine> &shapes,
                  const char *pszProj, const std::filesystem::path &output_path);
 
 template <typename T>
-void save_lines(std::vector<T> &lines, const char *pszProj,
+void save_lines(const std::vector<T> &lines, const char *pszProj,
                 const std::filesystem::path &output_path) {
   GDALAllRegister();
   // Step 1: Initialize GDAL
@@ -249,7 +249,7 @@ void save_lines(std::vector<T> &lines, const char *pszProj,
   GDALClose(dataset);
 }
 template <>
-void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
+void save_lines<gm::TransectLine>(const std::vector<gm::TransectLine> &lines,
                                   const char *pszProj,
                                   const std::filesystem::path &output_path);
 
