@@ -753,7 +753,7 @@ std::vector<gm::Point<>> get_subset_of_vertices(
   }
   return {it1, it4 + 1};
 }
-std::optional<gm::Shoreline> truncate_shore_by_transect(
+std::optional<gm::Shoreline> truncate_shore_by_transects(
     const gm::TransectLine &tran1, const gm::TransectLine &tran2,
     const gm::Shoreline &shoreline) {
   auto vertices = shoreline.shoreline_vertices_;
@@ -837,5 +837,41 @@ double frechet_distance(std::vector<gm::Point<>> line1,
   }
 
   return F[m - 1][n - 1];
+}
+std::vector<gm::Shoreline> util::truncate_shore_by_transects(
+    const gm::TransectLine &tran1, const gm::TransectLine &tran2) {
+  std::vector<gm::Shoreline> shorelines_segs;
+  auto year_intersect_map1 = tran1.year_intersect_map_;
+  auto year_intersect_map2 = tran2.year_intersect_map_;
+
+  std::vector<int> common_years;
+  for (const auto pair : year_intersect_map1) {
+    if (year_intersect_map2.find(pair.first) != year_intersect_map2.end()) {
+      common_years.push_back((pair.first));
+    }
+  }
+
+  if (common_years.empty()) {
+    return {};
+  }
+
+  for (int year : common_years) {
+    auto *intersect1 = year_intersect_map1[year];
+    auto *intersect2 = year_intersect_map2[year];
+    auto *shoreline1 = intersect1->shoreline_ptr_;
+    auto *shoreline2 = intersect2->shoreline_ptr_;
+    if (shoreline1 != shoreline2) {
+      continue;
+    }
+    auto sub_vertices = get_subset_of_vertices(shoreline1->shoreline_vertices_,
+                                               *intersect1, *intersect2);
+    if (sub_vertices.empty()) {
+      continue;
+    }
+    shorelines_segs.emplace_back(sub_vertices, shoreline1->shoreline_id_, year,
+                                 shoreline1->image_id_);
+  }
+
+  return shorelines_segs;
 }
 }  // namespace util

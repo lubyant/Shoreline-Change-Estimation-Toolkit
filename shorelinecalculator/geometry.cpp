@@ -172,7 +172,7 @@ void TransectLine::truncate_shoreline_seg() {
 LineSegment TransectLine::create_transect(
     Point<> &transect_base, std::pair<double, double> baseline_normal_vector,
     double transect_length, TransectOrientation orient) {
-  auto leftEdge{transect_base}, rightEdge{transect_base};
+  Point leftEdge, rightEdge;
   switch (orient) {
     case TransectOrientation::Mix:
       leftEdge = transect_base.create_point(baseline_normal_vector,

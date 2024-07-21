@@ -248,12 +248,25 @@ gm::Baselines generate_baselines(const std::vector<Image> &images,
   return Image::merge_baselines_from_images(year_Images[lg_year], options);
 }
 
-gm::TransectGroups generate_transects(gm::Baselines &baselines) {
+gm::TransectGroups generate_transects(gm::Baselines &baselines,
+                                      size_t group_window) {
   gm::TransectGroups transectGroups;
-
+  gm::Transects transect_group;
   for (auto &baseline : baselines) {
     auto transects = baseline.set_transects();
-    transectGroups.push_back(std::move(transects));
+    size_t num = transects.transects_.size() / group_window;
+    for (size_t i = 0; i < num; i++) {
+      for (size_t j = 0; j < group_window; j++) {
+        if ((i * num + j) == transects.transects_.size()) {
+          break;
+        }
+        transect_group.baseline_id_ = transects.baseline_id_;
+        transect_group.transects_.push_back(
+            transects.transects_.at(i * num + j));
+      }
+      transectGroups.push_back(std::move(transect_group));
+      transect_group = gm::Transects();
+    }
   }
   return transectGroups;
 }
@@ -342,13 +355,27 @@ void compute_rate(
               &transects.transects_[i - 1];
         }
       }
-      // calculate the shoreline rate
     }
   }
 
-  // compute the frechet distance
+  // compute the distance
   std::vector<gm::IntersectPoint> tmp_intersects;
   for (auto &transects : transect_groups) {
+    auto transect_first = transects.transects_[0];
+    auto transect_last = transects.transects_[transects.transects_.size() - 1];
+    auto shore_segments =
+        util::truncate_shore_by_transects(transect_first, transect_last);
+    std::sort(shore_segments.begin(), shore_segments.end(),
+              [](const gm::Shoreline &a, const gm::Shoreline &b) {
+                return a.year_ < b.year_;
+              });
+    std::vector<double> frechet_distances;
+    for (size_t i = 0; i < shore_segments.size() - 1; i++) {
+      frechet_distances.push_back(
+          util::frechet_distance(shore_segments[i].shoreline_vertices_,
+                                 shore_segments[i + 1].shoreline_vertices_));
+    }
+
     for (auto &transect : transects.transects_) {
       transect.compute_frechet_dist();
       for (const auto &pair : transect.year_intersect_map_) {

@@ -16,8 +16,8 @@ int main(int argc, char **argv) {
   options.intersection_mode = Options::IntersectionMode::Closest;
   options.outlier_metric = Options::OutlierMetric::FrechetDistance;
   digital_shoreline_analysis_system(
-      Path("/home/lby/Desktop/ShorelineCalculator/METHOD_SITE"),
-      Path("/home/lby/Desktop/ShorelineCalculator/METHOD_SITE_OUTPUT"),
+      Path("/home/lby/Desktop/ShorelineCalculator/Final_Folder"),
+      Path("/home/lby/Desktop/ShorelineCalculator/Final_Folder_Output"),
       options);
   return 0;
 }
