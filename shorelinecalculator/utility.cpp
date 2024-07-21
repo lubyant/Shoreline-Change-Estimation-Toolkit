@@ -53,7 +53,7 @@ void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
                        const dsas::Options &options) {
   // if no intersection
   if (intersections.empty()) {
-    throw std::runtime_error("It should not empty");
+    throw std::runtime_error("It should not be empty\n");
   }
 
   // if only one intersection

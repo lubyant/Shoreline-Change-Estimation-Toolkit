@@ -42,7 +42,7 @@ gm::TransectGroups generate_transects(gm::Baselines &baselines,
                                       size_t group_window = 10);
 
 umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
-    const std::vector<Image> &images, const gm::TransectGroups &TransectGroups);
+    const std::vector<Image> &images, gm::TransectGroups &TransectGroups);
 
 umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
     const gm::Shorelines &shorelines, gm::TransectGroups &transect_groups);
@@ -52,14 +52,20 @@ std::vector<gm::IntersectPoint> generate_intersection(
 
 using bid_t = int;  // baseline id
 using tid_t = int;  // transect id
-void compute_rate(umap<bid_t, umap<tid_t, std::vector<gm::IntersectPoint>>>
-                      &intersection_maps,
-                  gm::TransectGroups &transect_groups, const Options &options);
+using intersects_maps_t =
+    umap<bid_t, umap<tid_t, std::vector<gm::IntersectPoint>>>;
 
-void processes_shoreline_rate(
-    umap<bid_t, umap<tid_t, std::vector<gm::IntersectPoint>>>
-        &intersection_maps,
-    gm::TransectGroups &transect_groups, const Options &options);
+void compute_rate(intersects_maps_t &intersection_maps,
+                  gm::TransectGroups &transect_groups,
+                  const Options &options);
+
+void processes_shoreline_rate(intersects_maps_t &intersection_maps,
+                              gm::TransectGroups &transect_groups,
+                              const Options &options);
+
+void frechet_distance(gm::TransectGroups &transect_groups);
+
+void euc_distance(gm::TransectGroups &transect_groups);
 
 void create_transects_from_baseline(const Path &path, const Path &output_path,
                                     gm::TransectGroups *output_transects,

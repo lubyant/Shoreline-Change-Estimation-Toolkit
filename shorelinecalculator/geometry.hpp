@@ -57,7 +57,7 @@ struct Point {
   T x, y;
   size_t id_{};
 
-  Point() : x(0), y(0){};
+  Point() : x(0), y(0) {};
   Point(T x, T y) : x(x), y(y) {}
   Point(T x, T y, size_t id) : x(x), y(y), id_(id) {}
 
