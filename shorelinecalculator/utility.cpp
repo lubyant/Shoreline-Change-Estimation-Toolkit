@@ -838,7 +838,7 @@ double frechet_distance(std::vector<gm::Point<>> line1,
 
   return F[m - 1][n - 1];
 }
-std::vector<gm::Shoreline> util::truncate_shore_by_transects(
+std::vector<gm::Shoreline> truncate_shore_by_transects(
     const gm::TransectLine &tran1, const gm::TransectLine &tran2) {
   std::vector<gm::Shoreline> shorelines_segs;
   auto year_intersect_map1 = tran1.year_intersect_map_;

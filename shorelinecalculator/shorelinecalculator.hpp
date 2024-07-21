@@ -50,8 +50,15 @@ umap<int, umap<int, std::vector<gm::IntersectPoint>>> generate_intersections(
 std::vector<gm::IntersectPoint> generate_intersection(
     const gm::Shorelines &shorelines, gm::TransectGroups &transect_groups);
 
-void compute_rate(
-    umap<int, umap<int, std::vector<gm::IntersectPoint>>> &intersection_maps,
+using bid_t = int;  // baseline id
+using tid_t = int;  // transect id
+void compute_rate(umap<bid_t, umap<tid_t, std::vector<gm::IntersectPoint>>>
+                      &intersection_maps,
+                  gm::TransectGroups &transect_groups, const Options &options);
+
+void processes_shoreline_rate(
+    umap<bid_t, umap<tid_t, std::vector<gm::IntersectPoint>>>
+        &intersection_maps,
     gm::TransectGroups &transect_groups, const Options &options);
 
 void create_transects_from_baseline(const Path &path, const Path &output_path,
