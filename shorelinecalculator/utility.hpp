@@ -265,6 +265,9 @@ void remove_outliers(std::vector<double> &x, std::vector<double> &y,
 void remove_outliers(std::vector<gm::IntersectPoint> &intersects,
                      const dsas::Options &options);
 
+void remove_outliers_v2(std::vector<gm::IntersectPoint> &intersects,
+                        const dsas::Options &options);
+
 gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
                                  const std::string &field_name,
                                  const dsas::Options &options);

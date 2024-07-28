@@ -87,7 +87,7 @@ void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
   if more than two intersections first remove outlier, then compute the
    rates for consecutive years and set the value to transect
   */
-  remove_outliers(copy, options);
+  remove_outliers_v2(copy, options);
 
   // change rate
   std::vector<double> y, x;
@@ -402,6 +402,43 @@ void remove_outliers(std::vector<double> &x, std::vector<double> &y,
   }
 }
 
+void remove_outliers_v2(std::vector<gm::IntersectPoint> &intersects,
+                        const dsas::Options &options) {
+  switch (options.outlier_metric) {
+    case dsas::Options::OutlierMetric::None:
+      return;
+    case dsas::Options::OutlierMetric::FrechetDistance:
+      // remove outlier
+      for (size_t i = 0; i < intersects.size(); i++) {
+        if (intersects[i].is_fre_outlier) {
+          intersects.erase(intersects.begin() + i);
+          i--;
+        }
+      }
+      break;
+    case dsas::Options::OutlierMetric::BaseDistance:
+      // remove outlier
+      for (size_t i = 0; i < intersects.size(); i++) {
+        if (intersects[i].is_base_outlier) {
+          intersects.erase(intersects.begin() + i);
+          i--;
+        }
+      }
+      break;
+    case dsas::Options::OutlierMetric::Mix:
+      // remove outlier
+      for (size_t i = 0; i < intersects.size(); i++) {
+        if (intersects[i].is_base_outlier && intersects[i].is_fre_outlier) {
+          intersects.erase(intersects.begin() + i);
+          i--;
+        }
+      }
+      break;
+    default:
+      std::cerr << __FILE__;
+      throw std::runtime_error(": not a valid metric");
+  }
+}
 void remove_outliers(std::vector<gm::IntersectPoint> &intersects,
                      const dsas::Options &options) {
   double standard_dev;

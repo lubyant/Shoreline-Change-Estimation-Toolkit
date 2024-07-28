@@ -269,7 +269,7 @@ BOOST_AUTO_TEST_CASE(Test_truncatebyintersect) {
 
   auto intersects_maps =
       dsas::generate_intersections(shorelines, transect_groups);
-  compute_rate(intersects_maps, transect_groups, options);
+  compute_rate(transect_groups, options);
   for (auto &[baseline_id, maps] : intersects_maps) {
     for (auto &[transect_id, intersects] : maps) {
       for (auto &intersect : intersects) {

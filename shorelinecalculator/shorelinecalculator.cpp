@@ -195,7 +195,7 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
   processes_shoreline_rate(intersection_map, transect_groups, options);
   frechet_distance(transect_groups, options);
   euc_distance(transect_groups, options);
-  compute_rate(intersection_map, transect_groups, options);
+  compute_rate(transect_groups, options);
   std::cout << "compute the rates;\n";
 
   // save the intersections to shp
@@ -323,21 +323,17 @@ std::vector<gm::IntersectPoint> generate_intersection(
   return intersections;
 }
 
-void compute_rate(intersects_maps_t &intersection_maps,
-                  gm::TransectGroups &transect_groups, const Options &options) {
+void compute_rate(gm::TransectGroups &transect_groups, const Options &options) {
   // compute the distance
   std::vector<gm::IntersectPoint> tmp_intersects;
   for (auto &transects : transect_groups) {
     for (auto &transect : transects.transects_) {
-      std::cout << transect.baseline_id_ << ", " << transect.image_id_ << ", "
-                << transect.transect_id_ << ", "
-                << transect.year_intersect_map_.size() << std::endl;
       for (const auto &pair : transect.year_intersect_map_) {
         tmp_intersects.push_back(*pair.second);
       }
       auto year_intersect_map = transect.year_intersect_map_;
 
-      //      util::linearRegressRate(tmp_intersects, transect, options);
+      util::linearRegressRate(tmp_intersects, transect, options);
     }
   }
 }
@@ -404,7 +400,7 @@ void create_intersects_by_transects(gm::TransectGroups &transect_groups,
   }
 
   processes_shoreline_rate(bid_tid_points, transect_groups, options);
-  compute_rate(bid_tid_points, transect_groups, options);
+  compute_rate(transect_groups, options);
 
   // save the intersections to shp
   if (intersections.empty()) {

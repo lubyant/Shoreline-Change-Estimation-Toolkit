@@ -358,7 +358,11 @@ BOOST_AUTO_TEST_CASE(test_frechetdistance) {
 
   auto intersects_maps =
       dsas::generate_intersections(shorelines, transect_groups);
-  compute_rate(intersects_maps, transect_groups, options);
+
+  processes_shoreline_rate(intersects_maps, transect_groups, options);
+  frechet_distance(transect_groups, options);
+  euc_distance(transect_groups, options);
+  compute_rate(transect_groups, options);
   for (auto &transects : transect_groups) {
     for (auto &transect : transects.transects_) {
       transect.compute_frechet_dist();

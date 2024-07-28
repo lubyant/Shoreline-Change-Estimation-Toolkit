@@ -55,9 +55,7 @@ using tid_t = int;  // transect id
 using intersects_maps_t =
     umap<bid_t, umap<tid_t, std::vector<gm::IntersectPoint>>>;
 
-void compute_rate(intersects_maps_t &intersection_maps,
-                  gm::TransectGroups &transect_groups,
-                  const Options &options);
+void compute_rate(gm::TransectGroups &transect_groups, const Options &options);
 
 void processes_shoreline_rate(intersects_maps_t &intersection_maps,
                               gm::TransectGroups &transect_groups,
