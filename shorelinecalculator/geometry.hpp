@@ -334,10 +334,14 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
   int year_;
   boost::gregorian::date date_;
   double distance_to_ref_{-1};
+  double base_distance_diff_{-1};
   double frechet_distance_diff_{-1};  // the frechet distance difference between
                                       // year[i-1], year[i], year[i+1]
   const TransectLine *transect_line_ptr_{nullptr};
   const Shoreline *shoreline_ptr_{nullptr};  // the shoreline intersect stands
+  bool is_fre_outlier{false};
+  bool is_base_outlier{false};
+  bool is_outlier{false};
 
   IntersectPoint(Point<double> point, int transect_id, int shoreline_id,
                  int baseline_id, int image_id, int year,

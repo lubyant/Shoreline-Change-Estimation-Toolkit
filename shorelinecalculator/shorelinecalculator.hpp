@@ -63,9 +63,10 @@ void processes_shoreline_rate(intersects_maps_t &intersection_maps,
                               gm::TransectGroups &transect_groups,
                               const Options &options);
 
-void frechet_distance(gm::TransectGroups &transect_groups);
+void frechet_distance(gm::TransectGroups &transect_groups,
+                      const Options &options);
 
-void euc_distance(gm::TransectGroups &transect_groups);
+void euc_distance(gm::TransectGroups &transect_groups, const Options &options);
 
 void create_transects_from_baseline(const Path &path, const Path &output_path,
                                     gm::TransectGroups *output_transects,
