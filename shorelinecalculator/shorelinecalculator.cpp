@@ -331,9 +331,11 @@ void compute_rate(gm::TransectGroups &transect_groups, const Options &options) {
       for (const auto &pair : transect.year_intersect_map_) {
         tmp_intersects.push_back(*pair.second);
       }
-      auto year_intersect_map = transect.year_intersect_map_;
-
-      util::linearRegressRate(tmp_intersects, transect, options);
+      try {
+        util::linearRegressRate(tmp_intersects, transect, options);
+      } catch (std::runtime_error &e) {
+        // std::cout << e.what() << std::endl;
+      }
     }
   }
 }
@@ -412,37 +414,33 @@ void create_intersects_by_transects(gm::TransectGroups &transect_groups,
 void processes_shoreline_rate(intersects_maps_t &intersection_maps,
                               gm::TransectGroups &transect_groups,
                               const Options &options) {
-  // baseline_id <-> vector index
-  umap<int, size_t> id_map;
-  for (size_t i = 0; i < transect_groups.size(); i++) {
-    id_map[transect_groups[i].baseline_id_] = i;
-  }
-  for (auto &[baseline_id, tid_map] : intersection_maps) {
-    for (auto &[transect_id, intersections] : tid_map) {
-      // remove the duplicate intersects
-      util::remove_same_year_intersections(intersections,
-                                           options.intersection_mode);
-      auto &transects = transect_groups[id_map[baseline_id]];
-      for (auto &transect : transects.transects_) {
-        if (transect.transect_id_ == transect_id) {
-          for (auto &intersect : intersections) {
+  for (auto &transects : transect_groups) {
+    for (auto &transect : transects.transects_) {
+      int bid{transect.baseline_id_}, tid{transect.transect_id_};
+      if (intersection_maps.find(bid) != intersection_maps.end()) {
+        auto &intersections = intersection_maps[bid];
+        if (intersections.find(tid) != intersections.end()) {
+          auto &intersects = intersections[tid];
+          util::remove_same_year_intersections(intersects,
+                                               options.intersection_mode);
+          for (auto &intersect : intersects) {
             transect.year_intersect_map_[intersect.year_] = &intersect;
           }
         }
       }
-      for (size_t i = 0; i < transects.transects_.size(); i++) {
-        if (i == 0) {
-          transects.transects_[i].next_transect_line =
-              &transects.transects_[i + 1];
-        } else if (i == transects.transects_.size() - 1) {
-          transects.transects_[i].prev_transect_line =
-              &transects.transects_[i - 1];
-        } else {
-          transects.transects_[i].next_transect_line =
-              &transects.transects_[i + 1];
-          transects.transects_[i].prev_transect_line =
-              &transects.transects_[i - 1];
-        }
+    }
+    for (size_t i = 0; i < transects.transects_.size(); i++) {
+      if (i == 0) {
+        transects.transects_[i].next_transect_line =
+            &transects.transects_[i + 1];
+      } else if (i == transects.transects_.size() - 1) {
+        transects.transects_[i].prev_transect_line =
+            &transects.transects_[i - 1];
+      } else {
+        transects.transects_[i].next_transect_line =
+            &transects.transects_[i + 1];
+        transects.transects_[i].prev_transect_line =
+            &transects.transects_[i - 1];
       }
     }
   }

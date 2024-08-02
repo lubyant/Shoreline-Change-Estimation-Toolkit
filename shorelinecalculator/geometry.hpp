@@ -57,7 +57,7 @@ struct Point {
   T x, y;
   size_t id_{};
 
-  Point() : x(0), y(0) {};
+  Point() : x(0), y(0){};
   Point(T x, T y) : x(x), y(y) {}
   Point(T x, T y, size_t id) : x(x), y(y), id_(id) {}
 
@@ -325,7 +325,8 @@ struct Shoreline : public MultiLine<Point<>>, GDALShpSaver<int, int> {
   }
 };
 
-#define IntersectPoint_t int, int, int, int, int, double, double, double, double
+#define IntersectPoint_t \
+  int, int, int, int, int, double, double, double, double, int, int, int
 struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
   int image_id_;
   int transect_id_;
@@ -359,16 +360,20 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
         shoreline_ptr_(shoreline_ptr) {}
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
-    return {"BaselineId", "TransectId", "ShoreID", "ImageID", "Year",
-            "base_dist",  "fre_dist",   "X",       "Y"};
+    return {"BaselineId", "TransectId", "ShoreID",  "ImageID",
+            "Year",       "base_dist",  "fre_dist", "X",
+            "Y",          "fre_out",    "base_out", "outlier"};
   }
 
   [[nodiscard]] std::vector<OGRFieldType> get_types() const override {
-    return {OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
-            OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
-            OGRFieldType::OFTInteger, OGRFieldType::OFTReal,
-            OGRFieldType::OFTReal,    OGRFieldType::OFTReal,
-            OGRFieldType::OFTReal};
+    return {
+        OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
+        OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
+        OGRFieldType::OFTInteger, OGRFieldType::OFTReal,
+        OGRFieldType::OFTReal,    OGRFieldType::OFTReal,
+        OGRFieldType::OFTReal,    OGRFieldType::OFTInteger,
+        OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
+    };
   }
 
   [[nodiscard]] std::tuple<IntersectPoint_t> get_values() const override {
@@ -380,7 +385,10 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
             distance_to_ref_,
             frechet_distance_diff_,
             x,
-            y};
+            y,
+            is_fre_outlier,
+            is_base_outlier,
+            is_outlier};
   }
 };
 
