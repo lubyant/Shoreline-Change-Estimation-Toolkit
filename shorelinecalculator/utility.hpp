@@ -36,7 +36,8 @@
 namespace util {
 
 template <typename T>
-void save_lines(const std::vector<T> &lines, std::filesystem::path &output_path);
+void save_lines(const std::vector<T> &lines,
+                std::filesystem::path &output_path);
 
 template <typename T>
 T crossProduct(std::vector<T> &vec1, std::vector<T> &vec2) {
@@ -261,8 +262,11 @@ std::string get_shp_proj(const char *path);
 void remove_outliers(std::vector<double> &x, std::vector<double> &y,
                      double threshold);
 
-void remove_outliers(std::vector<gm::IntersectPoint> & intersects,
+void remove_outliers(std::vector<gm::IntersectPoint> &intersects,
                      const dsas::Options &options);
+
+void remove_outliers_v2(std::vector<gm::IntersectPoint> &intersects,
+                        const dsas::Options &options);
 
 gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
                                  const std::string &field_name,
@@ -282,9 +286,12 @@ std::vector<gm::Point<>> get_subset_of_vertices(
     const std::vector<gm::Point<>> &line, const gm::Point<> &p1,
     const gm::Point<> &p2);
 
-std::optional<gm::Shoreline> truncate_shore_by_transect(
+std::optional<gm::Shoreline> truncate_shore_by_transects(
     const gm::TransectLine &tran1, const gm::TransectLine &tran2,
     const gm::Shoreline &shoreline);
+
+std::vector<gm::Shoreline> truncate_shore_by_transects(
+    const gm::TransectLine &tran1, const gm::TransectLine &tran2);
 
 std::optional<gm::Shoreline> truncate_shore_by_intersect(
     const gm::IntersectPoint &intersect);

@@ -53,7 +53,7 @@ void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
                        const dsas::Options &options) {
   // if no intersection
   if (intersections.empty()) {
-    throw std::runtime_error("It should not empty");
+    throw std::runtime_error("It should not be empty\n");
   }
 
   // if only one intersection
@@ -87,7 +87,7 @@ void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
   if more than two intersections first remove outlier, then compute the
    rates for consecutive years and set the value to transect
   */
-  remove_outliers(copy, options);
+  remove_outliers_v2(copy, options);
 
   // change rate
   std::vector<double> y, x;
@@ -402,6 +402,43 @@ void remove_outliers(std::vector<double> &x, std::vector<double> &y,
   }
 }
 
+void remove_outliers_v2(std::vector<gm::IntersectPoint> &intersects,
+                        const dsas::Options &options) {
+  switch (options.outlier_metric) {
+    case dsas::Options::OutlierMetric::None:
+      return;
+    case dsas::Options::OutlierMetric::FrechetDistance:
+      // remove outlier
+      for (size_t i = 0; i < intersects.size(); i++) {
+        if (intersects[i].is_fre_outlier) {
+          intersects.erase(intersects.begin() + i);
+          i--;
+        }
+      }
+      break;
+    case dsas::Options::OutlierMetric::BaseDistance:
+      // remove outlier
+      for (size_t i = 0; i < intersects.size(); i++) {
+        if (intersects[i].is_base_outlier) {
+          intersects.erase(intersects.begin() + i);
+          i--;
+        }
+      }
+      break;
+    case dsas::Options::OutlierMetric::Mix:
+      // remove outlier
+      for (size_t i = 0; i < intersects.size(); i++) {
+        if (intersects[i].is_base_outlier && intersects[i].is_fre_outlier) {
+          intersects.erase(intersects.begin() + i);
+          i--;
+        }
+      }
+      break;
+    default:
+      std::cerr << __FILE__;
+      throw std::runtime_error(": not a valid metric");
+  }
+}
 void remove_outliers(std::vector<gm::IntersectPoint> &intersects,
                      const dsas::Options &options) {
   double standard_dev;
@@ -753,7 +790,7 @@ std::vector<gm::Point<>> get_subset_of_vertices(
   }
   return {it1, it4 + 1};
 }
-std::optional<gm::Shoreline> truncate_shore_by_transect(
+std::optional<gm::Shoreline> truncate_shore_by_transects(
     const gm::TransectLine &tran1, const gm::TransectLine &tran2,
     const gm::Shoreline &shoreline) {
   auto vertices = shoreline.shoreline_vertices_;
@@ -837,5 +874,41 @@ double frechet_distance(std::vector<gm::Point<>> line1,
   }
 
   return F[m - 1][n - 1];
+}
+std::vector<gm::Shoreline> truncate_shore_by_transects(
+    const gm::TransectLine &tran1, const gm::TransectLine &tran2) {
+  std::vector<gm::Shoreline> shorelines_segs;
+  auto year_intersect_map1 = tran1.year_intersect_map_;
+  auto year_intersect_map2 = tran2.year_intersect_map_;
+
+  std::vector<int> common_years;
+  for (const auto pair : year_intersect_map1) {
+    if (year_intersect_map2.find(pair.first) != year_intersect_map2.end()) {
+      common_years.push_back((pair.first));
+    }
+  }
+
+  if (common_years.empty()) {
+    return {};
+  }
+
+  for (int year : common_years) {
+    auto *intersect1 = year_intersect_map1[year];
+    auto *intersect2 = year_intersect_map2[year];
+    auto *shoreline1 = intersect1->shoreline_ptr_;
+    auto *shoreline2 = intersect2->shoreline_ptr_;
+    if (shoreline1 != shoreline2) {
+      continue;
+    }
+    auto sub_vertices = get_subset_of_vertices(shoreline1->shoreline_vertices_,
+                                               *intersect1, *intersect2);
+    if (sub_vertices.empty()) {
+      continue;
+    }
+    shorelines_segs.emplace_back(sub_vertices, shoreline1->shoreline_id_, year,
+                                 shoreline1->image_id_);
+  }
+
+  return shorelines_segs;
 }
 }  // namespace util

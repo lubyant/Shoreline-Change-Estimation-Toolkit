@@ -192,7 +192,10 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
   std::cout << "generate intersects;\n";
 
   // compute the regression rate
-  compute_rate(intersection_map, transect_groups, options);
+  processes_shoreline_rate(intersection_map, transect_groups, options);
+  frechet_distance(transect_groups, options);
+  euc_distance(transect_groups, options);
+  compute_rate(transect_groups, options);
   std::cout << "compute the rates;\n";
 
   // save the intersections to shp
@@ -248,12 +251,25 @@ gm::Baselines generate_baselines(const std::vector<Image> &images,
   return Image::merge_baselines_from_images(year_Images[lg_year], options);
 }
 
-gm::TransectGroups generate_transects(gm::Baselines &baselines) {
+gm::TransectGroups generate_transects(gm::Baselines &baselines,
+                                      size_t group_window) {
   gm::TransectGroups transectGroups;
-
+  gm::Transects transect_group;
   for (auto &baseline : baselines) {
     auto transects = baseline.set_transects();
-    transectGroups.push_back(std::move(transects));
+    size_t num = transects.transects_.size() / group_window;
+    for (size_t i = 0; i < num; i++) {
+      for (size_t j = 0; j < group_window; j++) {
+        if ((i * group_window + j) == transects.transects_.size()) {
+          break;
+        }
+        transect_group.baseline_id_ = transects.baseline_id_;
+        transect_group.transects_.push_back(
+            transects.transects_.at(i * group_window + j));
+      }
+      transectGroups.push_back(std::move(transect_group));
+      transect_group = gm::Transects();
+    }
   }
   return transectGroups;
 }
@@ -307,54 +323,19 @@ std::vector<gm::IntersectPoint> generate_intersection(
   return intersections;
 }
 
-void compute_rate(
-    umap<int, umap<int, std::vector<gm::IntersectPoint>>> &intersection_maps,
-    gm::TransectGroups &transect_groups, const Options &options) {
-  // baseline_id <-> vector index
-  umap<int, size_t> id_map;
-  for (size_t i = 0; i < transect_groups.size(); i++) {
-    id_map[transect_groups[i].baseline_id_] = i;
-  }
-  for (auto &[baseline_id, tid_map] : intersection_maps) {
-    for (auto &[transect_id, intersections] : tid_map) {
-      // remove the duplicate intersects
-      util::remove_same_year_intersections(intersections,
-                                           options.intersection_mode);
-      auto &transects = transect_groups[id_map[baseline_id]];
-      for (auto &transect : transects.transects_) {
-        if (transect.transect_id_ == transect_id) {
-          for (auto &intersect : intersections) {
-            transect.year_intersect_map_[intersect.year_] = &intersect;
-          }
-        }
-      }
-      for (size_t i = 0; i < transects.transects_.size(); i++) {
-        if (i == 0) {
-          transects.transects_[i].next_transect_line =
-              &transects.transects_[i + 1];
-        } else if (i == transects.transects_.size() - 1) {
-          transects.transects_[i].prev_transect_line =
-              &transects.transects_[i - 1];
-        } else {
-          transects.transects_[i].next_transect_line =
-              &transects.transects_[i + 1];
-          transects.transects_[i].prev_transect_line =
-              &transects.transects_[i - 1];
-        }
-      }
-      // calculate the shoreline rate
-    }
-  }
-
-  // compute the frechet distance
+void compute_rate(gm::TransectGroups &transect_groups, const Options &options) {
+  // compute the distance
   std::vector<gm::IntersectPoint> tmp_intersects;
   for (auto &transects : transect_groups) {
     for (auto &transect : transects.transects_) {
-      transect.compute_frechet_dist();
       for (const auto &pair : transect.year_intersect_map_) {
         tmp_intersects.push_back(*pair.second);
       }
-      util::linearRegressRate(tmp_intersects, transect, options);
+      try {
+        util::linearRegressRate(tmp_intersects, transect, options);
+      } catch (std::runtime_error &e) {
+        // std::cout << e.what() << std::endl;
+      }
     }
   }
 }
@@ -420,12 +401,180 @@ void create_intersects_by_transects(gm::TransectGroups &transect_groups,
     bid_tid_points[baseline_id][transect_id].push_back(intersect);
   }
 
-  compute_rate(bid_tid_points, transect_groups, options);
+  processes_shoreline_rate(bid_tid_points, transect_groups, options);
+  compute_rate(transect_groups, options);
 
   // save the intersections to shp
   if (intersections.empty()) {
     throw std::runtime_error("No intersections");
   }
   util::save_points(intersections, proj.c_str(), output);
+}
+
+void processes_shoreline_rate(intersects_maps_t &intersection_maps,
+                              gm::TransectGroups &transect_groups,
+                              const Options &options) {
+  for (auto &transects : transect_groups) {
+    for (auto &transect : transects.transects_) {
+      int bid{transect.baseline_id_}, tid{transect.transect_id_};
+      if (intersection_maps.find(bid) != intersection_maps.end()) {
+        auto &intersections = intersection_maps[bid];
+        if (intersections.find(tid) != intersections.end()) {
+          auto &intersects = intersections[tid];
+          util::remove_same_year_intersections(intersects,
+                                               options.intersection_mode);
+          for (auto &intersect : intersects) {
+            transect.year_intersect_map_[intersect.year_] = &intersect;
+          }
+        }
+      }
+    }
+    for (size_t i = 0; i < transects.transects_.size(); i++) {
+      if (i == 0) {
+        transects.transects_[i].next_transect_line =
+            &transects.transects_[i + 1];
+      } else if (i == transects.transects_.size() - 1) {
+        transects.transects_[i].prev_transect_line =
+            &transects.transects_[i - 1];
+      } else {
+        transects.transects_[i].next_transect_line =
+            &transects.transects_[i + 1];
+        transects.transects_[i].prev_transect_line =
+            &transects.transects_[i - 1];
+      }
+    }
+  }
+}
+
+void frechet_distance(gm::TransectGroups &transect_groups,
+                      const Options &options) {
+  // compute the distance
+  using image_id_t = int;
+  std::unordered_map<image_id_t, std::vector<double>> frechet_distances_map;
+  for (auto &transects : transect_groups) {
+    if (transects.transects_.size() < 2) {
+      continue;
+    }
+    auto transect_first = transects.transects_[0];
+    auto transect_last = transects.transects_[transects.transects_.size() - 1];
+    auto shore_segments =
+        util::truncate_shore_by_transects(transect_first, transect_last);
+    if (shore_segments.size() < 2) {
+      continue;
+    }
+    image_id_t image_id{transect_first.image_id_};
+    std::sort(shore_segments.begin(), shore_segments.end(),
+              [](const gm::Shoreline &a, const gm::Shoreline &b) {
+                return a.year_ < b.year_;
+              });
+    for (size_t i = 0; i < shore_segments.size() - 1; i++) {
+      assert(shore_segments[i].year_ != shore_segments[i + 1].year_);
+      auto dur = static_cast<double>(shore_segments[i].year_ -
+                                     shore_segments[i + 1].year_);
+      double fre_dist{
+          util::frechet_distance(shore_segments[i].shoreline_vertices_,
+                                 shore_segments[i + 1].shoreline_vertices_) /
+          dur};
+      frechet_distances_map[image_id].push_back(fre_dist);
+      for (auto &transect : transects.transects_) {
+        if (transect.year_intersect_map_.find(shore_segments[i].year_) !=
+            transect.year_intersect_map_.end()) {
+          transect.year_intersect_map_[shore_segments[i].year_]
+              ->frechet_distance_diff_ = fre_dist;
+        }
+      }
+    }
+  }
+  std::unordered_map<image_id_t, double> means, stds;
+  for (const auto &[image_id, fre_dists] : frechet_distances_map) {
+    double mean = std::accumulate(fre_dists.begin(), fre_dists.end(), 0.0) /
+                  static_cast<double>(fre_dists.size());
+    double standard_dev = std::sqrt(
+        std::accumulate(fre_dists.begin(), fre_dists.end(), 0.0,
+                        [mean](double pre_sum, double dists) {
+                          return pre_sum + (dists - mean) * (dists - mean);
+                        }) /
+        static_cast<double>(fre_dists.size() - 1));
+    means[image_id] = mean;
+    stds[image_id] = standard_dev;
+  }
+
+  for (auto &transects : transect_groups) {
+    for (auto &transect : transects.transects_) {
+      double cur_mean = means[transect.image_id_];
+      double cur_std = stds[transect.image_id_];
+      for (auto &[year, intersect] : transect.year_intersect_map_) {
+        if (intersect->frechet_distance_diff_ == -1) {
+          continue;
+        }
+        double cur_fre_dist{intersect->frechet_distance_diff_};
+        if (std::fabs(cur_fre_dist - cur_mean) >
+            options.outlier_rate * cur_std) {
+          intersect->is_fre_outlier = true;
+        }
+      }
+    }
+  }
+}
+
+void euc_distance(gm::TransectGroups &transect_groups, const Options &options) {
+  using image_id_t = int;
+  std::unordered_map<image_id_t, std::vector<double>> euc_distances_map;
+  for (auto &transects : transect_groups) {
+    for (auto &transect : transects.transects_) {
+      image_id_t image_id{transect.image_id_};
+      auto year_intersects_map{transect.year_intersect_map_};
+      std::map<int, double> year_dist_map;
+      for (auto [year, intersect] : year_intersects_map) {
+        year_dist_map[year] = intersect->distance_to_ref_;
+      }
+      if (year_dist_map.size() < 2) {
+        continue;
+      }
+      std::vector<int> years;
+      std::vector<double> dists;
+      for (auto [year, dist] : year_dist_map) {
+        years.push_back(year);
+        dists.push_back(dist);
+      }
+      for (size_t i = 0; i < years.size() - 1; i++) {
+        auto dist_rate = (dists[i + 1] - dists[i]) /
+                         static_cast<double>(years[i + 1] - years[i]);
+        if (year_intersects_map.find(years[i]) != year_intersects_map.end()) {
+          year_intersects_map[years[i]]->base_distance_diff_ = dist_rate;
+        }
+        euc_distances_map[image_id].push_back(dist_rate);
+      }
+    }
+  }
+  std::unordered_map<image_id_t, double> means, stds;
+  for (const auto &[image_id, euc_dists] : euc_distances_map) {
+    double mean = std::accumulate(euc_dists.begin(), euc_dists.end(), 0.0) /
+                  static_cast<double>(euc_dists.size());
+    double standard_dev = std::sqrt(
+        std::accumulate(euc_dists.begin(), euc_dists.end(), 0.0,
+                        [mean](double pre_sum, double dists) {
+                          return pre_sum + (dists - mean) * (dists - mean);
+                        }) /
+        static_cast<double>(euc_dists.size() - 1));
+    means[image_id] = mean;
+    stds[image_id] = standard_dev;
+  }
+  for (auto &transects : transect_groups) {
+    for (auto &transect : transects.transects_) {
+      double cur_mean = means[transect.image_id_];
+      double cur_std = stds[transect.image_id_];
+      for (auto &[year, intersect] : transect.year_intersect_map_) {
+        if (intersect->frechet_distance_diff_ == -1) {
+          continue;
+        }
+        double cur_base_dist{intersect->base_distance_diff_};
+        if (std::fabs(cur_base_dist - cur_mean) >
+            options.outlier_rate * cur_std) {
+          intersect->is_base_outlier = true;
+        }
+      }
+    }
+  }
 }
 }  // namespace dsas
