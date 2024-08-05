@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
+#include <chrono>
 
 #include "geometry.hpp"
 
@@ -159,6 +160,7 @@ void dsas(const Path &shoreline_folder, const Path &baseline_path,
 
 void controller(const std::vector<Path> &paths, const Path &output_folder,
                 const Options &options) {
+  auto start = std::chrono::high_resolution_clock::now();
   // read the image
   std::vector<Image> images;
   for (const auto &path : paths) {
@@ -177,27 +179,65 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
     throw std::runtime_error("Too few images to process: ");
   }
   std::cout << "read images: " << images.size() << std::endl;
+  auto end = std::chrono::high_resolution_clock::now();
+  auto elapsed = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  std::cout << "elapsed time: " << elapsed.count() << std::endl;
 
   // generate the baselines
+  start = std::chrono::high_resolution_clock::now();
   auto baselines = generate_baselines(images, options);
   std::cout << "generate baselines;\n";
   auto shorelines = Image::merge_shorelines_from_images(images);
+  end = std::chrono::high_resolution_clock::now();
+  elapsed = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  std::cout << "elapsed time: " << elapsed.count() << std::endl;
 
   // generate the transects
+  start = std::chrono::high_resolution_clock::now();
   auto transect_groups = generate_transects(baselines);
   std::cout << "generate transects;\n";
+  end = std::chrono::high_resolution_clock::now();
+  elapsed = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  std::cout << "elapsed time: " << elapsed.count() << std::endl;
 
   // generate the intersections
+  start = std::chrono::high_resolution_clock::now();
   auto intersection_map = generate_intersections(shorelines, transect_groups);
   std::cout << "generate intersects;\n";
+  end = std::chrono::high_resolution_clock::now();
+  elapsed = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  std::cout << "elapsed time: " << elapsed.count() << std::endl;
 
   // compute the regression rate
+  start = std::chrono::high_resolution_clock::now();
   processes_shoreline_rate(intersection_map, transect_groups, options);
+  std::cout << "process the shoreline\n";
+  end = std::chrono::high_resolution_clock::now();
+  elapsed = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  std::cout << "elapsed time: " << elapsed.count() << std::endl;
+
+  start = std::chrono::high_resolution_clock::now();
   frechet_distance(transect_groups, options);
+  std::cout << "compute the frechet\n";
+  end = std::chrono::high_resolution_clock::now();
+  elapsed = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  std::cout << "elapsed time: " << elapsed.count() << std::endl;
+
+  start = std::chrono::high_resolution_clock::now();
   euc_distance(transect_groups, options);
+  std::cout << "compute base distance\n";
+  end = std::chrono::high_resolution_clock::now();
+  elapsed = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  std::cout << "elapsed time: " << elapsed.count() << std::endl;
+
+  start = std::chrono::high_resolution_clock::now();
   compute_rate(transect_groups, options);
   std::cout << "compute the rates;\n";
+  end = std::chrono::high_resolution_clock::now();
+  elapsed = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  std::cout << "elapsed time: " << elapsed.count() << std::endl;
 
+  start = std::chrono::high_resolution_clock::now();
   // save the intersections to shp
   std::vector<gm::IntersectPoint> intersections;
   for (auto &kv1 : intersection_map) {
@@ -230,6 +270,9 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
   // save the baseline to shp
   util::save_lines<gm::Baseline>(baselines, psz_prj_.c_str(),
                                  output_folder / "baseline.shp");
+  end = std::chrono::high_resolution_clock::now();
+  elapsed = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  std::cout << "elapsed time: " << elapsed.count() << std::endl;
 }
 
 gm::Baselines generate_baselines(const std::vector<Image> &images,
@@ -326,8 +369,10 @@ std::vector<gm::IntersectPoint> generate_intersection(
 void compute_rate(gm::TransectGroups &transect_groups, const Options &options) {
   // compute the distance
   std::vector<gm::IntersectPoint> tmp_intersects;
+  tmp_intersects.reserve(20);
   for (auto &transects : transect_groups) {
     for (auto &transect : transects.transects_) {
+      tmp_intersects.clear();
       for (const auto &pair : transect.year_intersect_map_) {
         tmp_intersects.push_back(*pair.second);
       }
