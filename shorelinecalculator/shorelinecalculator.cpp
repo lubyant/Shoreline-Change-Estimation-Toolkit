@@ -6,11 +6,11 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <chrono>
 #include <iostream>
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
-#include <chrono>
 
 #include "geometry.hpp"
 
@@ -514,8 +514,8 @@ void frechet_distance(gm::TransectGroups &transect_groups,
               });
     for (size_t i = 0; i < shore_segments.size() - 1; i++) {
       assert(shore_segments[i].year_ != shore_segments[i + 1].year_);
-      auto dur = static_cast<double>(shore_segments[i].year_ -
-                                     shore_segments[i + 1].year_);
+      auto dur = static_cast<double>(shore_segments[i + 1].year_ -
+                                     shore_segments[i].year_);
       double fre_dist{
           util::frechet_distance(shore_segments[i].shoreline_vertices_,
                                  shore_segments[i + 1].shoreline_vertices_) /
