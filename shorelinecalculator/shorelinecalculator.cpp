@@ -553,8 +553,7 @@ void frechet_distance(gm::TransectGroups &transect_groups,
           continue;
         }
         double cur_fre_dist{intersect->frechet_distance_diff_};
-        if (std::fabs(cur_fre_dist - cur_mean) >
-            options.outlier_rate * cur_std) {
+        if ((cur_fre_dist - cur_mean) > options.outlier_rate * cur_std) {
           intersect->is_fre_outlier = true;
         }
       }
@@ -614,8 +613,7 @@ void euc_distance(gm::TransectGroups &transect_groups, const Options &options) {
           continue;
         }
         double cur_base_dist{intersect->base_distance_diff_};
-        if (std::fabs(cur_base_dist - cur_mean) >
-            options.outlier_rate * cur_std) {
+        if ((cur_base_dist - cur_mean) > options.outlier_rate * cur_std) {
           intersect->is_base_outlier = true;
         }
       }
