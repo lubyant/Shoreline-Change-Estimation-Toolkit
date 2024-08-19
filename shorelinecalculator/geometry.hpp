@@ -93,6 +93,10 @@ struct Point {
     double x_new = x + dest * orient.second / dist;
     return {x_new, y_new};
   }
+  // Linear interpolation between two points
+  static Point<T> interpolate(const Point<T>& a, const Point<T>& b, double fraction) {
+      return Point(a.x + (b.x - a.x) * fraction, a.y + (b.y - a.y) * fraction);
+  }
 };
 
 struct LineSegment {

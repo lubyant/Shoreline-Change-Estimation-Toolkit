@@ -7,7 +7,8 @@
 #include <limits>
 #include <unordered_set>
 
-#define MAX_DOUBLE std::numeric_limits<double>::max()
+#define MAX_DOUBLE (999999.9)
+#define MIN_DOUBLE (-999999.9)
 
 namespace util {
 
@@ -872,9 +873,68 @@ double frechet_distance(std::vector<gm::Point<>> line1,
                          D[i][j]);
     }
   }
-
   return F[m - 1][n - 1];
 }
+
+std::vector<gm::Point<>> equal_divided_polyline(
+    const std::vector<gm::Point<>> &line, size_t n) {
+  assert(n >= 2 && "vertices needs to be larger than 2");
+  double length = 0.0;
+  for (size_t i = 1; i < line.size(); ++i) {
+    length += line[i].distance_to_point(line[i - 1]);
+  }
+  double segment_length = length / (n - 1);
+  std::vector<gm::Point<>> divided_line;
+  divided_line.push_back(line.front());
+  double accumulated_length = 0.0;
+  size_t current_point = 0;
+  for (size_t i = 1; i < n - 1; ++i) {
+    double targetLength = i * segment_length;
+
+    while (accumulated_length +
+               line[current_point].distance_to_point(line[current_point + 1]) <
+           targetLength) {
+      accumulated_length +=
+          line[current_point].distance_to_point(line[current_point + 1]);
+      current_point++;
+    }
+
+    double remainingLength = targetLength - accumulated_length;
+    double localSegmentLength =
+        line[current_point].distance_to_point(line[current_point + 1]);
+    double fraction = remainingLength / localSegmentLength;
+
+    divided_line.push_back(gm::Point<>::interpolate(
+        line[current_point], line[current_point + 1], fraction));
+  }
+
+  divided_line.push_back(line.back());  // add the ending point
+  return divided_line;
+}
+double modified_frechet_distance(const std::vector<gm::Point<>> &line1,
+                                 const std::vector<gm::Point<>> &line2) {
+  const std::vector<gm::Point<>> *line_a = nullptr;
+  std::vector<gm::Point<>> line_b;
+
+  if (line1.size() == line2.size()) {
+    line_a = &line1;
+    line_b = line2;
+  } else {
+    line_a = &line1;
+    line_b = equal_divided_polyline(line2, line_a->size());
+    assert(line_a->size() == line_b.size());
+  }
+  double max_distance = MIN_DOUBLE;
+  double min_distance = MAX_DOUBLE;
+  double dist = 0;
+  for(size_t i = 0; i < line_a->size(); i++){
+    dist = line_a->at(i).distance_to_point(line_b[i]);
+    max_distance = std::max(dist, max_distance);
+    min_distance = std::min(dist, min_distance);
+  }
+  return max_distance - min_distance; 
+}
+
 std::vector<gm::Shoreline> truncate_shore_by_transects(
     const gm::TransectLine &tran1, const gm::TransectLine &tran2) {
   std::vector<gm::Shoreline> shorelines_segs;

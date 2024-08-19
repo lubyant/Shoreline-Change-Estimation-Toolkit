@@ -298,5 +298,9 @@ std::optional<gm::Shoreline> truncate_shore_by_intersect(
 
 double frechet_distance(std::vector<gm::Point<>> line1,
                         std::vector<gm::Point<>> line2);
+
+double modified_frechet_distance(const std::vector<gm::Point<>> &line1,
+                                 const std::vector<gm::Point<>> &line2);
+
 }  // namespace util
 #endif  // SHORELINECALCULATOR_UTILITY_HPP
