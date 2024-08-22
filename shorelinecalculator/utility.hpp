@@ -109,7 +109,7 @@ gm::Point<T> computeIntersectPoint(const gm::Point<T> &p1,
   double a0 = y1 - y2, b0 = x2 - x1, c0 = x1 * y2 - x2 * y1;
   double a1 = y3 - y4, b1 = x4 - x3, c1 = x3 * y4 - x4 * y3;
   double d = a0 * b1 - a1 * b0;
-  if (d == 0) {
+  if (std::abs(d) < 1e-4) {
     throw std::runtime_error("two line are the same");
   } else {
     double x = (b0 * c1 - b1 * c0) / d;

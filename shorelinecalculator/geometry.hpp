@@ -71,6 +71,9 @@ struct Point {
   friend bool operator==(const Point<T> &point1, const Point<T> &point2) {
     return (point1.x == point2.x) && (point1.y == point2.y);
   }
+  friend bool operator!=(const Point<T> &point1, const Point<T> &point2) {
+    return (point1.x != point2.x) || (point1.y != point2.y);
+  }
 
   [[nodiscard]] T distance_to_point(const Point<T> &point) const {
     return sqrt(pow(x - point.x, 2) + pow(y - point.y, 2));

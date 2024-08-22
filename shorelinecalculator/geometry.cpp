@@ -49,7 +49,6 @@ bool LineSegment::is_intersect(const Point<> &point1,
 
 Point<> LineSegment::find_intersection(const Point<> &point1,
                                        const Point<> &point2) const {
-  if (!is_intersect(point1, point2)) throw std::runtime_error("Not intersect");
   return util::computeIntersectPoint<double>(leftEdge_, rightEdge_, point1,
                                              point2);
 }
@@ -218,8 +217,15 @@ std::optional<IntersectPoint> TransectLine::intersection(
             baseline_id_, image_id_,    shoreline.year_,
             distance,     this,         &shoreline};
         intersections.push_back(intersect_point);
-      } catch (...) {
-        continue;
+      } catch (std::runtime_error &e) {
+        auto point = gm::Point<>((shoreline[i].x + shoreline[i + 1].x) / 2,
+                                 (shoreline[i].y + shoreline[i + 1].y) / 2);
+        auto distance = distance2ref(point);
+        IntersectPoint intersect_point{
+            point,        transect_id_, shoreline.shoreline_id_,
+            baseline_id_, image_id_,    shoreline.year_,
+            distance,     this,         &shoreline};
+        intersections.push_back(intersect_point);
       }
     }
   }

@@ -164,9 +164,9 @@ BOOST_AUTO_TEST_CASE(TestSubsetVertices) {
     gm::Point<> p1 = {1.5, 3};
     gm::Point<> p2 = {3.5, 7};
     auto subset = get_subset_of_vertices(line, p1, p2);
-    std::vector<gm::Point<>> true_subset{{2, 4}, {3, 6}};
-    BOOST_CHECK_EQUAL(subset.size(), 2);
-    for (size_t i = 0; i < 2; i++) {
+    std::vector<gm::Point<>> true_subset{{1.5, 3}, {2, 4}, {3, 6}, {3.5, 7}};
+    BOOST_CHECK_EQUAL(subset.size(), 4);
+    for (size_t i = 0; i < 4; i++) {
       BOOST_CHECK_CLOSE(subset[i].x, true_subset[i].x, TOL);
       BOOST_CHECK_CLOSE(subset[i].y, true_subset[i].y, TOL);
     }
@@ -177,9 +177,9 @@ BOOST_AUTO_TEST_CASE(TestSubsetVertices) {
     gm::Point<> p2 = {1.5, 3};
     gm::Point<> p1 = {3.5, 7};
     auto subset = get_subset_of_vertices(line, p1, p2);
-    std::vector<gm::Point<>> true_subset{{2, 4}, {3, 6}};
-    BOOST_CHECK_EQUAL(subset.size(), 2);
-    for (size_t i = 0; i < 2; i++) {
+    std::vector<gm::Point<>> true_subset{{1.5, 3}, {2, 4}, {3, 6}, {3.5, 7}};
+    BOOST_CHECK_EQUAL(subset.size(), 4);
+    for (size_t i = 0; i < 4; i++) {
       BOOST_CHECK_CLOSE(subset[i].x, true_subset[i].x, TOL);
       BOOST_CHECK_CLOSE(subset[i].y, true_subset[i].y, TOL);
     }
@@ -191,10 +191,10 @@ BOOST_AUTO_TEST_CASE(TestSubsetVertices) {
     gm::Point<> p1 = {1.5, 3};
     gm::Point<> p2 = {3.5, 7};
     auto subset = get_subset_of_vertices(line, p1, p2);
-    std::vector<gm::Point<>> true_subset{{2, 4}, {3, 6}};
+    std::vector<gm::Point<>> true_subset{{1.5, 3}, {2, 4}, {3, 6}, {3.5, 7}};
     std::reverse(true_subset.begin(), true_subset.end());
-    BOOST_CHECK_EQUAL(subset.size(), 2);
-    for (size_t i = 0; i < 2; i++) {
+    BOOST_CHECK_EQUAL(subset.size(), 4);
+    for (size_t i = 0; i < 4; i++) {
       BOOST_CHECK_CLOSE(subset[i].x, true_subset[i].x, TOL);
       BOOST_CHECK_CLOSE(subset[i].y, true_subset[i].y, TOL);
     }
@@ -206,10 +206,35 @@ BOOST_AUTO_TEST_CASE(TestSubsetVertices) {
     gm::Point<> p2 = {1.5, 3};
     gm::Point<> p1 = {3.5, 7};
     auto subset = get_subset_of_vertices(line, p1, p2);
-    std::vector<gm::Point<>> true_subset{{2, 4}, {3, 6}};
+    std::vector<gm::Point<>> true_subset{{1.5, 3}, {2, 4}, {3, 6}, {3.5, 7}};
     std::reverse(true_subset.begin(), true_subset.end());
+    BOOST_CHECK_EQUAL(subset.size(), 4);
+    for (size_t i = 0; i < 4; i++) {
+      BOOST_CHECK_CLOSE(subset[i].x, true_subset[i].x, TOL);
+      BOOST_CHECK_CLOSE(subset[i].y, true_subset[i].y, TOL);
+    }
+  }
+  {
+    std::vector<gm::Point<>> line = {{0, 0}, {1, 2}, {4, 8}, {5, 10}};
+    gm::Point<> p1 = {1.5, 3};
+    gm::Point<> p2 = {3.5, 7};
+    auto subset = get_subset_of_vertices(line, p1, p2);
+    std::vector<gm::Point<>> true_subset{{1.5, 3}, {3.5, 7}};
     BOOST_CHECK_EQUAL(subset.size(), 2);
     for (size_t i = 0; i < 2; i++) {
+      BOOST_CHECK_CLOSE(subset[i].x, true_subset[i].x, TOL);
+      BOOST_CHECK_CLOSE(subset[i].y, true_subset[i].y, TOL);
+    }
+  }
+  {
+    std::vector<gm::Point<>> line = {{0, 0},   {1, 2}, {1.5, 3}, {2, 4},
+                                     {3.5, 7}, {4, 8}, {5, 10}};
+    gm::Point<> p1 = {1.5, 3};
+    gm::Point<> p2 = {3.5, 7};
+    auto subset = get_subset_of_vertices(line, p1, p2);
+    std::vector<gm::Point<>> true_subset{{1.5, 3}, {2, 4}, {3.5, 7}};
+    BOOST_CHECK_EQUAL(subset.size(), 3);
+    for (size_t i = 0; i < 3; i++) {
       BOOST_CHECK_CLOSE(subset[i].x, true_subset[i].x, TOL);
       BOOST_CHECK_CLOSE(subset[i].y, true_subset[i].y, TOL);
     }

@@ -733,64 +733,71 @@ void remove_same_year_intersections(
   }
   intersect_points = std::move(new_intersects);
 }
+
 std::vector<gm::Point<>> get_subset_of_vertices(
     const std::vector<gm::Point<>> &line, const gm::Point<> &p1,
     const gm::Point<> &p2) {
-  auto isBefore = [](const gm::Point<> &a, const gm::Point<> &b) {
-    return a.x < b.x || (a.x == b.x && a.y < b.y);
+  auto is_between = [](const gm::Point<> &p, const gm::Point<> &a,
+                       const gm::Point<> &b) {
+    if (p == a || p == b) {
+      return false;
+    }
+    return std::abs(a.distance_to_point(b) -
+                    (a.distance_to_point(p) + p.distance_to_point(b))) < 1e-3;
   };
 
-  gm::Point<> before_p1, after_p1, before_p2, after_p2;
+  std::vector<gm::Point<>> sub_vec;
+  size_t p1_pos{0}, p2_pos{0};
+  for (size_t i = 0; i < line.size() - 1; i++) {
+    auto edge_1 = line.at(i);
+    auto edge_2 = line.at(i + 1);
+    if (edge_1 == p1 || is_between(p1, edge_1, edge_2)) {
+      p1_pos = i + 1;
+      break;
+    }
+  }
+  for (size_t i = 0; i < line.size() - 1; i++) {
+    auto edge_1 = line.at(i);
+    auto edge_2 = line.at(i + 1);
+    if (edge_1 == p2 || is_between(p2, edge_1, edge_2)) {
+      p2_pos = i + 1;
+      break;
+    }
+  }
 
-  double min_dist_before_p1{MAX_DOUBLE}, min_dist_after_p1{MAX_DOUBLE},
-      min_dist_before_p2{MAX_DOUBLE}, min_dist_after_p2{MAX_DOUBLE};
-  for (const auto &vertex : line) {
-    if (isBefore(vertex, p1)) {
-      auto dist = vertex.distance_to_point((p1));
-      if (dist < min_dist_before_p1) {
-        before_p1 = vertex;
-        min_dist_before_p1 = dist;
-      }
+  if (p1_pos == 0 || p2_pos == 0) {
+    return {};
+  }
+
+  if (p1_pos < p2_pos) {
+    sub_vec.insert(sub_vec.end(), line.begin() + p1_pos, line.begin() + p2_pos);
+    if (sub_vec[0] != p1) {
+      sub_vec.insert(sub_vec.begin(), p1);
+    }
+    if (sub_vec[sub_vec.size() - 1] != p2) {
+      sub_vec.push_back(p2);
+    }
+  } else if (p1_pos > p2_pos) {
+    sub_vec.insert(sub_vec.end(), line.begin() + p2_pos, line.begin() + p1_pos);
+    if (sub_vec[0] != p2) {
+      sub_vec.insert(sub_vec.begin(), p2);
+    }
+    if (sub_vec[sub_vec.size() - 1] != p1) {
+      sub_vec.push_back(p1);
+    }
+  } else {
+    if (line[p1_pos - 1].distance_to_point(p1) <
+        line[p1_pos - 1].distance_to_point(p2)) {
+      sub_vec.push_back(p1);
+      sub_vec.push_back(p2);
     } else {
-      auto dist = vertex.distance_to_point((p1));
-      if (dist < min_dist_after_p1) {
-        after_p1 = vertex;
-        min_dist_after_p1 = dist;
-      }
-    }
-
-    if (isBefore(vertex, p2)) {
-      auto dist = vertex.distance_to_point((p2));
-      if (dist < min_dist_before_p2) {
-        before_p2 = vertex;
-        min_dist_before_p2 = dist;
-      }
-    } else {
-      auto dist = vertex.distance_to_point((p2));
-      if (dist < min_dist_after_p2) {
-        after_p2 = vertex;
-        min_dist_after_p2 = dist;
-      }
+      sub_vec.push_back(p2);
+      sub_vec.push_back(p1);
     }
   }
-
-  auto it1 = std::find(line.begin(), line.end(), before_p1);
-  auto it2 = std::find(line.begin(), line.end(), after_p1);
-  auto it3 = std::find(line.begin(), line.end(), before_p2);
-  auto it4 = std::find(line.begin(), line.end(), after_p2);
-
-  if (isBefore(p1, p2)) {
-    if (it2 < it3) {
-      return {it2, it3 + 1};
-    }
-    return {it3, it2 + 1};
-  }
-
-  if (it4 < it1) {
-    return {it4, it1 + 1};
-  }
-  return {it1, it4 + 1};
+  return sub_vec;
 }
+
 std::optional<gm::Shoreline> truncate_shore_by_transects(
     const gm::TransectLine &tran1, const gm::TransectLine &tran2,
     const gm::Shoreline &shoreline) {
@@ -927,12 +934,12 @@ double modified_frechet_distance(const std::vector<gm::Point<>> &line1,
   double max_distance = MIN_DOUBLE;
   double min_distance = MAX_DOUBLE;
   double dist = 0;
-  for(size_t i = 0; i < line_a->size(); i++){
+  for (size_t i = 0; i < line_a->size(); i++) {
     dist = line_a->at(i).distance_to_point(line_b[i]);
     max_distance = std::max(dist, max_distance);
     min_distance = std::min(dist, min_distance);
   }
-  return max_distance - min_distance; 
+  return max_distance - min_distance;
 }
 
 std::vector<gm::Shoreline> truncate_shore_by_transects(
@@ -954,9 +961,13 @@ std::vector<gm::Shoreline> truncate_shore_by_transects(
 
   for (int year : common_years) {
     auto *intersect1 = year_intersect_map1[year];
+    assert(intersect1 != nullptr);
     auto *intersect2 = year_intersect_map2[year];
+    assert(intersect2 != nullptr);
     auto *shoreline1 = intersect1->shoreline_ptr_;
+    assert(shoreline1 != nullptr);
     auto *shoreline2 = intersect2->shoreline_ptr_;
+    assert(shoreline2 != nullptr);
     if (shoreline1 != shoreline2) {
       continue;
     }

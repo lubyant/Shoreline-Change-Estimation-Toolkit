@@ -180,7 +180,7 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
   }
   std::cout << "read images: " << images.size() << std::endl;
   auto end = std::chrono::high_resolution_clock::now();
-  auto elapsed = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(end - start);
   std::cout << "elapsed time: " << elapsed.count() << std::endl;
 
   // generate the baselines
@@ -189,7 +189,7 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
   std::cout << "generate baselines;\n";
   auto shorelines = Image::merge_shorelines_from_images(images);
   end = std::chrono::high_resolution_clock::now();
-  elapsed = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  elapsed = std::chrono::duration_cast<std::chrono::seconds>(end - start);
   std::cout << "elapsed time: " << elapsed.count() << std::endl;
 
   // generate the transects
@@ -197,7 +197,7 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
   auto transect_groups = generate_transects(baselines);
   std::cout << "generate transects;\n";
   end = std::chrono::high_resolution_clock::now();
-  elapsed = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  elapsed = std::chrono::duration_cast<std::chrono::seconds>(end - start);
   std::cout << "elapsed time: " << elapsed.count() << std::endl;
 
   // generate the intersections
@@ -205,7 +205,7 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
   auto intersection_map = generate_intersections(shorelines, transect_groups);
   std::cout << "generate intersects;\n";
   end = std::chrono::high_resolution_clock::now();
-  elapsed = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  elapsed = std::chrono::duration_cast<std::chrono::seconds>(end - start);
   std::cout << "elapsed time: " << elapsed.count() << std::endl;
 
   // compute the regression rate
@@ -213,28 +213,28 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
   processes_shoreline_rate(intersection_map, transect_groups, options);
   std::cout << "process the shoreline\n";
   end = std::chrono::high_resolution_clock::now();
-  elapsed = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  elapsed = std::chrono::duration_cast<std::chrono::seconds>(end - start);
   std::cout << "elapsed time: " << elapsed.count() << std::endl;
 
   start = std::chrono::high_resolution_clock::now();
   frechet_distance(transect_groups, options);
   std::cout << "compute the frechet\n";
   end = std::chrono::high_resolution_clock::now();
-  elapsed = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  elapsed = std::chrono::duration_cast<std::chrono::seconds>(end - start);
   std::cout << "elapsed time: " << elapsed.count() << std::endl;
 
   start = std::chrono::high_resolution_clock::now();
   euc_distance(transect_groups, options);
   std::cout << "compute base distance\n";
   end = std::chrono::high_resolution_clock::now();
-  elapsed = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  elapsed = std::chrono::duration_cast<std::chrono::seconds>(end - start);
   std::cout << "elapsed time: " << elapsed.count() << std::endl;
 
   start = std::chrono::high_resolution_clock::now();
   compute_rate(transect_groups, options);
   std::cout << "compute the rates;\n";
   end = std::chrono::high_resolution_clock::now();
-  elapsed = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  elapsed = std::chrono::duration_cast<std::chrono::seconds>(end - start);
   std::cout << "elapsed time: " << elapsed.count() << std::endl;
 
   start = std::chrono::high_resolution_clock::now();
@@ -272,6 +272,7 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
                                  output_folder / "baseline.shp");
   end = std::chrono::high_resolution_clock::now();
   elapsed = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  std::cout << "save the files\n";
   std::cout << "elapsed time: " << elapsed.count() << std::endl;
 }
 
@@ -514,23 +515,31 @@ void frechet_distance(gm::TransectGroups &transect_groups,
               });
     double dist1, dist2, dist3, dist4, fre_dist;
     for (size_t i = 0; i < shore_segments.size() - 1; i++) {
+      if (shore_segments[i].shoreline_vertices_.size() < 2 ||
+          shore_segments[i + 1].shoreline_vertices_.size() < 2) {
+        continue;
+      }
       assert(shore_segments[i].year_ != shore_segments[i + 1].year_);
       auto dur = static_cast<double>(shore_segments[i + 1].year_ -
                                      shore_segments[i].year_);
-      dist1 = util::modified_frechet_distance(shore_segments[i].shoreline_vertices_,
-                                     shore_segments[i + 1].shoreline_vertices_);
+      dist1 = util::modified_frechet_distance(
+          shore_segments[i].shoreline_vertices_,
+          shore_segments[i + 1].shoreline_vertices_);
       std::reverse(shore_segments[i].shoreline_vertices_.begin(),
                    shore_segments[i].shoreline_vertices_.end());
-      dist2 = util::modified_frechet_distance(shore_segments[i].shoreline_vertices_,
-                                     shore_segments[i + 1].shoreline_vertices_);
+      dist2 = util::modified_frechet_distance(
+          shore_segments[i].shoreline_vertices_,
+          shore_segments[i + 1].shoreline_vertices_);
       std::reverse(shore_segments[i + 1].shoreline_vertices_.begin(),
                    shore_segments[i + 1].shoreline_vertices_.end());
-      dist3 = util::modified_frechet_distance(shore_segments[i].shoreline_vertices_,
-                                     shore_segments[i + 1].shoreline_vertices_);
+      dist3 = util::modified_frechet_distance(
+          shore_segments[i].shoreline_vertices_,
+          shore_segments[i + 1].shoreline_vertices_);
       std::reverse(shore_segments[i].shoreline_vertices_.begin(),
                    shore_segments[i].shoreline_vertices_.end());
-      dist4 = util::modified_frechet_distance(shore_segments[i].shoreline_vertices_,
-                                     shore_segments[i + 1].shoreline_vertices_);
+      dist4 = util::modified_frechet_distance(
+          shore_segments[i].shoreline_vertices_,
+          shore_segments[i + 1].shoreline_vertices_);
 
       fre_dist = std::min({dist1, dist2, dist3, dist4}) / dur;
       frechet_distances_map[image_id].push_back(fre_dist);

@@ -6,7 +6,7 @@ int main(int argc, char **argv) {
   using namespace dsas;
   Options options;
   options.outlier_rate = 6;
-  options.smooth_factor = 5;
+  options.smooth_factor = 10;
   options.transect_spacing = 30;
   options.transect_length = 200;
   options.edge_distance = 200;
@@ -16,8 +16,7 @@ int main(int argc, char **argv) {
   options.intersection_mode = Options::IntersectionMode::Closest;
   options.outlier_metric = Options::OutlierMetric::FrechetDistance;
   digital_shoreline_analysis_system(
-      Path("/home/lby/Desktop/ShorelineCalculator/Final_Folder"),
-      Path("/home/lby/Desktop/ShorelineCalculator/Final_Folder_Output"),
-      options);
+      Path("/home/lby/Desktop/ShorelineCalculator/images"),
+      Path("/home/lby/Desktop/ShorelineCalculator/image_output"), options);
   return 0;
 }
