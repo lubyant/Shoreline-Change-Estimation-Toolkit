@@ -131,6 +131,8 @@ void TransectLine::compute_frechet_dist() {
     year_intersect_map_[shoreline_segs_[0].year_]->frechet_distance_diff_ =
         fre_dist;
     frechet_dist_.push_back(fre_dist);
+    set_frechet_info(shoreline_segs_[0].year_, shoreline_segs_[1].year_,
+                     fre_dist);
     return;
   }
   for (size_t i = 0; i < shoreline_segs_.size(); i++) {
@@ -156,6 +158,8 @@ void TransectLine::compute_frechet_dist() {
     auto year = shoreline_segs_[i].year_;
     year_intersect_map_[year]->frechet_distance_diff_ = fre_dist;
     frechet_dist_.push_back(fre_dist);
+    set_frechet_info(shoreline_segs_[i].year_, shoreline_segs_[i + 1].year_,
+                     fre_dist);
   }
 }
 
@@ -271,6 +275,15 @@ void TransectLine::set_info(const std::vector<double> &years,
 
   // calculate the rate
   change_rate = util::least_square(years, distances);
+}
+
+void TransectLine::set_frechet_info(int year_start, int year_end,
+                                    double frechet_dist) {
+  std::ostringstream ss;
+  ss << std::fixed << std::setprecision(2) << frechet_dist;
+  std::string add_on = std::to_string(year_start) + "-" +
+                       std::to_string(year_end) + ":" + ss.str() + "; ";
+  frechet_info_ = frechet_info_ + add_on;
 }
 
 Baseline::Baseline(const std::vector<BaselinesVertex> &points, int baseline_id,

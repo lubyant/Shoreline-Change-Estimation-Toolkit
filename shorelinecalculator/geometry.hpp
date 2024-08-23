@@ -97,8 +97,9 @@ struct Point {
     return {x_new, y_new};
   }
   // Linear interpolation between two points
-  static Point<T> interpolate(const Point<T>& a, const Point<T>& b, double fraction) {
-      return Point(a.x + (b.x - a.x) * fraction, a.y + (b.y - a.y) * fraction);
+  static Point<T> interpolate(const Point<T> &a, const Point<T> &b,
+                              double fraction) {
+    return Point(a.x + (b.x - a.x) * fraction, a.y + (b.y - a.y) * fraction);
   }
 };
 
@@ -149,7 +150,7 @@ struct BaselineSeg : public LineSegment {
   }
 };
 
-#define transect_t int, int, int, double, int, const char *
+#define transect_t int, int, int, double, int, const char *, const char *
 struct TransectLine : public LineSegment,
                       MultiLine<Point<>>,
                       GDALShpSaver<transect_t> {
@@ -168,6 +169,7 @@ struct TransectLine : public LineSegment,
   std::unordered_map<int, IntersectPoint *> year_intersect_map_;
   std::vector<Shoreline> shoreline_segs_;  // the shoreline segments nearby
   std::vector<double> frechet_dist_;
+  std::string frechet_info_{};
 
   TransectLine *prev_transect_line{nullptr}, *next_transect_line{nullptr};
 
@@ -210,6 +212,9 @@ struct TransectLine : public LineSegment,
   void set_info(const std::vector<double> &years,
                 const std::vector<double> &distances);
 
+  void set_frechet_info(int year_start, int year_end,
+                        double frechet_dist);
+
   [[nodiscard]] size_t size() const override { return 3; }
 
   [[nodiscard]] const Point<> &operator[](size_t i) const override {
@@ -226,17 +231,19 @@ struct TransectLine : public LineSegment,
   }
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
-    return {"TransectId", "BaselineId", "ImageId",
-            "ChangeRate", "Nums",       "Info"};
+    return {"TransectId", "BaselineId", "ImageId", "ChangeRate",
+            "Nums",       "EucInfo",    "FreInfo"};
   }
   [[nodiscard]] std::vector<OGRFieldType> get_types() const override {
     return {OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
             OGRFieldType::OFTInteger, OGRFieldType::OFTReal,
-            OGRFieldType::OFTInteger, OGRFieldType::OFTString};
+            OGRFieldType::OFTInteger, OGRFieldType::OFTString,
+            OGRFieldType::OFTString};
   }
   [[nodiscard]] std::tuple<transect_t> get_values() const override {
-    return {transect_id_, baseline_id_,   image_id_,
-            change_rate,  num_intersect_, intersect_info_.c_str()};
+    return {transect_id_,         baseline_id_,   image_id_,
+            change_rate,          num_intersect_, intersect_info_.c_str(),
+            frechet_info_.c_str()};
   }
 };
 

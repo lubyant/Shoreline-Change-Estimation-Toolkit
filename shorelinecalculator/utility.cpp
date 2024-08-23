@@ -920,22 +920,17 @@ std::vector<gm::Point<>> equal_divided_polyline(
 }
 double modified_frechet_distance(const std::vector<gm::Point<>> &line1,
                                  const std::vector<gm::Point<>> &line2) {
-  const std::vector<gm::Point<>> *line_a = nullptr;
+  std::vector<gm::Point<>> line_a;
   std::vector<gm::Point<>> line_b;
+  size_t n_size{std::max(line1.size(), line2.size())};
+  line_a = std::move(equal_divided_polyline(line1, n_size));
+  line_b = std::move(equal_divided_polyline(line2, n_size));
 
-  if (line1.size() == line2.size()) {
-    line_a = &line1;
-    line_b = line2;
-  } else {
-    line_a = &line1;
-    line_b = equal_divided_polyline(line2, line_a->size());
-    assert(line_a->size() == line_b.size());
-  }
   double max_distance = MIN_DOUBLE;
   double min_distance = MAX_DOUBLE;
   double dist = 0;
-  for (size_t i = 0; i < line_a->size(); i++) {
-    dist = line_a->at(i).distance_to_point(line_b[i]);
+  for (size_t i = 0; i < n_size; i++) {
+    dist = line_a[i].distance_to_point(line_b[i]);
     max_distance = std::max(dist, max_distance);
     min_distance = std::min(dist, min_distance);
   }
@@ -958,6 +953,8 @@ std::vector<gm::Shoreline> truncate_shore_by_transects(
   if (common_years.empty()) {
     return {};
   }
+
+  std::sort(common_years.begin(), common_years.end());
 
   for (int year : common_years) {
     auto *intersect1 = year_intersect_map1[year];
