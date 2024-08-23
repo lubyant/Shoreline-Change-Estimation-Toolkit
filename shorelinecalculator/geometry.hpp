@@ -150,7 +150,7 @@ struct BaselineSeg : public LineSegment {
   }
 };
 
-#define transect_t int, int, int, double, int, const char *, const char *
+#define transect_t int, int, int, int, double, int, const char *, const char *
 struct TransectLine : public LineSegment,
                       MultiLine<Point<>>,
                       GDALShpSaver<transect_t> {
@@ -161,6 +161,7 @@ struct TransectLine : public LineSegment,
   int transect_id_;
   int baseline_id_;
   int image_id_;
+  int group_id_;
   size_t num_intersect_{};        // number of intersections in this transect
   std::string intersect_info_{};  // year, dist; year, dist;....
   double change_rate{};           // change rate for all the intersections
@@ -230,18 +231,23 @@ struct TransectLine : public LineSegment,
   }
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
-    return {"TransectId", "BaselineId", "ImageId", "ChangeRate",
-            "Nums",       "EucInfo",    "FreInfo"};
+    return {"TransectId", "BaselineId", "ImageId", "GroupId",
+            "ChangeRate", "Nums",       "EucInfo", "FreInfo"};
   }
   [[nodiscard]] std::vector<OGRFieldType> get_types() const override {
     return {OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
-            OGRFieldType::OFTInteger, OGRFieldType::OFTReal,
-            OGRFieldType::OFTInteger, OGRFieldType::OFTString,
-            OGRFieldType::OFTString};
+            OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
+            OGRFieldType::OFTReal,    OGRFieldType::OFTInteger,
+            OGRFieldType::OFTString,  OGRFieldType::OFTString};
   }
   [[nodiscard]] std::tuple<transect_t> get_values() const override {
-    return {transect_id_,         baseline_id_,   image_id_,
-            change_rate,          num_intersect_, intersect_info_.c_str(),
+    return {transect_id_,
+            baseline_id_,
+            image_id_,
+            group_id_,
+            change_rate,
+            num_intersect_,
+            intersect_info_.c_str(),
             frechet_info_.c_str()};
   }
 };
@@ -338,12 +344,14 @@ struct Shoreline : public MultiLine<Point<>>, GDALShpSaver<int, int> {
   }
 };
 
-#define IntersectPoint_t int, int, int, int, int, double, double, double, double
+#define IntersectPoint_t \
+  int, int, int, int, int, int, double, double, double, double
 struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
   int image_id_;
   int transect_id_;
   int shoreline_id_;
   int baseline_id_;
+  int group_id_;
   int year_;
   boost::gregorian::date date_;
   double distance_to_ref_{-1};
@@ -357,7 +365,7 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
   bool is_outlier{false};
 
   IntersectPoint(Point<double> point, int transect_id, int shoreline_id,
-                 int baseline_id, int image_id, int year,
+                 int baseline_id, int image_id, int group_id, int year,
                  double distance_to_ref, const TransectLine *transect_line_ptr,
                  const Shoreline *shoreline_ptr)
       : Point<double>(point),
@@ -365,6 +373,7 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
         shoreline_id_(shoreline_id),
         baseline_id_(baseline_id),
         image_id_(image_id),
+        group_id_(group_id),
         year_(year),
         date_(year_, 1, 1),
         distance_to_ref_(distance_to_ref),
@@ -372,16 +381,16 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
         shoreline_ptr_(shoreline_ptr) {}
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
-    return {"BaselineId", "TransectId", "ShoreID", "ImageID", "Year",
-            "base_dist",  "fre_dist",   "X",       "Y"};
+    return {"BaselineId", "TransectId", "ShoreID",  "ImageID", "GroupID",
+            "Year",       "base_dist",  "fre_dist", "X",       "Y"};
   }
 
   [[nodiscard]] std::vector<OGRFieldType> get_types() const override {
     return {OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
             OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
-            OGRFieldType::OFTInteger, OGRFieldType::OFTReal,
+            OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
             OGRFieldType::OFTReal,    OGRFieldType::OFTReal,
-            OGRFieldType::OFTReal};
+            OGRFieldType::OFTReal,    OGRFieldType::OFTReal};
   }
 
   [[nodiscard]] std::tuple<IntersectPoint_t> get_values() const override {
@@ -389,6 +398,7 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
             transect_id_,
             shoreline_id_,
             image_id_,
+            group_id_,
             year_,
             distance_to_ref_,
             frechet_distance_diff_,

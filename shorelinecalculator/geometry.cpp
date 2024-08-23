@@ -217,18 +217,18 @@ std::optional<IntersectPoint> TransectLine::intersection(
         auto point = find_intersection(shoreline[i], shoreline[i + 1]);
         auto distance = distance2ref(point);
         IntersectPoint intersect_point{
-            point,        transect_id_, shoreline.shoreline_id_,
-            baseline_id_, image_id_,    shoreline.year_,
-            distance,     this,         &shoreline};
+            point,     transect_id_, shoreline.shoreline_id_, baseline_id_,
+            image_id_, group_id_,    shoreline.year_,         distance,
+            this,      &shoreline};
         intersections.push_back(intersect_point);
       } catch (std::runtime_error &e) {
         auto point = gm::Point<>((shoreline[i].x + shoreline[i + 1].x) / 2,
                                  (shoreline[i].y + shoreline[i + 1].y) / 2);
         auto distance = distance2ref(point);
         IntersectPoint intersect_point{
-            point,        transect_id_, shoreline.shoreline_id_,
-            baseline_id_, image_id_,    shoreline.year_,
-            distance,     this,         &shoreline};
+            point,     transect_id_, shoreline.shoreline_id_, baseline_id_,
+            image_id_, group_id_,    shoreline.year_,         distance,
+            this,      &shoreline};
         intersections.push_back(intersect_point);
       }
     }

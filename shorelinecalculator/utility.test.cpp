@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(TestRemoveOutliers) {
                              2006, 2007, 2008, 2009, 2010};
     std::vector<gm::IntersectPoint> intersects;
     for (size_t i = 0; i < data.size(); i++) {
-      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, x[i], data[i],
+      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, 0, x[i], data[i],
                               nullptr, nullptr);
     }
     dsas::Options options;
@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(TestRemoveOutliers) {
                              2006, 2007, 2008, 2009, 2010};
     std::vector<gm::IntersectPoint> intersects;
     for (size_t i = 0; i < data.size(); i++) {
-      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, x[i], data[i],
+      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, 0, x[i], data[i],
                               nullptr, nullptr);
     }
     dsas::Options options;
@@ -128,7 +128,7 @@ BOOST_AUTO_TEST_CASE(TestRemoveOutliers) {
                              2006, 2007, 2008, 2009, 2010};
     std::vector<gm::IntersectPoint> intersects;
     for (size_t i = 0; i < data.size(); i++) {
-      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, x[i], data[i],
+      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, 0, x[i], data[i],
                               nullptr, nullptr);
       intersects[intersects.size() - 1].frechet_distance_diff_ = data[i];
     }
@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(TestRemoveOutliers) {
                              2006, 2007, 2008, 2009, 2010};
     std::vector<gm::IntersectPoint> intersects;
     for (size_t i = 0; i < data.size(); i++) {
-      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, x[i], data[i],
+      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, 0, x[i], data[i],
                               nullptr, nullptr);
       intersects[intersects.size() - 1].frechet_distance_diff_ = data[i];
     }

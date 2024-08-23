@@ -299,6 +299,7 @@ gm::TransectGroups generate_transects(gm::Baselines &baselines,
                                       size_t group_window) {
   gm::TransectGroups transectGroups;
   gm::Transects transect_group;
+  int group_id{0};
   for (auto &baseline : baselines) {
     auto transects = baseline.set_transects();
     size_t num = transects.transects_.size() / group_window;
@@ -308,9 +309,11 @@ gm::TransectGroups generate_transects(gm::Baselines &baselines,
           break;
         }
         transect_group.baseline_id_ = transects.baseline_id_;
+        transects.transects_.at(i * group_window + j).group_id_ = group_id;
         transect_group.transects_.push_back(
-            transects.transects_.at(i * group_window + j));
+            std::move(transects.transects_.at(i * group_window + j)));
       }
+      group_id++;
       transectGroups.push_back(std::move(transect_group));
       transect_group = gm::Transects();
     }
