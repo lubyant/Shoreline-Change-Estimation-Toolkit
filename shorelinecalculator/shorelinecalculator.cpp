@@ -584,29 +584,38 @@ void euc_distance(gm::TransectGroups &transect_groups, const Options &options) {
   using image_id_t = int;
   std::unordered_map<image_id_t, std::vector<double>> euc_distances_map;
   for (auto &transects : transect_groups) {
+    std::map<int, std::vector<double>> year_dist_map;
+    std::vector<int> years;
     for (auto &transect : transects.transects_) {
       image_id_t image_id{transect.image_id_};
       auto year_intersects_map{transect.year_intersect_map_};
-      std::map<int, double> year_dist_map;
-      for (auto [year, intersect] : year_intersects_map) {
-        year_dist_map[year] = intersect->distance_to_ref_;
+      for (const auto &[year, intersect] : year_intersects_map) {
+        year_dist_map[year].push_back(intersect->distance_to_ref_);
       }
-      if (year_dist_map.size() < 2) {
-        continue;
-      }
-      std::vector<int> years;
-      std::vector<double> dists;
-      for (auto [year, dist] : year_dist_map) {
-        years.push_back(year);
-        dists.push_back(dist);
-      }
-      for (size_t i = 0; i < years.size() - 1; i++) {
-        auto dist_rate = (dists[i + 1] - dists[i]) /
+    }
+    if (year_dist_map.size() < 2) {
+      continue;
+    }
+    for (const auto &[year, vec] : year_dist_map) {
+      years.push_back(year);
+    }
+
+    for (size_t i = 0; i < years.size() - 1; i++) {
+      auto &dist_1 = year_dist_map[years[i]];
+      auto &dist_2 = year_dist_map[years[i + 1]];
+      double mean_dist_1 = std::accumulate(dist_1.begin(), dist_1.end(), 0.0) /
+                           static_cast<double>(dist_1.size());
+      double mean_dist_2 = std::accumulate(dist_2.begin(), dist_2.end(), 0.0) /
+                           static_cast<double>(dist_2.size());
+      double dist_rate = (mean_dist_2 - mean_dist_1) /
                          static_cast<double>(years[i + 1] - years[i]);
-        if (year_intersects_map.find(years[i]) != year_intersects_map.end()) {
-          year_intersects_map[years[i]]->base_distance_diff_ = dist_rate;
+
+      for (auto &transect : transects.transects_) {
+        transect.set_euc_info(years[i], years[i + 1], dist_rate);
+        if (transect.year_intersect_map_.find(years[i]) !=
+            transect.year_intersect_map_.end()) {
+          transect.year_intersect_map_[years[i]]->euc_distance_diff = dist_rate;
         }
-        euc_distances_map[image_id].push_back(dist_rate);
       }
     }
   }
@@ -631,7 +640,7 @@ void euc_distance(gm::TransectGroups &transect_groups, const Options &options) {
         if (intersect->frechet_distance_diff_ == -1) {
           continue;
         }
-        double cur_base_dist{intersect->base_distance_diff_};
+        double cur_base_dist{intersect->euc_distance_diff};
         if ((cur_base_dist - cur_mean) > options.outlier_rate * cur_std) {
           intersect->is_base_outlier = true;
         }

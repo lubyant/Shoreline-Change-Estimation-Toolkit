@@ -286,6 +286,14 @@ void TransectLine::set_frechet_info(int year_start, int year_end,
   frechet_info_ = frechet_info_ + add_on;
 }
 
+void TransectLine::set_euc_info(int year_start, int year_end, double euc_dist) {
+  std::ostringstream ss;
+  ss << std::fixed << std::setprecision(2) << euc_dist;
+  std::string add_on = std::to_string(year_start) + "-" +
+                       std::to_string(year_end) + ":" + ss.str() + "; ";
+  euc_info_ = euc_info_ + add_on;
+}
+
 Baseline::Baseline(const std::vector<BaselinesVertex> &points, int baseline_id,
                    int image_id, const dsas::Options &options)
     : baseline_id_(baseline_id), image_id_(image_id), options_(options) {

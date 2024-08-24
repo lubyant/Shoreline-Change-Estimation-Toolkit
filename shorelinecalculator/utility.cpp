@@ -61,7 +61,7 @@ void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
   if (intersections.size() == 1) {
     transect.num_intersect_ = 1;
     transect.change_rate = 0;
-    transect.intersect_info_ = std::to_string(intersections[0].year_) + ", 0.";
+    transect.euc_info_ = std::to_string(intersections[0].year_) + ", 0.";
     return;
   }
 
@@ -81,7 +81,7 @@ void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
     std::stringstream ss;
     ss << copy[0].year_ << ", " << copy[0].distance_to_ref_ << ". "
        << copy[1].year_ << ", " << copy[1].distance_to_ref_ << ". ";
-    transect.intersect_info_ = ss.str();
+    transect.euc_info_ = ss.str();
   }
 
   /*

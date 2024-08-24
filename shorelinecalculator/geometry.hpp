@@ -150,7 +150,8 @@ struct BaselineSeg : public LineSegment {
   }
 };
 
-#define transect_t int, int, int, int, double, int, const char *, const char *
+#define transect_t \
+  int, int, int, int, double, int, const char *, const char *, const char *
 struct TransectLine : public LineSegment,
                       MultiLine<Point<>>,
                       GDALShpSaver<transect_t> {
@@ -162,15 +163,17 @@ struct TransectLine : public LineSegment,
   int baseline_id_;
   int image_id_;
   int group_id_;
-  size_t num_intersect_{};        // number of intersections in this transect
-  std::string intersect_info_{};  // year, dist; year, dist;....
-  double change_rate{};           // change rate for all the intersections
+  size_t num_intersect_{};  // number of intersections in this transect
+  double change_rate{};     // change rate for all the intersections
   IntersectionMode mode_;
   TransectOrientation orient_;
   std::unordered_map<int, IntersectPoint *> year_intersect_map_;
   std::vector<Shoreline> shoreline_segs_;  // the shoreline segments nearby
   std::vector<double> frechet_dist_;
+  std::vector<double> euc_dist_;
   std::string frechet_info_{};
+  std::string euc_info_{};
+  std::string intersect_info_{};  // year, dist; year, dist;....
 
   TransectLine *prev_transect_line{nullptr}, *next_transect_line{nullptr};
 
@@ -214,6 +217,7 @@ struct TransectLine : public LineSegment,
                 const std::vector<double> &distances);
 
   void set_frechet_info(int year_start, int year_end, double frechet_dist);
+  void set_euc_info(int year_start, int year_end, double euc_dist);
 
   [[nodiscard]] size_t size() const override { return 3; }
 
@@ -231,14 +235,15 @@ struct TransectLine : public LineSegment,
   }
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
-    return {"TransectId", "BaselineId", "ImageId", "GroupId",
-            "ChangeRate", "Nums",       "EucInfo", "FreInfo"};
+    return {"TransectId", "BaselineId", "ImageId", "GroupId", "ChangeRate",
+            "Nums",       "IntInfo",    "EucInfo", "FreInfo"};
   }
   [[nodiscard]] std::vector<OGRFieldType> get_types() const override {
     return {OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
             OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
             OGRFieldType::OFTReal,    OGRFieldType::OFTInteger,
-            OGRFieldType::OFTString,  OGRFieldType::OFTString};
+            OGRFieldType::OFTString,  OGRFieldType::OFTString,
+            OGRFieldType::OFTString};
   }
   [[nodiscard]] std::tuple<transect_t> get_values() const override {
     return {transect_id_,
@@ -248,6 +253,7 @@ struct TransectLine : public LineSegment,
             change_rate,
             num_intersect_,
             intersect_info_.c_str(),
+            euc_info_.c_str(),
             frechet_info_.c_str()};
   }
 };
@@ -355,7 +361,7 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
   int year_;
   boost::gregorian::date date_;
   double distance_to_ref_{-1};
-  double base_distance_diff_{-1};
+  double euc_distance_diff{-1};
   double frechet_distance_diff_{-1};  // the frechet distance difference between
                                       // year[i-1], year[i], year[i+1]
   const TransectLine *transect_line_ptr_{nullptr};
@@ -382,7 +388,7 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
     return {"BaselineId", "TransectId", "ShoreID",  "ImageID", "GroupID",
-            "Year",       "base_dist",  "fre_dist", "X",       "Y"};
+            "Year",       "euc_dist",   "fre_dist", "X",       "Y"};
   }
 
   [[nodiscard]] std::vector<OGRFieldType> get_types() const override {
@@ -400,7 +406,7 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
             image_id_,
             group_id_,
             year_,
-            distance_to_ref_,
+            euc_distance_diff,
             frechet_distance_diff_,
             x,
             y};
