@@ -52,9 +52,10 @@ struct Image {
 
   // geo-transform
   void transform_coordinates();
+  void transform_coordinates(const std::string &psz_prj);
 
   static std::vector<gm::Shoreline> merge_shorelines_from_images(
-      std::vector<Image> &images);
+      std::vector<Image> &images, const std::string &psz_prj);
 
   static gm::Baselines merge_baselines_from_images(
       const std::vector<const Image *> &images, const Options &options);

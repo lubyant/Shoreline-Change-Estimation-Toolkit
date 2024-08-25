@@ -157,8 +157,8 @@ struct TransectLine : public LineSegment,
                       GDALShpSaver<transect_t> {
   using IntersectionMode = dsas::Options::IntersectionMode;
   using TransectOrientation = dsas::Options::TransectOrientation;
-  Point<> transect_ref_point_;   // point to calculate the erosion
   Point<> transect_base_point_;  // point to generate the shapefile
+  Point<> transect_ref_point_;   // point to calculate the erosion
   int transect_id_;
   int baseline_id_;
   int image_id_;
@@ -182,10 +182,10 @@ struct TransectLine : public LineSegment,
                int transect_id, int baseline_id, int image_id,
                IntersectionMode mode = IntersectionMode::Closest,
                TransectOrientation orient = TransectOrientation::Mix)
-      : transect_base_point_(transect_base),
-        LineSegment(create_transect(transect_base, baseline_normal_vector,
+        :LineSegment(create_transect(transect_base, baseline_normal_vector,
                                     transect_length, orient)),
 
+        transect_base_point_(transect_base),
         transect_ref_point_(orient == TransectOrientation::Right ? leftEdge_
                                                                  : rightEdge_),
         transect_id_(transect_id),
@@ -375,10 +375,10 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
                  double distance_to_ref, const TransectLine *transect_line_ptr,
                  const Shoreline *shoreline_ptr)
       : Point<double>(point),
+        image_id_(image_id),
         transect_id_(transect_id),
         shoreline_id_(shoreline_id),
         baseline_id_(baseline_id),
-        image_id_(image_id),
         group_id_(group_id),
         year_(year),
         date_(year_, 1, 1),

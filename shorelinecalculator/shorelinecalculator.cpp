@@ -163,9 +163,20 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
   auto start = std::chrono::high_resolution_clock::now();
   // read the image
   std::vector<Image> images;
-  for (const auto &path : paths) {
+  size_t count {0};
+  std::string psz_prj_;
+  for (size_t i = 0; i < paths.size(); i++) {
     try {
-      images.emplace_back(path, options);
+      std::cout << ++count << "/" << paths.size() << std::endl;
+      images.emplace_back(paths[i], options);
+      // use the first image's coordiantes as template for all images
+      if (i == 0){
+        psz_prj_ = images[0].psz_prj_;
+      }
+      // if coordinate is not consistent, transfrom
+      if (images[images.size()-1].psz_prj_ != psz_prj_){
+        images[images.size()-1].transform_coordinates(psz_prj_);
+      }
     } catch (const std::runtime_error &e) {
       std::cerr << e.what() << "\n";
     } catch (const std::exception &e) {
@@ -173,7 +184,6 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
       exit(1);
     }
   }
-  const auto psz_prj_ = images[0].psz_prj_;
 
   if (images.size() <= 1) {
     throw std::runtime_error("Too few images to process: ");
@@ -185,9 +195,10 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
 
   // generate the baselines
   start = std::chrono::high_resolution_clock::now();
+  // rule: first baseline, then merge
   auto baselines = generate_baselines(images, options);
+  auto shorelines = Image::merge_shorelines_from_images(images, psz_prj_);
   std::cout << "generate baselines;\n";
-  auto shorelines = Image::merge_shorelines_from_images(images);
   end = std::chrono::high_resolution_clock::now();
   elapsed = std::chrono::duration_cast<std::chrono::seconds>(end - start);
   std::cout << "elapsed time: " << elapsed.count() << std::endl;

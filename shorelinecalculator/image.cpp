@@ -210,15 +210,37 @@ void Image::transform_coordinates() {
   GDALClose(poDataset);
 }
 
+void Image::transform_coordinates(const std::string &psz_prj) {
+  if(psz_prj == psz_prj_){
+    return;
+  }
+  GDALAllRegister();
+  OGRSpatialReference sourceSRS, targetSRS;
+  sourceSRS.importFromWkt(psz_prj_.c_str());
+  targetSRS.importFromWkt(psz_prj.c_str());
+  OGRCoordinateTransformation* coordTransform = OGRCreateCoordinateTransformation(&sourceSRS, &targetSRS);
+  if (coordTransform == nullptr) {
+    std::cerr << __LINE__ <<": Failed to create coordinate transformation." << std::endl;
+    exit(1);
+  }
+  for(auto &shoreline: shorelines_){
+    for(auto &point: shoreline.shoreline_vertices_){
+      if (!coordTransform->Transform(1, &point.x, &point.y)) {
+        std::cerr << "Failed to transform point (" << point.x << ", " << point.y << ")" << std::endl;
+        exit(1);
+      }
+    }
+  }
+  OCTDestroyCoordinateTransformation(coordTransform);
+  psz_prj_ = psz_prj;
+}
+
 std::vector<gm::Shoreline> Image::merge_shorelines_from_images(
-    std::vector<Image> &images) {
+    std::vector<Image> &images, const std::string &psz_prj) {
   // check the projection
-  std::string psz_prj{images[0].psz_prj_};
   for (size_t i = 1; i < images.size(); i++) {
     if (images.at(i).psz_prj_ != psz_prj) {
-      throw std::runtime_error(images[0].image_path_.string() + "-" +
-                               images[i].image_path_.string() +
-                               "has different projection");
+      throw std::runtime_error(__LINE__ + "Project is not the same!\n");
     }
   }
 
