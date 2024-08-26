@@ -214,6 +214,9 @@ void save_lines(const std::vector<T> &lines, const char *pszProj,
   }
 
   for (const auto &shape : lines) {
+    if (shape.size() < 1){
+      continue;
+    }
     // Step 5: Create a new feature
     OGRFeature *feature = OGRFeature::CreateFeature(layer->GetLayerDefn());
     if (!feature) {

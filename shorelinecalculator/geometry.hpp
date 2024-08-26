@@ -281,12 +281,10 @@ struct Baseline : public MultiLine<Point<>>, GDALShpSaver<int, int> {
            int image_id, const dsas::Options &options);
 
   [[nodiscard]] size_t size() const override {
-    assert(baseline_vertices_.size() > 1);
     return baseline_vertices_.size();
   };
 
   [[nodiscard]] const Point<> &operator[](size_t i) const override {
-    assert(baseline_vertices_.size() > 1);
     return baseline_vertices_.at(i);
   }
 
