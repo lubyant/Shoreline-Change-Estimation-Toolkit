@@ -24,6 +24,7 @@ struct Image {
   int year_{};                        // image year
   boost::gregorian::date date_;
   std::string file_name_;                         // file name
+  int image_id_{};                                // image_id
   int rows_{}, cols_{};                           // image size x,y
   std::vector<std::vector<cv::Point>> contours_;  // image edge contours
   gm::Shorelines shorelines_;                     // shoreline contour
@@ -78,6 +79,16 @@ struct Image {
   [[nodiscard]] bool is_overlaid(const Image &image) const;
 
   [[nodiscard]] bool is_overlaid(const gm::Point<double> &point) const;
+
+  [[nodiscard]] size_t size() const {
+    size_t count{0};
+    for (const auto &shoreline : shorelines_) {
+      count += shoreline.shoreline_vertices_.size();
+    }
+    return count;
+  }
+  void joint_shorelines(const std::vector<const Image *> &images,
+                        gm::Shorelines *joint_shorelines) const;
 };
 }  // namespace dsas
 #endif  // SHORELINECALCULATOR_IMAGE_HPP

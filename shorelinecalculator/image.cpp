@@ -25,6 +25,8 @@ Image::Image(std::filesystem::path image_path, const Options &options)
 
   // extract the file_name
   file_name_ = image_name.substr(0, image_name.size() - 4);
+  std::istringstream iss(file_name_);
+  iss >> image_id_;
 
   // extract the contour
   extract_contours();
@@ -44,6 +46,7 @@ Image::Image(std::filesystem::path image_path, std::string image_id,
     : image_path_(std::move(image_path)),
       date_(date),
       file_name_(std::move(image_id)),
+      image_id_(std::stoi(image_id)),
       edge_distance_(options.edge_distance),
       least_factor_(options.shoreline_least_factor) {
   year_ = static_cast<int>(date_.year());
@@ -211,22 +214,25 @@ void Image::transform_coordinates() {
 }
 
 void Image::transform_coordinates(const std::string &psz_prj) {
-  if(psz_prj == psz_prj_){
+  if (psz_prj == psz_prj_) {
     return;
   }
   GDALAllRegister();
   OGRSpatialReference sourceSRS, targetSRS;
   sourceSRS.importFromWkt(psz_prj_.c_str());
   targetSRS.importFromWkt(psz_prj.c_str());
-  OGRCoordinateTransformation* coordTransform = OGRCreateCoordinateTransformation(&sourceSRS, &targetSRS);
+  OGRCoordinateTransformation *coordTransform =
+      OGRCreateCoordinateTransformation(&sourceSRS, &targetSRS);
   if (coordTransform == nullptr) {
-    std::cerr << __LINE__ <<": Failed to create coordinate transformation." << std::endl;
+    std::cerr << __LINE__ << ": Failed to create coordinate transformation."
+              << std::endl;
     exit(1);
   }
-  for(auto &shoreline: shorelines_){
-    for(auto &point: shoreline.shoreline_vertices_){
+  for (auto &shoreline : shorelines_) {
+    for (auto &point : shoreline.shoreline_vertices_) {
       if (!coordTransform->Transform(1, &point.x, &point.y)) {
-        std::cerr << "Failed to transform point (" << point.x << ", " << point.y << ")" << std::endl;
+        std::cerr << "Failed to transform point (" << point.x << ", " << point.y
+                  << ")" << std::endl;
         exit(1);
       }
     }
@@ -257,33 +263,21 @@ std::vector<gm::Shoreline> Image::merge_shorelines_from_images(
 
 gm::Baselines Image::merge_baselines_from_images(
     const std::vector<const Image *> &images, const Options &options) {
-  // perform bfs
-  std::vector<bool> visited(images.size(), false);
-  std::queue<const Image *> q;
-
-  Image merge_image{};
-
-  for (size_t i = 0; i < images.size(); i++) {
-    if (!visited[i]) {
-      q.push(images[i]);
-      visited[i] = true;
-      while (!q.empty()) {
-        const auto *image = q.front();
-        q.pop();
-        merge_image = merge_image + *image;
-        for (size_t j = 0; j < images.size(); j++) {
-          if (image->is_overlaid(*images[j]) && !visited[j]) {
-            q.push(images[j]);
-            visited[j] = true;
-          }
-        }
-      }
+  gm::Shorelines merge_shoreline;
+  std::vector<const Image *> visited_images;
+  for (const Image *image : images) {
+    gm::Shorelines joint_shorelines;
+    image->joint_shorelines(visited_images, &joint_shorelines);
+    visited_images.push_back(image);
+    if (!joint_shorelines.empty()) {
+      merge_shoreline.insert(merge_shoreline.end(), joint_shorelines.begin(),
+                             joint_shorelines.end());
     }
   }
 
   gm::Baselines baselines;
   int baseline_id{};
-  for (const auto &shoreline : merge_image.shorelines_) {
+  for (const auto &shoreline : merge_shoreline) {
     if (shoreline.shoreline_vertices_.empty()) {
       continue;
     }
@@ -307,6 +301,29 @@ bool Image::is_overlaid(const gm::Point<double> &point) const {
   bool x_overlaid = (point.x >= bottom_left_.x) && (point.x <= bottom_right_.x);
   bool y_overlaid = (point.y >= bottom_left_.y) && (point.y <= up_right_.y);
   return x_overlaid && y_overlaid;
+}
+
+void Image::joint_shorelines(const std::vector<const Image *> &images,
+                             gm::Shorelines *joint_shorelines) const {
+  for (const auto &shoreline : shorelines_) {
+    gm::Shoreline tmp_shoreline;
+    tmp_shoreline.shoreline_id_ = shoreline.shoreline_id_;
+    tmp_shoreline.year_ = shoreline.year_;
+    tmp_shoreline.image_id_ = shoreline.image_id_;
+    tmp_shoreline.date_ = shoreline.date_;
+    for (const auto &point : shoreline.shoreline_vertices_) {
+      bool is_overlaid{false};
+      for (const auto *image : images) {
+        if (image->is_overlaid(point)) {
+          is_overlaid = true;
+        }
+      }
+      if (!is_overlaid) {
+        tmp_shoreline.shoreline_vertices_.push_back(point);
+      }
+    }
+    joint_shorelines->push_back(std::move(tmp_shoreline));
+  }
 }
 
 Image operator+(const Image &image1, const Image &image2) {

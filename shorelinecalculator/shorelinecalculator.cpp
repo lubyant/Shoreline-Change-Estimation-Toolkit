@@ -163,20 +163,21 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
   auto start = std::chrono::high_resolution_clock::now();
   // read the image
   std::vector<Image> images;
-  size_t count {0};
+  size_t count{0};
   std::string psz_prj_;
   for (size_t i = 0; i < paths.size(); i++) {
     try {
       std::cout << ++count << "/" << paths.size() << std::endl;
-      images.emplace_back(paths[i], options);
+      Image image{paths[i], options};
       // use the first image's coordiantes as template for all images
-      if (i == 0){
-        psz_prj_ = images[0].psz_prj_;
+      if (i == 0) {
+        psz_prj_ = image.psz_prj_;
       }
       // if coordinate is not consistent, transfrom
-      if (images[images.size()-1].psz_prj_ != psz_prj_){
-        images[images.size()-1].transform_coordinates(psz_prj_);
+      if (image.psz_prj_ != psz_prj_) {
+        image.transform_coordinates(psz_prj_);
       }
+      images.push_back(std::move(image));
     } catch (const std::runtime_error &e) {
       std::cerr << e.what() << "\n";
     } catch (const std::exception &e) {
@@ -289,21 +290,23 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
 
 gm::Baselines generate_baselines(const std::vector<Image> &images,
                                  const Options &options) {
-  std::unordered_map<int, std::vector<const Image *>> year_Images;
+  using image_id_t = int;
+  std::unordered_map<image_id_t, const Image *> id_image_map;
   for (const auto &image : images) {
-    auto year = image.year_;
-    year_Images[year].push_back(&image);
+    image_id_t image_id = image.image_id_;
+    if (id_image_map.find(image_id) != id_image_map.end()) {
+      if (id_image_map[image_id]->size() > image.size()) {
+        continue;
+      }
+    }
+    id_image_map[image_id] = &image;
+  }
+  std::vector<const Image *> images_selected;
+  for (auto [image_id_t, image_ptr] : id_image_map) {
+    images_selected.push_back(image_ptr);
   }
 
-  size_t lg_size = 0;
-  int lg_year{};
-  for (const auto &[year, image_ptrs] : year_Images) {
-    if (image_ptrs.size() >= lg_size && year > lg_year) {
-      lg_size = image_ptrs.size();
-      lg_year = year;
-    }
-  }
-  return Image::merge_baselines_from_images(year_Images[lg_year], options);
+  return Image::merge_baselines_from_images(images_selected, options);
 }
 
 gm::TransectGroups generate_transects(gm::Baselines &baselines,
