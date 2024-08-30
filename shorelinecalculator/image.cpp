@@ -9,9 +9,9 @@
 namespace dsas {
 Image::Image(std::filesystem::path image_path, const Options &options)
     : image_path_(std::move(image_path)),
-      psz_prj_(util::get_tiff_proj(image_path_)),
       edge_distance_(options.edge_distance),
-      least_factor_(options.shoreline_least_factor) {
+      least_factor_(options.shoreline_least_factor),
+      psz_prj_(util::get_tiff_proj(image_path_)) {
   // file name
   auto image_name = image_path_.stem().string();
 
@@ -48,7 +48,8 @@ Image::Image(std::filesystem::path image_path, std::string image_id,
       file_name_(std::move(image_id)),
       image_id_(std::stoi(image_id)),
       edge_distance_(options.edge_distance),
-      least_factor_(options.shoreline_least_factor) {
+      least_factor_(options.shoreline_least_factor),
+      psz_prj_(util::get_tiff_proj(image_path_)) {
   year_ = static_cast<int>(date_.year());
 
   // extract the contour
@@ -106,6 +107,7 @@ void Image::extract_shorelines() {
     points.shoreline_id_ = shoreline_id++;
     points.year_ = year_;
     points.image_id_ = std::stoi(file_name_);
+    points.image_ptr_ = this;
     for (const auto &point : contour) {
       auto x = point.x, y = point.y;
       if (is_edge(x, y)) {
@@ -119,6 +121,7 @@ void Image::extract_shorelines() {
           points.shoreline_id_ = shoreline_id++;
           points.year_ = year_;
           points.image_id_ = std::stoi(file_name_);
+          points.image_ptr_ = this;
           temp.clear();
         }
         continue;
@@ -282,7 +285,7 @@ gm::Baselines Image::merge_baselines_from_images(
       continue;
     }
     baselines.emplace_back(shoreline.shoreline_vertices_, baseline_id++,
-                           shoreline.image_id_, options);
+                           options);
   }
   return baselines;
 }

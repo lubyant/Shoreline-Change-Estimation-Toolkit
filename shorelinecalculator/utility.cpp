@@ -7,8 +7,13 @@
 #include <limits>
 #include <unordered_set>
 
+#include "image.hpp"
+
 #define MAX_DOUBLE (999999.9)
 #define MIN_DOUBLE (-999999.9)
+namespace dsas {
+struct Image;
+}
 
 namespace util {
 
@@ -139,7 +144,8 @@ void save_points(const std::vector<gm::IntersectPoint> &shapes,
     OGRFieldDefn field(shapes[0].get_names()[i].c_str(),
                        shapes[0].get_types()[i]);
     if (layer->CreateField(&field) != OGRERR_NONE) {
-      std::cerr << "Failed to create Name field" << std::endl;
+      std::cerr << __FILE__ << ", " << __LINE__
+                << ": Failed to create Name field" << std::endl;
       exit(1);
     }
   }
@@ -200,7 +206,8 @@ void save_points(const std::vector<gm::TransectLine> &shapes,
     OGRFieldDefn field(shapes[0].get_names()[i].c_str(),
                        shapes[0].get_types()[i]);
     if (layer->CreateField(&field) != OGRERR_NONE) {
-      std::cerr << "Failed to create Name field" << std::endl;
+      std::cerr << __FILE__ << ", " << __LINE__
+                << ": Failed to create Name field" << std::endl;
       exit(1);
     }
   }
@@ -318,29 +325,28 @@ void save_lines<gm::TransectLine>(const std::vector<gm::TransectLine> &lines,
 
   OGRFieldDefn baseline_id("BaselineId", OFTInteger);
   if (layer->CreateField(&baseline_id) != OGRERR_NONE) {
-    std::cerr << "Failed to create Name field" << std::endl;
+    std::cerr << __FILE__ << ", " << __LINE__ << ": Failed to create Name field"
+              << std::endl;
     exit(1);
   }
   OGRFieldDefn transect_id("TransectId", OFTInteger);
   if (layer->CreateField(&transect_id) != OGRERR_NONE) {
-    std::cerr << "Failed to create Name field" << std::endl;
-    exit(1);
-  }
-  OGRFieldDefn image_id("ImageId", OFTInteger);
-  if (layer->CreateField(&image_id) != OGRERR_NONE) {
-    std::cerr << "Failed to create Name field" << std::endl;
+    std::cerr << __FILE__ << ", " << __LINE__ << ": Failed to create Name field"
+              << std::endl;
     exit(1);
   }
   OGRFieldDefn group_id("GroupId", OFTInteger);
   if (layer->CreateField(&group_id) != OGRERR_NONE) {
-    std::cerr << "Failed to create Name field" << std::endl;
+    std::cerr << __FILE__ << ", " << __LINE__ << ": Failed to create Name field"
+              << std::endl;
     exit(1);
   }
   OGRFieldDefn change_rate("ChangeRate", OFTReal);
   change_rate.SetWidth(8);
   change_rate.SetPrecision(3);
   if (layer->CreateField(&change_rate) != OGRERR_NONE) {
-    std::cerr << "Failed to create Name field" << std::endl;
+    std::cerr << __FILE__ << ", " << __LINE__ << ": Failed to create Name field"
+              << std::endl;
     exit(1);
   }
 
@@ -363,7 +369,6 @@ void save_lines<gm::TransectLine>(const std::vector<gm::TransectLine> &lines,
     }
     feature->SetField("BaselineId", shape.baseline_id_);
     feature->SetField("TransectId", shape.transect_id_);
-    feature->SetField("ImageId", shape.image_id_);
     feature->SetField("GroupId", shape.group_id_);
     feature->SetField("ChangeRate", shape.change_rate);
 
@@ -510,7 +515,6 @@ void remove_outliers(std::vector<gm::IntersectPoint> &intersects,
 }
 
 gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
-                                 const std::string &field_name,
                                  const dsas::Options &options) {
   // Initialize GDAL
   GDALAllRegister();
@@ -532,6 +536,7 @@ gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
   OGRFeature *poFeature;
   poLayer->ResetReading();
   gm::Baselines baselines;
+  int baseline_id = 0;
   while ((poFeature = poLayer->GetNextFeature()) != nullptr) {
     OGRGeometry *poGeometry;
     poGeometry = poFeature->GetGeometryRef();
@@ -546,9 +551,7 @@ gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
         poLine->getPoint(i, &point);
         baseline_vertices.emplace_back(point.getX(), point.getY());
       }
-      int baseline_id{poFeature->GetFieldAsInteger(field_name.c_str())};
-      gm::Baseline baseline{baseline_vertices, baseline_id, baseline_id,
-                            options};
+      gm::Baseline baseline{baseline_vertices, baseline_id++, options};
       baselines.push_back(std::move(baseline));
     } else {
       std::cout << "No geometry\n";
@@ -619,8 +622,9 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
         shoreline_vertices.emplace_back(point.getX(), point.getY());
       }
       int year{poFeature->GetFieldAsInteger("year")};
-      shorelines.emplace_back(shoreline_vertices, shoreline_id++, year,
-                              image_id);
+      dsas::Image image;
+      image.image_id_ = image_id;
+      shorelines.emplace_back(shoreline_vertices, shoreline_id++, year, &image);
     } else {
       std::cout << "No geometry\n";
     }
@@ -691,8 +695,9 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
       std::string date = std::string(poFeature->GetFieldAsString("Date_"));
       int year = std::atoi(date.substr(6, 4).c_str());
       int image_id{poFeature->GetFieldAsInteger("ImageID")};
-      shorelines.emplace_back(shoreline_vertices, shoreline_id++, year,
-                              image_id);
+      dsas::Image image;
+      image.image_id_ = image_id;
+      shorelines.emplace_back(shoreline_vertices, shoreline_id++, year, &image);
     } else {
       std::cout << "No geometry\n";
     }
@@ -863,8 +868,8 @@ double frechet_distance(std::vector<gm::Point<>> line1,
   size_t m = line1.size();
   size_t n = line2.size();
   std::vector<std::vector<double>> D(m, std::vector<double>(n, 0.0));
-  for (int i = 0; i < m; ++i) {
-    for (int j = 0; j < n; ++j) {
+  for (size_t i = 0; i < m; ++i) {
+    for (size_t j = 0; j < n; ++j) {
       D[i][j] = line1[i].distance_to_point(line2[j]);
     }
   }
@@ -872,16 +877,16 @@ double frechet_distance(std::vector<gm::Point<>> line1,
   std::vector<std::vector<double>> F(m, std::vector<double>(n, -1.0));
   F[0][0] = D[0][0];
   // Initialize first row and first column of F
-  for (int i = 1; i < m; ++i) {
+  for (size_t i = 1; i < m; ++i) {
     F[i][0] = std::max(F[i - 1][0], D[i][0]);
   }
-  for (int j = 1; j < n; ++j) {
+  for (size_t j = 1; j < n; ++j) {
     F[0][j] = std::max(F[0][j - 1], D[0][j]);
   }
 
   // Fill in the rest of F
-  for (int i = 1; i < m; ++i) {
-    for (int j = 1; j < n; ++j) {
+  for (size_t i = 1; i < m; ++i) {
+    for (size_t j = 1; j < n; ++j) {
       F[i][j] = std::max(std::min({F[i - 1][j], F[i - 1][j - 1], F[i][j - 1]}),
                          D[i][j]);
     }
@@ -980,7 +985,7 @@ std::vector<gm::Shoreline> truncate_shore_by_transects(
       continue;
     }
     shorelines_segs.emplace_back(sub_vertices, shoreline1->shoreline_id_, year,
-                                 shoreline1->image_id_);
+                                 shoreline1->image_ptr_);
   }
 
   return shorelines_segs;

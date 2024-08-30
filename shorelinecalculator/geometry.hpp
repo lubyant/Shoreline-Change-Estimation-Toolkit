@@ -16,10 +16,14 @@
 #include <memory>
 #include <optional>
 #include <tuple>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
 #include "options.hpp"
+namespace dsas {
+struct Image;
+}
 
 // classes
 namespace gm {
@@ -57,7 +61,7 @@ struct Point {
   T x, y;
   size_t id_{};
 
-  Point() : x(0), y(0) {};
+  Point() : x(0), y(0){};
   Point(T x, T y) : x(x), y(y) {}
   Point(T x, T y, size_t id) : x(x), y(y), id_(id) {}
 
@@ -151,7 +155,7 @@ struct BaselineSeg : public LineSegment {
 };
 
 #define transect_t \
-  int, int, int, int, double, int, const char *, const char *, const char *
+  int, int, int, double, int, const char *, const char *, const char *
 struct TransectLine : public LineSegment,
                       MultiLine<Point<>>,
                       GDALShpSaver<transect_t> {
@@ -161,7 +165,6 @@ struct TransectLine : public LineSegment,
   Point<> transect_ref_point_;   // point to calculate the erosion
   int transect_id_;
   int baseline_id_;
-  int image_id_;
   int group_id_;
   size_t num_intersect_{};  // number of intersections in this transect
   double change_rate{};     // change rate for all the intersections
@@ -173,16 +176,17 @@ struct TransectLine : public LineSegment,
   std::vector<double> euc_dist_;
   std::string frechet_info_{};
   std::string euc_info_{};
-  std::string intersect_info_{};  // year, dist; year, dist;....
+  std::string intersect_info_{};          // year, dist; year, dist;....
+  std::unordered_set<int> image_id_set_;  // image ids that transect line stays
 
   TransectLine *prev_transect_line{nullptr}, *next_transect_line{nullptr};
 
   TransectLine(Point<> &transect_base, double transect_length,
                std::pair<double, double> baseline_normal_vector,
-               int transect_id, int baseline_id, int image_id,
+               int transect_id, int baseline_id,
                IntersectionMode mode = IntersectionMode::Closest,
                TransectOrientation orient = TransectOrientation::Mix)
-        :LineSegment(create_transect(transect_base, baseline_normal_vector,
+      : LineSegment(create_transect(transect_base, baseline_normal_vector,
                                     transect_length, orient)),
 
         transect_base_point_(transect_base),
@@ -190,7 +194,6 @@ struct TransectLine : public LineSegment,
                                                                  : rightEdge_),
         transect_id_(transect_id),
         baseline_id_(baseline_id),
-        image_id_(image_id),
         mode_(mode),
         orient_(orient) {
     if (std::isnan(transect_ref_point_.x) ||
@@ -235,26 +238,19 @@ struct TransectLine : public LineSegment,
   }
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
-    return {"TransectId", "BaselineId", "ImageId", "GroupId", "ChangeRate",
+    return {"TransectId", "BaselineId", "GroupId", "ChangeRate",
             "Nums",       "IntInfo",    "EucInfo", "FreInfo"};
   }
   [[nodiscard]] std::vector<OGRFieldType> get_types() const override {
     return {OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
-            OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
-            OGRFieldType::OFTReal,    OGRFieldType::OFTInteger,
-            OGRFieldType::OFTString,  OGRFieldType::OFTString,
-            OGRFieldType::OFTString};
+            OGRFieldType::OFTInteger, OGRFieldType::OFTReal,
+            OGRFieldType::OFTInteger, OGRFieldType::OFTString,
+            OGRFieldType::OFTString,  OGRFieldType::OFTString};
   }
   [[nodiscard]] std::tuple<transect_t> get_values() const override {
-    return {transect_id_,
-            baseline_id_,
-            image_id_,
-            group_id_,
-            change_rate,
-            num_intersect_,
-            intersect_info_.c_str(),
-            euc_info_.c_str(),
-            frechet_info_.c_str()};
+    return {transect_id_,      baseline_id_,         group_id_,
+            change_rate,       num_intersect_,       intersect_info_.c_str(),
+            euc_info_.c_str(), frechet_info_.c_str()};
   }
 };
 
@@ -263,11 +259,10 @@ struct Transects {
   std::vector<TransectLine> transects_;
 };
 
-struct Baseline : public MultiLine<Point<>>, GDALShpSaver<int, int> {
+struct Baseline : public MultiLine<Point<>>, GDALShpSaver<int> {
   using BaselinesVertex = Point<>;
 
   int baseline_id_;
-  int image_id_;
   std::vector<Point<>> transects_base_points_;
   std::vector<BaselinesVertex>
       origin_vertices_;  // the shoreline vertices for generate baseline
@@ -278,7 +273,7 @@ struct Baseline : public MultiLine<Point<>>, GDALShpSaver<int, int> {
   const dsas::Options &options_;
 
   Baseline(const std::vector<BaselinesVertex> &points, int baseline_id,
-           int image_id, const dsas::Options &options);
+           const dsas::Options &options);
 
   [[nodiscard]] size_t size() const override {
     return baseline_vertices_.size();
@@ -289,18 +284,18 @@ struct Baseline : public MultiLine<Point<>>, GDALShpSaver<int, int> {
   }
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
-    return {"BaselineId", "ImageId"};
+    return {"BaselineId"};
   }
 
   [[nodiscard]] std::vector<OGRFieldType> get_types() const override {
-    return {OGRFieldType::OFTInteger, OGRFieldType::OFTInteger};
+    return {OGRFieldType::OFTInteger};
   }
 
-  [[nodiscard]] std::tuple<int, int> get_values() const override {
-    return {baseline_id_, image_id_};
+  [[nodiscard]] std::tuple<int> get_values() const override {
+    return {baseline_id_};
   }
 
-  Transects set_transects() { return transects_; }
+  Transects set_transects() const { return transects_; }
 
  private:
   void create_transects();
@@ -312,13 +307,14 @@ struct Shoreline : public MultiLine<Point<>>, GDALShpSaver<int, int> {
   int shoreline_id_{};                                 // shoreline id
   int year_{};                                         // shoreline year
   int image_id_{};
-  boost::gregorian::date date_{};
+  boost::gregorian::date date_;
+  dsas::Image *image_ptr_{nullptr};
 
   Shoreline(std::vector<gm::Point<>> &shoreline_vertices, int shoreline_id,
-            int year, int image_id);
+            int year, dsas::Image *image);
 
   Shoreline(std::vector<gm::Point<>> &shoreline_vertices, int shoreline_id,
-            boost::gregorian::date date, int image_id);
+            boost::gregorian::date date, dsas::Image *image);
 
   Shoreline() = default;
 

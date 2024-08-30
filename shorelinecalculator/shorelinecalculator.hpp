@@ -20,7 +20,12 @@ using Path = std::filesystem::path;
 void dsas(const std::vector<Path> &folders, const Path &output_path,
           const Options &options);
 
-void digital_shoreline_analysis_system(const Path &folder,
+void digital_shoreline_analysis_system(const Path &image_folder,
+                                       const Path &output_path,
+                                       const Options &options);
+
+void digital_shoreline_analysis_system(const Path &image_folder,
+                                       const Path &baseline_shp_path,
                                        const Path &output_path,
                                        const Options &options);
 
@@ -35,8 +40,13 @@ void dsas(const Path &shoreline_folder, const Path &baseline_path,
 void controller(const std::vector<Path> &paths, const Path &output_path,
                 const Options &options);
 
+void controller(const std::vector<Path> &image_paths, const Path &baseline_path,
+                const Path &output_path, const Options &options);
+
 gm::Baselines generate_baselines(const std::vector<Image> &images,
                                  const Options &options);
+
+gm::Baselines generate_baselines(const Path &shp_path, const Options &options);
 
 gm::TransectGroups generate_transects(gm::Baselines &baselines,
                                       size_t group_window = 10);

@@ -34,7 +34,7 @@ struct Image {
       bottom_right_{-1, -1};
   double pixel_size_x_{}, pixel_size_y_{};
   size_t n_pixel_x_{}, n_pixel_y_{};
-  std::string psz_prj_;
+  std::string psz_prj_{};
 
   Image() = default;
 

@@ -119,7 +119,7 @@ BOOST_AUTO_TEST_CASE(test_baseline_transect_points1) {
   options.transect_offset = 0;
   options.smooth_factor = 1;
   options.intersection_mode = dsas::Options::IntersectionMode::Closest;
-  auto baseline = std::make_unique<Baseline>(points, 0, 1, options);
+  auto baseline = std::make_unique<Baseline>(points, 0, options);
   auto transects_points = baseline->transects_base_points_;
 
   BOOST_CHECK_EQUAL(transects_points.size(), 7);
@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(test_baseline_transect_points2) {
   options.transect_offset = 0;
   options.smooth_factor = 1;
   options.intersection_mode = dsas::Options::IntersectionMode::Closest;
-  auto baseline = std::make_unique<Baseline>(points, 0, 1, options);
+  auto baseline = std::make_unique<Baseline>(points, 0, options);
   auto transects_points = baseline->transects_base_points_;
 
   BOOST_CHECK_EQUAL(transects_points.size(), 3);
@@ -160,7 +160,7 @@ BOOST_AUTO_TEST_CASE(test_baseline_transect_lines) {
   options.transect_offset = 0;
   options.smooth_factor = 0;
   options.intersection_mode = dsas::Options::IntersectionMode::Closest;
-  auto baseline = std::make_unique<Baseline>(points, 0, 1, options);
+  auto baseline = std::make_unique<Baseline>(points, 0, options);
   auto transects_lines = baseline->set_transects().transects_;
 
   BOOST_CHECK_EQUAL(transects_lines.size(), 7);
@@ -182,7 +182,7 @@ BOOST_AUTO_TEST_CASE(test_baseline_transect_lines_right) {
   options.smooth_factor = 0;
   options.intersection_mode = dsas::Options::IntersectionMode::Closest;
   options.transect_orient = dsas::Options::TransectOrientation::Right;
-  auto baseline = std::make_unique<Baseline>(points, 0, 1, options);
+  auto baseline = std::make_unique<Baseline>(points, 0, options);
   auto transects_lines = baseline->set_transects().transects_;
 
   // assert if the number of transects is correct
@@ -210,7 +210,7 @@ BOOST_AUTO_TEST_CASE(test_baseline_transect_lines_mix) {
   options.smooth_factor = 0;
   options.intersection_mode = dsas::Options::IntersectionMode::Closest;
   options.transect_orient = dsas::Options::TransectOrientation::Mix;
-  auto baseline = std::make_unique<Baseline>(points, 0, 1, options);
+  auto baseline = std::make_unique<Baseline>(points, 0, options);
   auto transects_lines = baseline->set_transects().transects_;
 
   // assert if the number of transects is correct
@@ -238,7 +238,7 @@ BOOST_AUTO_TEST_CASE(test_baseline_transect_lines_left) {
   options.smooth_factor = 0;
   options.intersection_mode = dsas::Options::IntersectionMode::Closest;
   options.transect_orient = dsas::Options::TransectOrientation::Left;
-  auto baseline = std::make_unique<Baseline>(points, 0, 1, options);
+  auto baseline = std::make_unique<Baseline>(points, 0, options);
   auto transects_lines = baseline->set_transects().transects_;
 
   BOOST_CHECK_EQUAL(transects_lines.size(), 7);
@@ -264,7 +264,7 @@ BOOST_AUTO_TEST_CASE(test_baseline_transect_length1) {
   options.transect_offset = 1;
   options.smooth_factor = 0;
   options.intersection_mode = dsas::Options::IntersectionMode::Closest;
-  auto baseline = std::make_unique<Baseline>(points, 0, 0, options);
+  auto baseline = std::make_unique<Baseline>(points, 0, options);
   auto transects_lines = baseline->set_transects().transects_;
   for (const auto &transect : transects_lines) {
     BOOST_CHECK_CLOSE(transect.leftEdge_.distance_to_point(transect.rightEdge_),
@@ -280,7 +280,7 @@ BOOST_AUTO_TEST_CASE(test_baseline_transect_length2) {
   options.transect_offset = 1;
   options.smooth_factor = 0;
   options.intersection_mode = dsas::Options::IntersectionMode::Closest;
-  auto baseline = std::make_unique<Baseline>(points, 0, 0, options);
+  auto baseline = std::make_unique<Baseline>(points, 0, options);
   auto transects_lines = baseline->set_transects().transects_;
   for (const auto &transect : transects_lines) {
     BOOST_CHECK_CLOSE(transect.leftEdge_.distance_to_point(transect.rightEdge_),
@@ -298,7 +298,7 @@ BOOST_AUTO_TEST_CASE(test_baseline_smooth) {
     options.transect_offset = 1;
     options.smooth_factor = 1;
     options.intersection_mode = dsas::Options::IntersectionMode::Closest;
-    auto baseline = std::make_unique<Baseline>(points, 0, 0, options);
+    auto baseline = std::make_unique<Baseline>(points, 0, options);
     BOOST_CHECK_EQUAL(baseline->origin_vertices_.size(), 4);
     auto transect = baseline->set_transects().transects_[0];
     double slope{transect.normal_vector_.first /
@@ -314,7 +314,7 @@ BOOST_AUTO_TEST_CASE(test_baseline_smooth) {
     options.transect_offset = 1;
     options.smooth_factor = 2;
     options.intersection_mode = dsas::Options::IntersectionMode::Closest;
-    auto baseline = std::make_unique<Baseline>(points, 0, 0, options);
+    auto baseline = std::make_unique<Baseline>(points, 0, options);
     BOOST_CHECK_EQUAL(baseline->origin_vertices_.size(), 7);
   }
   {
@@ -326,7 +326,7 @@ BOOST_AUTO_TEST_CASE(test_baseline_smooth) {
     options.transect_offset = 1;
     options.smooth_factor = 8;
     options.intersection_mode = dsas::Options::IntersectionMode::Closest;
-    auto baseline = std::make_unique<Baseline>(points, 0, 0, options);
+    auto baseline = std::make_unique<Baseline>(points, 0, options);
     BOOST_CHECK_EQUAL(baseline->origin_vertices_.size(), 7);
   }
 }
@@ -339,7 +339,7 @@ BOOST_AUTO_TEST_CASE(test_frechetdistance) {
   options.transect_offset = 0;
   options.smooth_factor = 10;
   options.intersection_mode = dsas::Options::IntersectionMode::Closest;
-  Baseline baseline{baseline_points, 0, 10, options};
+  Baseline baseline{baseline_points, 0, options};
   Baselines baselines{baseline};
   auto transect_groups = dsas::generate_transects(baselines);
 
@@ -352,8 +352,9 @@ BOOST_AUTO_TEST_CASE(test_frechetdistance) {
       {2.5, 2},  {2.75, 2}, {3.25, 2}, {3.5, 2},  {3.75, 2},
       {4.25, 2}, {4.5, 2},  {4.75, 2}};
 
-  Shoreline shoreline1{shoreline1_points, 0, 2000, 10};
-  Shoreline shoreline2{shoreline2_points, 1, 2001, 10};
+  dsas::Image image;
+  Shoreline shoreline1{shoreline1_points, 0, 2000, &image};
+  Shoreline shoreline2{shoreline2_points, 1, 2001, &image};
   Shorelines shorelines{shoreline1, shoreline2};
 
   auto intersects_maps =

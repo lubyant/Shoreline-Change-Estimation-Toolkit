@@ -57,6 +57,49 @@ void digital_shoreline_analysis_system(const Path &folder,
   }
 }
 
+void digital_shoreline_analysis_system(const Path &image_folder,
+                                       const Path &baseline_shp_path,
+                                       const Path &output_path,
+                                       const Options &options) {
+  // check the input
+  std::vector<Path> paths;
+  try {
+    if (std::filesystem::exists(image_folder) &&
+        std::filesystem::is_directory(image_folder)) {
+      for (const auto &entry :
+           std::filesystem::directory_iterator(image_folder)) {
+        for (const auto &file : std::filesystem::directory_iterator(entry)) {
+          if (std::filesystem::is_regular_file(file.path())) {
+            paths.push_back(file.path());
+          } else {
+            std::cerr << "entry: " << entry.path();
+            throw std::runtime_error("no files found!");
+          }
+        }
+      }
+    } else {
+      std::cerr << "Folder is not exist:" << image_folder << std::endl;
+      exit(1);
+    }
+  } catch (std::filesystem::filesystem_error &err) {
+    std::cerr << "Error: " << err.what() << "\n";
+  }
+  // check the prefix
+  // create an output folder
+  if (!std::filesystem::exists(output_path)) {
+    if (!std::filesystem::create_directories(output_path)) {
+      std::cerr << "cannot create the folder\n";
+      exit(1);
+    }
+  }
+  // start to analysis
+  try {
+    controller(paths, baseline_shp_path, output_path, options);
+  } catch (std::runtime_error &e) {
+    std::cerr << e.what() << " " << image_folder.string() << "\n";
+  }
+}
+
 void digital_shoreline_analysis_system(const std::vector<Path> &paths,
                                        const Path &output_path,
                                        const Options &options) {
@@ -288,6 +331,75 @@ void controller(const std::vector<Path> &paths, const Path &output_folder,
   std::cout << "elapsed time: " << elapsed.count() << std::endl;
 }
 
+void controller(const std::vector<Path> &image_paths, const Path &baseline_path,
+                const Path &output_folder, const Options &options) {
+  // read the image
+  std::vector<Image> images;
+  size_t count{0};
+  std::string psz_prj_ = util::get_shp_proj(baseline_path.c_str());
+  for (size_t i = 0; i < image_paths.size(); i++) {
+    try {
+      std::cout << ++count << "/" << image_paths.size() << std::endl;
+      Image image{image_paths[i], options};
+      // if coordinate is not consistent, transfrom
+      if (image.psz_prj_ != psz_prj_) {
+        image.transform_coordinates(psz_prj_);
+      }
+      images.push_back(std::move(image));
+    } catch (const std::runtime_error &e) {
+      std::cerr << e.what() << "\n";
+    } catch (const std::exception &e) {
+      std::cerr << e.what() << "\n";
+      exit(1);
+    }
+  }
+
+  if (images.size() <= 1) {
+    throw std::runtime_error("Too few images to process: ");
+  }
+  std::cout << "read images: " << images.size() << std::endl;
+  auto baselines = generate_baselines(baseline_path, options);
+  auto shorelines = Image::merge_shorelines_from_images(images, psz_prj_);
+  auto transect_groups = generate_transects(baselines);
+  auto intersection_map = generate_intersections(shorelines, transect_groups);
+  processes_shoreline_rate(intersection_map, transect_groups, options);
+  frechet_distance(transect_groups, options);
+  euc_distance(transect_groups, options);
+  compute_rate(transect_groups, options);
+  // save the intersections to shp
+  std::vector<gm::IntersectPoint> intersections;
+  for (auto &kv1 : intersection_map) {
+    for (auto &kv2 : kv1.second) {
+      for (auto &point : kv2.second) {
+        intersections.push_back(point);
+      }
+    }
+  }
+  const Path output_file_intersection =
+      output_folder / Path("intersection.shp");
+  util::save_points(intersections, psz_prj_.c_str(), output_file_intersection);
+
+  // save the transects to shp
+  std::vector<gm::TransectLine> output_file;
+  for (auto &transect : transect_groups) {
+    for (auto &transect_line : transect.transects_) {
+      output_file.push_back(std::move(transect_line));
+    }
+  }
+  util::save_lines(output_file, psz_prj_.c_str(),
+                   output_folder / "transect.shp");
+  util::save_points(output_file, psz_prj_.c_str(),
+                    output_folder / "result.shp");
+
+  // save the shoreline to shp
+  util::save_lines<gm::Shoreline>(shorelines, psz_prj_.c_str(),
+                                  output_folder / "shoreline.shp");
+
+  // save the baseline to shp
+  util::save_lines<gm::Baseline>(baselines, psz_prj_.c_str(),
+                                 output_folder / "baseline.shp");
+}
+
 gm::Baselines generate_baselines(const std::vector<Image> &images,
                                  const Options &options) {
   using image_id_t = int;
@@ -307,6 +419,10 @@ gm::Baselines generate_baselines(const std::vector<Image> &images,
   }
 
   return Image::merge_baselines_from_images(images_selected, options);
+}
+
+gm::Baselines generate_baselines(const Path &shp_path, const Options &options) {
+  return util::load_baselines_shp(shp_path, options);
 }
 
 gm::TransectGroups generate_transects(gm::Baselines &baselines,
@@ -371,7 +487,8 @@ std::vector<gm::IntersectPoint> generate_intersection(
   for (auto &transects : transect_groups) {
     for (auto &transectLine : transects.transects_) {
       for (auto &shoreline : shorelines) {
-        if (shoreline.image_id_ != transectLine.image_id_) {
+        if (!shoreline.image_ptr_->is_overlaid(
+                transectLine.transect_ref_point_)) {
           continue;
         }
         auto ret = transectLine.intersection(shoreline);
@@ -406,7 +523,7 @@ void create_transects_from_baseline(const Path &path, const Path &output_path,
                                     gm::TransectGroups *output_transects,
                                     const Options &options) {
   std::string field_name{"DSAS_ID"};
-  auto baselines = util::load_baselines_shp(path, field_name, options);
+  auto baselines = util::load_baselines_shp(path, options);
   auto psz_prj_ = util::get_shp_proj(path.c_str());
   *output_transects = std::move(generate_transects(baselines));
 
@@ -525,7 +642,7 @@ void frechet_distance(gm::TransectGroups &transect_groups,
     if (shore_segments.size() < 2) {
       continue;
     }
-    image_id_t image_id{transect_first.image_id_};
+    image_id_t image_id{shore_segments[0].image_id_};
     std::sort(shore_segments.begin(), shore_segments.end(),
               [](const gm::Shoreline &a, const gm::Shoreline &b) {
                 return a.year_ < b.year_;
@@ -579,12 +696,12 @@ void frechet_distance(gm::TransectGroups &transect_groups,
 
   for (auto &transects : transect_groups) {
     for (auto &transect : transects.transects_) {
-      double cur_mean = means[transect.image_id_];
-      double cur_std = stds[transect.image_id_];
       for (auto &[year, intersect] : transect.year_intersect_map_) {
         if (intersect->frechet_distance_diff_ == -1) {
           continue;
         }
+        double cur_mean = means[intersect->image_id_];
+        double cur_std = stds[intersect->image_id_];
         double cur_fre_dist{intersect->frechet_distance_diff_};
         if ((cur_fre_dist - cur_mean) > options.outlier_rate * cur_std) {
           intersect->is_fre_outlier = true;
@@ -601,7 +718,6 @@ void euc_distance(gm::TransectGroups &transect_groups, const Options &options) {
     std::map<int, std::vector<double>> year_dist_map;
     std::vector<int> years;
     for (auto &transect : transects.transects_) {
-      image_id_t image_id{transect.image_id_};
       auto year_intersects_map{transect.year_intersect_map_};
       for (const auto &[year, intersect] : year_intersects_map) {
         year_dist_map[year].push_back(intersect->distance_to_ref_);
@@ -648,12 +764,12 @@ void euc_distance(gm::TransectGroups &transect_groups, const Options &options) {
   }
   for (auto &transects : transect_groups) {
     for (auto &transect : transects.transects_) {
-      double cur_mean = means[transect.image_id_];
-      double cur_std = stds[transect.image_id_];
       for (auto &[year, intersect] : transect.year_intersect_map_) {
         if (intersect->frechet_distance_diff_ == -1) {
           continue;
         }
+        double cur_mean = means[intersect->image_id_];
+        double cur_std = stds[intersect->image_id_];
         double cur_base_dist{intersect->euc_distance_diff};
         if ((cur_base_dist - cur_mean) > options.outlier_rate * cur_std) {
           intersect->is_base_outlier = true;

@@ -208,13 +208,14 @@ void save_lines(const std::vector<T> &lines, const char *pszProj,
     OGRFieldDefn field(lines[0].get_names()[i].c_str(),
                        lines[0].get_types()[i]);
     if (layer->CreateField(&field) != OGRERR_NONE) {
-      std::cerr << "Failed to create Name field" << std::endl;
+      std::cerr << __FILE__ << ", " << __LINE__
+                << ": Failed to create Name field" << std::endl;
       exit(1);
     }
   }
 
   for (const auto &shape : lines) {
-    if (shape.size() < 1){
+    if (shape.size() < 1) {
       continue;
     }
     // Step 5: Create a new feature
@@ -272,7 +273,6 @@ void remove_outliers_v2(std::vector<gm::IntersectPoint> &intersects,
                         const dsas::Options &options);
 
 gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
-                                 const std::string &field_name,
                                  const dsas::Options &options);
 
 gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,

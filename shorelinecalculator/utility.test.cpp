@@ -303,7 +303,7 @@ BOOST_AUTO_TEST_CASE(Test_truncatebyintersect) {
   options.transect_spacing = 0.5;
   options.transect_offset = 0;
   options.smooth_factor = 10;
-  Baseline baseline{baseline_points, 0, 10, options};
+  Baseline baseline{baseline_points, 0, options};
   Baselines baselines{baseline};
   auto transect_groups = dsas::generate_transects(baselines);
 
@@ -316,8 +316,9 @@ BOOST_AUTO_TEST_CASE(Test_truncatebyintersect) {
       {1.75, 2}, {2.25, 2}, {2.5, 2}, {2.75, 2}, {3.25, 2}, {3.5, 2},
       {3.75, 2}, {4.25, 2}, {4.5, 2}, {4.75, 2}};
 
-  Shoreline shoreline1{shoreline1_points, 0, 2000, 10};
-  Shoreline shoreline2{shoreline2_points, 1, 2001, 10};
+  dsas::Image image;
+  Shoreline shoreline1{shoreline1_points, 0, 2000, &image};
+  Shoreline shoreline2{shoreline2_points, 1, 2001, &image};
   Shorelines shorelines{shoreline1, shoreline2};
 
   auto intersects_maps =

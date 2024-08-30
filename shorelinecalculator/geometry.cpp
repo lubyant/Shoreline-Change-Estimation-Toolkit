@@ -3,8 +3,7 @@
 //
 #include "geometry.hpp"
 
-#include <unordered_set>
-
+#include "image.hpp"
 #include "utility.hpp"
 
 namespace gm {
@@ -216,19 +215,31 @@ std::optional<IntersectPoint> TransectLine::intersection(
       try {
         auto point = find_intersection(shoreline[i], shoreline[i + 1]);
         auto distance = distance2ref(point);
-        IntersectPoint intersect_point{
-            point,     transect_id_, shoreline.shoreline_id_, baseline_id_,
-            image_id_, group_id_,    shoreline.year_,         distance,
-            this,      &shoreline};
+        IntersectPoint intersect_point{point,
+                                       transect_id_,
+                                       shoreline.shoreline_id_,
+                                       baseline_id_,
+                                       shoreline.image_id_,
+                                       group_id_,
+                                       shoreline.year_,
+                                       distance,
+                                       this,
+                                       &shoreline};
         intersections.push_back(intersect_point);
       } catch (std::runtime_error &e) {
         auto point = gm::Point<>((shoreline[i].x + shoreline[i + 1].x) / 2,
                                  (shoreline[i].y + shoreline[i + 1].y) / 2);
         auto distance = distance2ref(point);
-        IntersectPoint intersect_point{
-            point,     transect_id_, shoreline.shoreline_id_, baseline_id_,
-            image_id_, group_id_,    shoreline.year_,         distance,
-            this,      &shoreline};
+        IntersectPoint intersect_point{point,
+                                       transect_id_,
+                                       shoreline.shoreline_id_,
+                                       baseline_id_,
+                                       shoreline.image_id_,
+                                       group_id_,
+                                       shoreline.year_,
+                                       distance,
+                                       this,
+                                       &shoreline};
         intersections.push_back(intersect_point);
       }
     }
@@ -295,8 +306,8 @@ void TransectLine::set_euc_info(int year_start, int year_end, double euc_dist) {
 }
 
 Baseline::Baseline(const std::vector<BaselinesVertex> &points, int baseline_id,
-                   int image_id, const dsas::Options &options)
-    : baseline_id_(baseline_id), image_id_(image_id), options_(options) {
+                   const dsas::Options &options)
+    : baseline_id_(baseline_id), options_(options) {
   // create the baselineSeq
   for (size_t i = 0; i < points.size() - 1; i++) {
     BaselineSeg baselineSeg{options_.transect_spacing, options_.transect_offset,
@@ -346,30 +357,31 @@ void Baseline::create_transects() {
     }
     transect_lines.emplace_back(transects_base_points_.at(i), transect_length,
                                 smoothed_normal_vector, transect_id++,
-                                baseline_id_, image_id_, mode, orient);
+                                baseline_id_, mode, orient);
     baseline_vertices_.push_back(
         transect_lines.at(transect_lines.size() - 1).transect_ref_point_);
   }
-  // transects_ = Transects({baseline_id_, transect_lines});
   transects_.baseline_id_ = baseline_id_;
   transects_.transects_ = std::move(transect_lines);
 }
 
 Shoreline::Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
-                     int shoreline_id, int year, int image_id)
+                     int shoreline_id, int year, dsas::Image *image)
     : shoreline_vertices_(shoreline_vertices),
       shoreline_id_(shoreline_id),
       year_(year),
-      image_id_(image_id) {
+      image_id_(image->image_id_),
+      image_ptr_(image) {
   date_ = boost::gregorian::date(year_, 1, 1);
 }
 Shoreline::Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
                      int shoreline_id, boost::gregorian::date date,
-                     int image_id)
+                     dsas::Image *image)
     : shoreline_vertices_(shoreline_vertices),
       shoreline_id_(shoreline_id),
+      image_id_(image->image_id_),
       date_(date),
-      image_id_(image_id) {
+      image_ptr_(image) {
   year_ = date_.year();
 }
 
