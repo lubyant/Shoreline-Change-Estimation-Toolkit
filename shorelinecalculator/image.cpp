@@ -237,28 +237,28 @@ void Image::transform_coordinates(const std::string &psz_prj) {
     exit(1);
   }
   // transform geo_info
-  if (coordTransform->Transform(1, &geo_info_.up_left_.x,
-                                &geo_info_.up_left_.y)) {
+  if (!coordTransform->Transform(1, &geo_info_.up_left_.x,
+                                 &geo_info_.up_left_.y)) {
     std::cerr << __FILE__ << ", " << __LINE__
-              << "Failed to transform upper_left\n";
+              << ": Failed to transform upper_left\n";
     exit(1);
   }
-  if (coordTransform->Transform(1, &geo_info_.up_right_.x,
-                                &geo_info_.up_right_.y)) {
+  if (!coordTransform->Transform(1, &geo_info_.up_right_.x,
+                                 &geo_info_.up_right_.y)) {
     std::cerr << __FILE__ << ", " << __LINE__
-              << "Failed to transform upper_right\n";
+              << ": Failed to transform upper_right\n";
     exit(1);
   }
-  if (coordTransform->Transform(1, &geo_info_.bottom_left_.x,
-                                &geo_info_.bottom_left_.y)) {
+  if (!coordTransform->Transform(1, &geo_info_.bottom_left_.x,
+                                 &geo_info_.bottom_left_.y)) {
     std::cerr << __FILE__ << ", " << __LINE__
-              << "Failed to transform bottom_left\n";
+              << ": Failed to transform bottom_left\n";
     exit(1);
   }
-  if (coordTransform->Transform(1, &geo_info_.bottom_right_.x,
-                                &geo_info_.bottom_right_.y)) {
+  if (!coordTransform->Transform(1, &geo_info_.bottom_right_.x,
+                                 &geo_info_.bottom_right_.y)) {
     std::cerr << __FILE__ << ", " << __LINE__
-              << "Failed to transform bottom_right\n";
+              << ": Failed to transform bottom_right\n";
     exit(1);
   }
 
