@@ -236,7 +236,35 @@ void Image::transform_coordinates(const std::string &psz_prj) {
               << std::endl;
     exit(1);
   }
+  // transform geo_info
+  if (coordTransform->Transform(1, &geo_info_.up_left_.x,
+                                &geo_info_.up_left_.y)) {
+    std::cerr << __FILE__ << ", " << __LINE__
+              << "Failed to transform upper_left\n";
+    exit(1);
+  }
+  if (coordTransform->Transform(1, &geo_info_.up_right_.x,
+                                &geo_info_.up_right_.y)) {
+    std::cerr << __FILE__ << ", " << __LINE__
+              << "Failed to transform upper_right\n";
+    exit(1);
+  }
+  if (coordTransform->Transform(1, &geo_info_.bottom_left_.x,
+                                &geo_info_.bottom_left_.y)) {
+    std::cerr << __FILE__ << ", " << __LINE__
+              << "Failed to transform bottom_left\n";
+    exit(1);
+  }
+  if (coordTransform->Transform(1, &geo_info_.bottom_right_.x,
+                                &geo_info_.bottom_right_.y)) {
+    std::cerr << __FILE__ << ", " << __LINE__
+              << "Failed to transform bottom_right\n";
+    exit(1);
+  }
+
+  // transform the shoreline coordinates
   for (auto &shoreline : shorelines_) {
+    shoreline.geo_info_ = geo_info_;
     for (auto &point : shoreline.shoreline_vertices_) {
       if (!coordTransform->Transform(1, &point.x, &point.y)) {
         std::cerr << "Failed to transform point (" << point.x << ", " << point.y
