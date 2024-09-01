@@ -185,7 +185,7 @@ LineSegment TransectLine::create_transect(
         std::cerr << baseline_normal_vector.first
                   << baseline_normal_vector.second << std::endl;
         std::cerr << leftEdge << ", " << rightEdge << std::endl;
-        std::cerr << __FILE__ << std::endl;
+        std::cerr << __FILE__ << __LINE__ << std::endl;
         exit(1);
       }
       break;
@@ -365,24 +365,53 @@ void Baseline::create_transects() {
   transects_.transects_ = std::move(transect_lines);
 }
 
+Shoreline::Shoreline(int shoreline_id, int year, int image_id, GeoInfo geo_info)
+    : shoreline_id_(shoreline_id),
+      year_(year),
+      image_id_(image_id),
+      geo_info_(geo_info) {
+  date_ = boost::gregorian::date(year_, 1, 1);
+}
+
 Shoreline::Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
-                     int shoreline_id, int year, dsas::Image *image)
+                     int shoreline_id, int year, int image_id, GeoInfo geo_info)
     : shoreline_vertices_(shoreline_vertices),
       shoreline_id_(shoreline_id),
       year_(year),
-      image_id_(image->image_id_),
-      image_ptr_(image) {
+      image_id_(image_id),
+      geo_info_(geo_info) {
   date_ = boost::gregorian::date(year_, 1, 1);
 }
 Shoreline::Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
-                     int shoreline_id, boost::gregorian::date date,
-                     dsas::Image *image)
+                     int shoreline_id, int image_id,
+                     boost::gregorian::date date, GeoInfo geo_info)
     : shoreline_vertices_(shoreline_vertices),
       shoreline_id_(shoreline_id),
-      image_id_(image->image_id_),
+      image_id_(image_id),
       date_(date),
-      image_ptr_(image) {
+      geo_info_(geo_info) {
   year_ = date_.year();
+}
+
+bool GeoInfo::is_overlaid(const GeoInfo &other_geo_info) const {
+  const double maxX1{bottom_right_.x}, minX1{bottom_left_.x}, maxY1{up_left_.y},
+      minY1{bottom_left_.y};
+  const double maxX2{other_geo_info.bottom_right_.x},
+      minX2{other_geo_info.bottom_left_.x}, maxY2{other_geo_info.up_left_.y},
+      minY2{other_geo_info.bottom_left_.y};
+  const bool xOverlap = (maxX1 >= minX2) && (maxX2 >= minX1);
+  const bool yOverlap = (maxY1 >= minY2) && (maxY2 >= minY1);
+  return xOverlap && yOverlap;
+}
+
+bool GeoInfo::is_overlaid(const Point<double> &point) const {
+  bool x_overlaid = (point.x >= bottom_left_.x) && (point.x <= bottom_right_.x);
+  bool y_overlaid = (point.y >= bottom_left_.y) && (point.y <= up_right_.y);
+  return x_overlaid && y_overlaid;
+}
+
+bool GeoInfo::is_overlaid(const TransectLine &transect) const {
+  return is_overlaid(transect.leftEdge_) || is_overlaid(transect.rightEdge_);
 }
 
 }  // namespace gm

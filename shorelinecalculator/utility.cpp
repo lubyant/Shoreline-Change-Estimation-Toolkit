@@ -622,9 +622,9 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
         shoreline_vertices.emplace_back(point.getX(), point.getY());
       }
       int year{poFeature->GetFieldAsInteger("year")};
-      dsas::Image image;
-      image.image_id_ = image_id;
-      shorelines.emplace_back(shoreline_vertices, shoreline_id++, year, &image);
+      gm::GeoInfo geo_info;
+      shorelines.emplace_back(shoreline_vertices, shoreline_id++, year,
+                              image_id, geo_info);
     } else {
       std::cout << "No geometry\n";
     }
@@ -695,9 +695,9 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
       std::string date = std::string(poFeature->GetFieldAsString("Date_"));
       int year = std::atoi(date.substr(6, 4).c_str());
       int image_id{poFeature->GetFieldAsInteger("ImageID")};
-      dsas::Image image;
-      image.image_id_ = image_id;
-      shorelines.emplace_back(shoreline_vertices, shoreline_id++, year, &image);
+      gm::GeoInfo geo_info;
+      shorelines.emplace_back(shoreline_vertices, shoreline_id++, year,
+                              image_id, geo_info);
     } else {
       std::cout << "No geometry\n";
     }
@@ -985,7 +985,7 @@ std::vector<gm::Shoreline> truncate_shore_by_transects(
       continue;
     }
     shorelines_segs.emplace_back(sub_vertices, shoreline1->shoreline_id_, year,
-                                 shoreline1->image_ptr_);
+                                 shoreline1->image_id_, shoreline1->geo_info_);
   }
 
   return shorelines_segs;

@@ -27,6 +27,8 @@ Image::Image(std::filesystem::path image_path, const Options &options)
   file_name_ = image_name.substr(0, image_name.size() - 4);
   std::istringstream iss(file_name_);
   iss >> image_id_;
+  // extract the geographic information
+  extract_geoinfo();
 
   // extract the contour
   extract_contours();
@@ -51,6 +53,8 @@ Image::Image(std::filesystem::path image_path, std::string image_id,
       least_factor_(options.shoreline_least_factor),
       psz_prj_(util::get_tiff_proj(image_path_)) {
   year_ = static_cast<int>(date_.year());
+  // extract geographic information
+  extract_geoinfo();
 
   // extract the contour
   extract_contours();
@@ -65,11 +69,54 @@ Image::Image(std::filesystem::path image_path, std::string image_id,
   transform_coordinates();
 }
 
+void Image::extract_geoinfo() {
+  GDALAllRegister();
+  auto *poDataset =
+      static_cast<GDALDataset *>(GDALOpen(image_path_.c_str(), GA_ReadOnly));
+  if (poDataset == nullptr) {
+    std::cerr << "Error opening dataset." << std::endl;
+    exit(1);
+  }
+
+  double adfGeoTransform[6];
+  if (poDataset->GetGeoTransform(adfGeoTransform) != CE_None) {
+    std::cerr << "No geo-transform found." << std::endl;
+    exit(1);
+  }
+
+  geo_info_.up_left_.x = adfGeoTransform[0];
+  geo_info_.up_left_.y = adfGeoTransform[3];
+
+  geo_info_.pixel_size_x_ = adfGeoTransform[1];
+  geo_info_.pixel_size_y_ = adfGeoTransform[5];
+
+  geo_info_.rotation_x_ = adfGeoTransform[2];
+  geo_info_.rotation_y_ = adfGeoTransform[4];
+
+  geo_info_.n_pixel_x_ = poDataset->GetRasterXSize();
+  geo_info_.n_pixel_y_ = poDataset->GetRasterYSize();
+
+  geo_info_.bottom_right_.x =
+      geo_info_.up_left_.x +
+      geo_info_.pixel_size_x_ * static_cast<double>(geo_info_.n_pixel_x_);
+  geo_info_.bottom_right_.y =
+      geo_info_.up_left_.y +
+      geo_info_.pixel_size_y_ * static_cast<double>(geo_info_.n_pixel_y_);
+
+  geo_info_.up_right_.x = geo_info_.bottom_right_.x;
+  geo_info_.up_right_.y = geo_info_.up_left_.y;
+
+  geo_info_.bottom_left_.x = geo_info_.up_left_.x;
+  geo_info_.bottom_left_.y = geo_info_.bottom_right_.y;
+
+  GDALClose(poDataset);
+}
+
 void Image::extract_contours() {
   // read the image
   cv::Mat img = cv::imread(image_path_);
-  rows_ = img.rows;
-  cols_ = img.cols;
+  geo_info_.rows_ = img.rows;
+  geo_info_.cols_ = img.cols;
 
   // grey scale
   cv::Mat gray;
@@ -103,11 +150,7 @@ void Image::extract_shorelines() {
   int shoreline_id{0};
   std::vector<gm::Point<double>> temp;
   for (const auto &contour : contours_) {
-    gm::Shoreline points{};
-    points.shoreline_id_ = shoreline_id++;
-    points.year_ = year_;
-    points.image_id_ = std::stoi(file_name_);
-    points.image_ptr_ = this;
+    gm::Shoreline points{shoreline_id++, year_, image_id_, geo_info_};
     for (const auto &point : contour) {
       auto x = point.x, y = point.y;
       if (is_edge(x, y)) {
@@ -117,11 +160,7 @@ void Image::extract_shorelines() {
 
           points.shoreline_vertices_ = temp;
           shorelines.push_back(std::move(points));
-          points = gm::Shoreline();
-          points.shoreline_id_ = shoreline_id++;
-          points.year_ = year_;
-          points.image_id_ = std::stoi(file_name_);
-          points.image_ptr_ = this;
+          points = gm::Shoreline(shoreline_id++, year_, image_id_, geo_info_);
           temp.clear();
         }
         continue;
@@ -164,56 +203,22 @@ void Image::process_shorelines() {
 }
 
 void Image::transform_coordinates() {
-  GDALAllRegister();
-  auto *poDataset =
-      static_cast<GDALDataset *>(GDALOpen(image_path_.c_str(), GA_ReadOnly));
-  if (poDataset == nullptr) {
-    std::cerr << "Error opening dataset." << std::endl;
-    exit(1);
-  }
-
-  double adfGeoTransform[6];
-  if (poDataset->GetGeoTransform(adfGeoTransform) != CE_None) {
-    std::cerr << "No geo-transform found." << std::endl;
-    exit(1);
-  }
-
-  up_left_.x = adfGeoTransform[0];
-  up_left_.y = adfGeoTransform[3];
-
-  pixel_size_x_ = adfGeoTransform[1];
-  pixel_size_y_ = adfGeoTransform[5];
-
-  n_pixel_x_ = poDataset->GetRasterXSize();
-  n_pixel_y_ = poDataset->GetRasterYSize();
-
-  bottom_right_.x =
-      up_left_.x + pixel_size_x_ * static_cast<double>(n_pixel_x_);
-  bottom_right_.y =
-      up_left_.y + pixel_size_y_ * static_cast<double>(n_pixel_y_);
-
-  up_right_.x = bottom_right_.x;
-  up_right_.y = up_left_.y;
-
-  bottom_left_.x = up_left_.x;
-  bottom_left_.y = bottom_right_.y;
-
   for (auto &shoreline : shorelines_) {
     size_t id{0};
-    std::transform(
-        shoreline.shoreline_vertices_.begin(),
-        shoreline.shoreline_vertices_.end(),
-        shoreline.shoreline_vertices_.begin(),
-        [adfGeoTransform, &id](const gm::Point<> &point) {
-          const double i = point.x, j = point.y;
-          const double X_geo = adfGeoTransform[0] + i * adfGeoTransform[1] +
-                               j * adfGeoTransform[2];
-          const double Y_geo = adfGeoTransform[3] + i * adfGeoTransform[4] +
-                               j * adfGeoTransform[5];
-          return gm::Point<double>(X_geo, Y_geo, id++);
-        });
+    std::transform(shoreline.shoreline_vertices_.begin(),
+                   shoreline.shoreline_vertices_.end(),
+                   shoreline.shoreline_vertices_.begin(),
+                   [&](const gm::Point<> &point) {
+                     const double i = point.x, j = point.y;
+                     const double X_geo = geo_info_.up_left_.x +
+                                          i * geo_info_.pixel_size_x_ +
+                                          j * geo_info_.rotation_x_;
+                     const double Y_geo = geo_info_.up_left_.y +
+                                          i * geo_info_.rotation_y_ +
+                                          j * geo_info_.pixel_size_y_;
+                     return gm::Point<double>(X_geo, Y_geo, id++);
+                   });
   }
-  GDALClose(poDataset);
 }
 
 void Image::transform_coordinates(const std::string &psz_prj) {
@@ -291,29 +296,22 @@ gm::Baselines Image::merge_baselines_from_images(
 }
 
 bool Image::is_overlaid(const Image &image) const {
-  const double maxX1{bottom_right_.x}, minX1{bottom_left_.x}, maxY1{up_left_.y},
-      minY1{bottom_left_.y};
-  const double maxX2{image.bottom_right_.x}, minX2{image.bottom_left_.x},
-      maxY2{image.up_left_.y}, minY2{image.bottom_left_.y};
-  const bool xOverlap = (maxX1 >= minX2) && (maxX2 >= minX1);
-  const bool yOverlap = (maxY1 >= minY2) && (maxY2 >= minY1);
-  return xOverlap && yOverlap;
+  return geo_info_.is_overlaid(image.geo_info_);
 }
 
 bool Image::is_overlaid(const gm::Point<double> &point) const {
-  bool x_overlaid = (point.x >= bottom_left_.x) && (point.x <= bottom_right_.x);
-  bool y_overlaid = (point.y >= bottom_left_.y) && (point.y <= up_right_.y);
-  return x_overlaid && y_overlaid;
+  return geo_info_.is_overlaid(point);
+}
+
+bool Image::is_overlaid(const gm::TransectLine &transect) const {
+  return geo_info_.is_overlaid(transect);
 }
 
 void Image::joint_shorelines(const std::vector<const Image *> &images,
                              gm::Shorelines *joint_shorelines) const {
   for (const auto &shoreline : shorelines_) {
-    gm::Shoreline tmp_shoreline;
-    tmp_shoreline.shoreline_id_ = shoreline.shoreline_id_;
-    tmp_shoreline.year_ = shoreline.year_;
-    tmp_shoreline.image_id_ = shoreline.image_id_;
-    tmp_shoreline.date_ = shoreline.date_;
+    gm::Shoreline tmp_shoreline{shoreline.shoreline_id_, shoreline.year_,
+                                shoreline.image_id_, shoreline.geo_info_};
     for (const auto &point : shoreline.shoreline_vertices_) {
       bool is_overlaid{false};
       for (const auto *image : images) {
@@ -325,45 +323,52 @@ void Image::joint_shorelines(const std::vector<const Image *> &images,
         tmp_shoreline.shoreline_vertices_.push_back(point);
       }
     }
-    joint_shorelines->push_back(std::move(tmp_shoreline));
+    if (!tmp_shoreline.shoreline_vertices_.empty())
+      joint_shorelines->push_back(std::move(tmp_shoreline));
   }
 }
 
 Image operator+(const Image &image1, const Image &image2) {
   Image image;
-  if (image1.bottom_left_.x == -1) {
+  if (image1.geo_info_.bottom_left_.x == -1) {
     image = image2;
     return image;
   }
-  if (image2.bottom_left_.x == -1) {
+  if (image2.geo_info_.bottom_left_.x == -1) {
     image = image1;
     return image;
   }
-  image.bottom_left_ =
-      gm::Point<double>(std::min(image1.bottom_left_.x, image2.bottom_left_.x),
-                        std::min(image1.bottom_left_.y, image2.bottom_left_.y));
-  image.bottom_right_ =
-      gm::Point<double>(std::max(image1.bottom_left_.x, image2.bottom_left_.x),
-                        std::min(image1.bottom_left_.y, image2.bottom_left_.y));
-  image.up_left_ =
-      gm::Point<double>(std::min(image1.bottom_left_.x, image2.bottom_left_.x),
-                        std::max(image1.bottom_left_.y, image2.bottom_left_.y));
-  image.up_right_ =
-      gm::Point<double>(std::max(image1.bottom_left_.x, image2.bottom_left_.x),
-                        std::max(image1.bottom_left_.y, image2.bottom_left_.y));
+  image.geo_info_.bottom_left_ =
+      gm::Point<double>(std::min(image1.geo_info_.bottom_left_.x,
+                                 image2.geo_info_.bottom_left_.x),
+                        std::min(image1.geo_info_.bottom_left_.y,
+                                 image2.geo_info_.bottom_left_.y));
+  image.geo_info_.bottom_right_ =
+      gm::Point<double>(std::max(image1.geo_info_.bottom_left_.x,
+                                 image2.geo_info_.bottom_left_.x),
+                        std::min(image1.geo_info_.bottom_left_.y,
+                                 image2.geo_info_.bottom_left_.y));
+  image.geo_info_.up_left_ =
+      gm::Point<double>(std::min(image1.geo_info_.bottom_left_.x,
+                                 image2.geo_info_.bottom_left_.x),
+                        std::max(image1.geo_info_.bottom_left_.y,
+                                 image2.geo_info_.bottom_left_.y));
+  image.geo_info_.up_right_ =
+      gm::Point<double>(std::max(image1.geo_info_.bottom_left_.x,
+                                 image2.geo_info_.bottom_left_.x),
+                        std::max(image1.geo_info_.bottom_left_.y,
+                                 image2.geo_info_.bottom_left_.y));
   image.shorelines_ = image1.shorelines_;
   for (const auto &shoreline : image2.shorelines_) {
-    gm::Shoreline temp_shoreline;
-    temp_shoreline.shoreline_id_ = shoreline.shoreline_id_;
-    temp_shoreline.year_ = shoreline.year_;
-    temp_shoreline.image_id_ = shoreline.image_id_;
+    gm::Shoreline tmp_shoreline{shoreline.shoreline_id_, shoreline.year_,
+                                shoreline.image_id_, shoreline.geo_info_};
     for (const auto &point : shoreline.shoreline_vertices_) {
       if (!image1.is_overlaid(point)) {
-        temp_shoreline.shoreline_vertices_.push_back(point);
+        tmp_shoreline.shoreline_vertices_.push_back(point);
       }
     }
-    if (!temp_shoreline.shoreline_vertices_.empty()) {
-      image.shorelines_.push_back(std::move(temp_shoreline));
+    if (!tmp_shoreline.shoreline_vertices_.empty()) {
+      image.shorelines_.push_back(std::move(tmp_shoreline));
     }
   }
   return image;

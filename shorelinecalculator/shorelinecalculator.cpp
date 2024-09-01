@@ -487,8 +487,7 @@ std::vector<gm::IntersectPoint> generate_intersection(
   for (auto &transects : transect_groups) {
     for (auto &transectLine : transects.transects_) {
       for (auto &shoreline : shorelines) {
-        if (!shoreline.image_ptr_->is_overlaid(
-                transectLine.transect_ref_point_)) {
+        if (!shoreline.geo_info_.is_overlaid(transectLine)) {
           continue;
         }
         auto ret = transectLine.intersection(shoreline);

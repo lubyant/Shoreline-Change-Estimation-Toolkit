@@ -352,9 +352,9 @@ BOOST_AUTO_TEST_CASE(test_frechetdistance) {
       {2.5, 2},  {2.75, 2}, {3.25, 2}, {3.5, 2},  {3.75, 2},
       {4.25, 2}, {4.5, 2},  {4.75, 2}};
 
-  dsas::Image image;
-  Shoreline shoreline1{shoreline1_points, 0, 2000, &image};
-  Shoreline shoreline2{shoreline2_points, 1, 2001, &image};
+  gm::GeoInfo geo_info;
+  Shoreline shoreline1{shoreline1_points, 0, 2000, 0, geo_info};
+  Shoreline shoreline2{shoreline2_points, 1, 2001, 0, geo_info};
   Shorelines shorelines{shoreline1, shoreline2};
 
   auto intersects_maps =

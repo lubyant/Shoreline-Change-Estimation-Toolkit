@@ -21,9 +21,6 @@
 #include <vector>
 
 #include "options.hpp"
-namespace dsas {
-struct Image;
-}
 
 // classes
 namespace gm {
@@ -34,6 +31,7 @@ struct Point;
 struct Shoreline;
 using Shorelines = std::vector<gm::Shoreline>;
 struct IntersectPoint;
+struct TransectLine;
 struct Transects;
 
 template <typename T>
@@ -105,6 +103,19 @@ struct Point {
                               double fraction) {
     return Point(a.x + (b.x - a.x) * fraction, a.y + (b.y - a.y) * fraction);
   }
+};
+
+struct GeoInfo {
+  gm::Point<double> up_left_{-1, -1}, up_right_{-1, -1}, bottom_left_{-1, -1},
+      bottom_right_{-1, -1};
+  int rows_{}, cols_{};  // image size x,y
+  double pixel_size_x_{}, pixel_size_y_{};
+  double rotation_x_{}, rotation_y_{};
+  size_t n_pixel_x_{}, n_pixel_y_{};
+
+  bool is_overlaid(const GeoInfo &other_geo_info) const;
+  bool is_overlaid(const Point<double> &point) const;
+  bool is_overlaid(const TransectLine &transect) const;
 };
 
 struct LineSegment {
@@ -308,13 +319,15 @@ struct Shoreline : public MultiLine<Point<>>, GDALShpSaver<int, int> {
   int year_{};                                         // shoreline year
   int image_id_{};
   boost::gregorian::date date_;
-  dsas::Image *image_ptr_{nullptr};
+  GeoInfo geo_info_;  // bound of image that shoreline extracted from
+
+  Shoreline(int shoreline_id, int year, int image_id, GeoInfo geo_info);
 
   Shoreline(std::vector<gm::Point<>> &shoreline_vertices, int shoreline_id,
-            int year, dsas::Image *image);
+            int year, int image_id, GeoInfo geo_info);
 
   Shoreline(std::vector<gm::Point<>> &shoreline_vertices, int shoreline_id,
-            boost::gregorian::date date, dsas::Image *image);
+            int image_id, boost::gregorian::date date, GeoInfo geo_info);
 
   Shoreline() = default;
 
