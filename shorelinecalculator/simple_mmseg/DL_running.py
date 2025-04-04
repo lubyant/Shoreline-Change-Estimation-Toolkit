@@ -62,7 +62,6 @@ def process_single_img(img_file, out_file, checkpoint_file, img_suffix='png'):
     config_file = CONFIG_PATH
     args = image_demo_config(img_file, config_file,
                              checkpoint_file, out_file, img_suffix=img_suffix)
-    print(args.config)
     model = load_model(args)
     single_img_main_args(args, model=model)
 
