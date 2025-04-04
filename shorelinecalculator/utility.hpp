@@ -36,7 +36,8 @@
 namespace util {
 
 template <typename T>
-void save_lines(std::vector<T> &lines, std::filesystem::path &output_path);
+void save_lines(const std::vector<T> &lines,
+                std::filesystem::path &output_path);
 
 template <typename T>
 T crossProduct(std::vector<T> &vec1, std::vector<T> &vec2) {
@@ -108,7 +109,7 @@ gm::Point<T> computeIntersectPoint(const gm::Point<T> &p1,
   double a0 = y1 - y2, b0 = x2 - x1, c0 = x1 * y2 - x2 * y1;
   double a1 = y3 - y4, b1 = x4 - x3, c1 = x3 * y4 - x4 * y3;
   double d = a0 * b1 - a1 * b0;
-  if (d == 0) {
+  if (std::abs(d) < 1e-4) {
     throw std::runtime_error("two line are the same");
   } else {
     double x = (b0 * c1 - b1 * c0) / d;
@@ -176,7 +177,7 @@ void save_points(const std::vector<gm::TransectLine> &shapes,
                  const char *pszProj, const std::filesystem::path &output_path);
 
 template <typename T>
-void save_lines(std::vector<T> &lines, const char *pszProj,
+void save_lines(const std::vector<T> &lines, const char *pszProj,
                 const std::filesystem::path &output_path) {
   GDALAllRegister();
   // Step 1: Initialize GDAL
@@ -207,12 +208,16 @@ void save_lines(std::vector<T> &lines, const char *pszProj,
     OGRFieldDefn field(lines[0].get_names()[i].c_str(),
                        lines[0].get_types()[i]);
     if (layer->CreateField(&field) != OGRERR_NONE) {
-      std::cerr << "Failed to create Name field" << std::endl;
+      std::cerr << __FILE__ << ", " << __LINE__
+                << ": Failed to create Name field" << std::endl;
       exit(1);
     }
   }
 
   for (const auto &shape : lines) {
+    if (shape.size() < 1) {
+      continue;
+    }
     // Step 5: Create a new feature
     OGRFeature *feature = OGRFeature::CreateFeature(layer->GetLayerDefn());
     if (!feature) {
@@ -249,7 +254,7 @@ void save_lines(std::vector<T> &lines, const char *pszProj,
   GDALClose(dataset);
 }
 template <>
-void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
+void save_lines<gm::TransectLine>(const std::vector<gm::TransectLine> &lines,
                                   const char *pszProj,
                                   const std::filesystem::path &output_path);
 
@@ -261,11 +266,13 @@ std::string get_shp_proj(const char *path);
 void remove_outliers(std::vector<double> &x, std::vector<double> &y,
                      double threshold);
 
-void remove_outliers(std::vector<gm::IntersectPoint> & intersects,
+void remove_outliers(std::vector<gm::IntersectPoint> &intersects,
                      const dsas::Options &options);
 
+void remove_outliers_v2(std::vector<gm::IntersectPoint> &intersects,
+                        const dsas::Options &options);
+
 gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
-                                 const std::string &field_name,
                                  const dsas::Options &options);
 
 gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
@@ -282,14 +289,21 @@ std::vector<gm::Point<>> get_subset_of_vertices(
     const std::vector<gm::Point<>> &line, const gm::Point<> &p1,
     const gm::Point<> &p2);
 
-std::optional<gm::Shoreline> truncate_shore_by_transect(
+std::optional<gm::Shoreline> truncate_shore_by_transects(
     const gm::TransectLine &tran1, const gm::TransectLine &tran2,
     const gm::Shoreline &shoreline);
+
+std::vector<gm::Shoreline> truncate_shore_by_transects(
+    const gm::TransectLine &tran1, const gm::TransectLine &tran2);
 
 std::optional<gm::Shoreline> truncate_shore_by_intersect(
     const gm::IntersectPoint &intersect);
 
 double frechet_distance(std::vector<gm::Point<>> line1,
                         std::vector<gm::Point<>> line2);
+
+double modified_frechet_distance(const std::vector<gm::Point<>> &line1,
+                                 const std::vector<gm::Point<>> &line2);
+
 }  // namespace util
 #endif  // SHORELINECALCULATOR_UTILITY_HPP

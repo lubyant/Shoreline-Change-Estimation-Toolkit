@@ -3,8 +3,7 @@
 //
 #include "geometry.hpp"
 
-#include <unordered_set>
-
+#include "image.hpp"
 #include "utility.hpp"
 
 namespace gm {
@@ -49,7 +48,6 @@ bool LineSegment::is_intersect(const Point<> &point1,
 
 Point<> LineSegment::find_intersection(const Point<> &point1,
                                        const Point<> &point2) const {
-  if (!is_intersect(point1, point2)) throw std::runtime_error("Not intersect");
   return util::computeIntersectPoint<double>(leftEdge_, rightEdge_, point1,
                                              point2);
 }
@@ -132,6 +130,8 @@ void TransectLine::compute_frechet_dist() {
     year_intersect_map_[shoreline_segs_[0].year_]->frechet_distance_diff_ =
         fre_dist;
     frechet_dist_.push_back(fre_dist);
+    set_frechet_info(shoreline_segs_[0].year_, shoreline_segs_[1].year_,
+                     fre_dist);
     return;
   }
   for (size_t i = 0; i < shoreline_segs_.size(); i++) {
@@ -157,6 +157,8 @@ void TransectLine::compute_frechet_dist() {
     auto year = shoreline_segs_[i].year_;
     year_intersect_map_[year]->frechet_distance_diff_ = fre_dist;
     frechet_dist_.push_back(fre_dist);
+    set_frechet_info(shoreline_segs_[i].year_, shoreline_segs_[i + 1].year_,
+                     fre_dist);
   }
 }
 
@@ -172,7 +174,7 @@ void TransectLine::truncate_shoreline_seg() {
 LineSegment TransectLine::create_transect(
     Point<> &transect_base, std::pair<double, double> baseline_normal_vector,
     double transect_length, TransectOrientation orient) {
-  auto leftEdge{transect_base}, rightEdge{transect_base};
+  Point leftEdge, rightEdge;
   switch (orient) {
     case TransectOrientation::Mix:
       leftEdge = transect_base.create_point(baseline_normal_vector,
@@ -183,7 +185,7 @@ LineSegment TransectLine::create_transect(
         std::cerr << baseline_normal_vector.first
                   << baseline_normal_vector.second << std::endl;
         std::cerr << leftEdge << ", " << rightEdge << std::endl;
-        std::cerr << __FILE__ << std::endl;
+        std::cerr << __FILE__ << __LINE__ << std::endl;
         exit(1);
       }
       break;
@@ -213,13 +215,32 @@ std::optional<IntersectPoint> TransectLine::intersection(
       try {
         auto point = find_intersection(shoreline[i], shoreline[i + 1]);
         auto distance = distance2ref(point);
-        IntersectPoint intersect_point{
-            point,        transect_id_, shoreline.shoreline_id_,
-            baseline_id_, image_id_,    shoreline.year_,
-            distance,     this,         &shoreline};
+        IntersectPoint intersect_point{point,
+                                       transect_id_,
+                                       shoreline.shoreline_id_,
+                                       baseline_id_,
+                                       shoreline.image_id_,
+                                       group_id_,
+                                       shoreline.year_,
+                                       distance,
+                                       this,
+                                       &shoreline};
         intersections.push_back(intersect_point);
-      } catch (...) {
-        continue;
+      } catch (std::runtime_error &e) {
+        auto point = gm::Point<>((shoreline[i].x + shoreline[i + 1].x) / 2,
+                                 (shoreline[i].y + shoreline[i + 1].y) / 2);
+        auto distance = distance2ref(point);
+        IntersectPoint intersect_point{point,
+                                       transect_id_,
+                                       shoreline.shoreline_id_,
+                                       baseline_id_,
+                                       shoreline.image_id_,
+                                       group_id_,
+                                       shoreline.year_,
+                                       distance,
+                                       this,
+                                       &shoreline};
+        intersections.push_back(intersect_point);
       }
     }
   }
@@ -267,9 +288,26 @@ void TransectLine::set_info(const std::vector<double> &years,
   change_rate = util::least_square(years, distances);
 }
 
+void TransectLine::set_frechet_info(int year_start, int year_end,
+                                    double frechet_dist) {
+  std::ostringstream ss;
+  ss << std::fixed << std::setprecision(2) << frechet_dist;
+  std::string add_on = std::to_string(year_start) + "-" +
+                       std::to_string(year_end) + ":" + ss.str() + "; ";
+  frechet_info_ = frechet_info_ + add_on;
+}
+
+void TransectLine::set_euc_info(int year_start, int year_end, double euc_dist) {
+  std::ostringstream ss;
+  ss << std::fixed << std::setprecision(2) << euc_dist;
+  std::string add_on = std::to_string(year_start) + "-" +
+                       std::to_string(year_end) + ":" + ss.str() + "; ";
+  euc_info_ = euc_info_ + add_on;
+}
+
 Baseline::Baseline(const std::vector<BaselinesVertex> &points, int baseline_id,
-                   int image_id, const dsas::Options &options)
-    : baseline_id_(baseline_id), image_id_(image_id), options_(options) {
+                   const dsas::Options &options)
+    : baseline_id_(baseline_id), options_(options) {
   // create the baselineSeq
   for (size_t i = 0; i < points.size() - 1; i++) {
     BaselineSeg baselineSeg{options_.transect_spacing, options_.transect_offset,
@@ -278,17 +316,18 @@ Baseline::Baseline(const std::vector<BaselinesVertex> &points, int baseline_id,
     if (i == 0) {
       transects_base_points_.push_back(baselineSeg.leftEdge_);
       normal_vectors_.push_back(baselineSeg.normal_vector_);
-      baseline_vertices_.push_back(baselineSeg.leftEdge_);
+      origin_vertices_.push_back(baselineSeg.leftEdge_);
     }
-    baseline_vertices_.push_back(baselineSeg.rightEdge_);
+    origin_vertices_.push_back(baselineSeg.rightEdge_);
     for (auto &point : baselineSeg.transects_base_points_) {
       transects_base_points_.push_back(point);
       normal_vectors_.push_back(baselineSeg.normal_vector_);
     }
   }
+  create_transects();
 }
 
-Transects Baseline::create_transects() {
+void Baseline::create_transects() {
   std::vector<TransectLine> transect_lines;
   // smoothing the transects
   auto smooth_factor = options_.smooth_factor;
@@ -318,27 +357,61 @@ Transects Baseline::create_transects() {
     }
     transect_lines.emplace_back(transects_base_points_.at(i), transect_length,
                                 smoothed_normal_vector, transect_id++,
-                                baseline_id_, image_id_, mode, orient);
+                                baseline_id_, mode, orient);
+    baseline_vertices_.push_back(
+        transect_lines.at(transect_lines.size() - 1).transect_ref_point_);
   }
-  return {baseline_id_, transect_lines};
+  transects_.baseline_id_ = baseline_id_;
+  transects_.transects_ = std::move(transect_lines);
+}
+
+Shoreline::Shoreline(int shoreline_id, int year, int image_id, GeoInfo geo_info)
+    : shoreline_id_(shoreline_id),
+      year_(year),
+      image_id_(image_id),
+      geo_info_(geo_info) {
+  date_ = boost::gregorian::date(year_, 1, 1);
 }
 
 Shoreline::Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
-                     int shoreline_id, int year, int image_id)
+                     int shoreline_id, int year, int image_id, GeoInfo geo_info)
     : shoreline_vertices_(shoreline_vertices),
       shoreline_id_(shoreline_id),
       year_(year),
-      image_id_(image_id) {
+      image_id_(image_id),
+      geo_info_(geo_info) {
   date_ = boost::gregorian::date(year_, 1, 1);
 }
 Shoreline::Shoreline(std::vector<gm::Point<double>> &shoreline_vertices,
-                     int shoreline_id, boost::gregorian::date date,
-                     int image_id)
+                     int shoreline_id, int image_id,
+                     boost::gregorian::date date, GeoInfo geo_info)
     : shoreline_vertices_(shoreline_vertices),
       shoreline_id_(shoreline_id),
+      image_id_(image_id),
       date_(date),
-      image_id_(image_id) {
+      geo_info_(geo_info) {
   year_ = date_.year();
+}
+
+bool GeoInfo::is_overlaid(const GeoInfo &other_geo_info) const {
+  const double maxX1{bottom_right_.x}, minX1{bottom_left_.x}, maxY1{up_left_.y},
+      minY1{bottom_left_.y};
+  const double maxX2{other_geo_info.bottom_right_.x},
+      minX2{other_geo_info.bottom_left_.x}, maxY2{other_geo_info.up_left_.y},
+      minY2{other_geo_info.bottom_left_.y};
+  const bool xOverlap = (maxX1 >= minX2) && (maxX2 >= minX1);
+  const bool yOverlap = (maxY1 >= minY2) && (maxY2 >= minY1);
+  return xOverlap && yOverlap;
+}
+
+bool GeoInfo::is_overlaid(const Point<double> &point) const {
+  bool x_overlaid = (point.x >= bottom_left_.x) && (point.x <= bottom_right_.x);
+  bool y_overlaid = (point.y >= bottom_left_.y) && (point.y <= up_right_.y);
+  return x_overlaid && y_overlaid;
+}
+
+bool GeoInfo::is_overlaid(const TransectLine &transect) const {
+  return is_overlaid(transect.leftEdge_) || is_overlaid(transect.rightEdge_);
 }
 
 }  // namespace gm

@@ -7,7 +7,13 @@
 #include <limits>
 #include <unordered_set>
 
-#define MAX_DOUBLE std::numeric_limits<double>::max()
+#include "image.hpp"
+
+#define MAX_DOUBLE (999999.9)
+#define MIN_DOUBLE (-999999.9)
+namespace dsas {
+struct Image;
+}
 
 namespace util {
 
@@ -53,14 +59,14 @@ void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
                        const dsas::Options &options) {
   // if no intersection
   if (intersections.empty()) {
-    throw std::runtime_error("It should not empty");
+    throw std::runtime_error("It should not be empty\n");
   }
 
   // if only one intersection
   if (intersections.size() == 1) {
     transect.num_intersect_ = 1;
     transect.change_rate = 0;
-    transect.intersect_info_ = std::to_string(intersections[0].year_) + ", 0.";
+    transect.euc_info_ = std::to_string(intersections[0].year_) + ", 0.";
     return;
   }
 
@@ -80,14 +86,14 @@ void linearRegressRate(const std::vector<gm::IntersectPoint> &intersections,
     std::stringstream ss;
     ss << copy[0].year_ << ", " << copy[0].distance_to_ref_ << ". "
        << copy[1].year_ << ", " << copy[1].distance_to_ref_ << ". ";
-    transect.intersect_info_ = ss.str();
+    transect.euc_info_ = ss.str();
   }
 
   /*
   if more than two intersections first remove outlier, then compute the
    rates for consecutive years and set the value to transect
   */
-  remove_outliers(copy, options);
+  remove_outliers_v2(copy, options);
 
   // change rate
   std::vector<double> y, x;
@@ -138,7 +144,8 @@ void save_points(const std::vector<gm::IntersectPoint> &shapes,
     OGRFieldDefn field(shapes[0].get_names()[i].c_str(),
                        shapes[0].get_types()[i]);
     if (layer->CreateField(&field) != OGRERR_NONE) {
-      std::cerr << "Failed to create Name field" << std::endl;
+      std::cerr << __FILE__ << ", " << __LINE__
+                << ": Failed to create Name field" << std::endl;
       exit(1);
     }
   }
@@ -199,7 +206,8 @@ void save_points(const std::vector<gm::TransectLine> &shapes,
     OGRFieldDefn field(shapes[0].get_names()[i].c_str(),
                        shapes[0].get_types()[i]);
     if (layer->CreateField(&field) != OGRERR_NONE) {
-      std::cerr << "Failed to create Name field" << std::endl;
+      std::cerr << __FILE__ << ", " << __LINE__
+                << ": Failed to create Name field" << std::endl;
       exit(1);
     }
   }
@@ -292,7 +300,7 @@ std::string get_shp_proj(const char *path) {
 }
 
 template <>
-void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
+void save_lines<gm::TransectLine>(const std::vector<gm::TransectLine> &lines,
                                   const char *pszProj,
                                   const std::filesystem::path &output_path) {
   GDALAllRegister();
@@ -317,24 +325,28 @@ void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
 
   OGRFieldDefn baseline_id("BaselineId", OFTInteger);
   if (layer->CreateField(&baseline_id) != OGRERR_NONE) {
-    std::cerr << "Failed to create Name field" << std::endl;
+    std::cerr << __FILE__ << ", " << __LINE__ << ": Failed to create Name field"
+              << std::endl;
     exit(1);
   }
   OGRFieldDefn transect_id("TransectId", OFTInteger);
   if (layer->CreateField(&transect_id) != OGRERR_NONE) {
-    std::cerr << "Failed to create Name field" << std::endl;
+    std::cerr << __FILE__ << ", " << __LINE__ << ": Failed to create Name field"
+              << std::endl;
     exit(1);
   }
-  OGRFieldDefn image_id("ImageId", OFTInteger);
-  if (layer->CreateField(&image_id) != OGRERR_NONE) {
-    std::cerr << "Failed to create Name field" << std::endl;
+  OGRFieldDefn group_id("GroupId", OFTInteger);
+  if (layer->CreateField(&group_id) != OGRERR_NONE) {
+    std::cerr << __FILE__ << ", " << __LINE__ << ": Failed to create Name field"
+              << std::endl;
     exit(1);
   }
   OGRFieldDefn change_rate("ChangeRate", OFTReal);
   change_rate.SetWidth(8);
   change_rate.SetPrecision(3);
   if (layer->CreateField(&change_rate) != OGRERR_NONE) {
-    std::cerr << "Failed to create Name field" << std::endl;
+    std::cerr << __FILE__ << ", " << __LINE__ << ": Failed to create Name field"
+              << std::endl;
     exit(1);
   }
 
@@ -357,7 +369,7 @@ void save_lines<gm::TransectLine>(std::vector<gm::TransectLine> &lines,
     }
     feature->SetField("BaselineId", shape.baseline_id_);
     feature->SetField("TransectId", shape.transect_id_);
-    feature->SetField("ImageId", shape.image_id_);
+    feature->SetField("GroupId", shape.group_id_);
     feature->SetField("ChangeRate", shape.change_rate);
 
     // Step 8: Add the feature to the layer
@@ -402,6 +414,43 @@ void remove_outliers(std::vector<double> &x, std::vector<double> &y,
   }
 }
 
+void remove_outliers_v2(std::vector<gm::IntersectPoint> &intersects,
+                        const dsas::Options &options) {
+  switch (options.outlier_metric) {
+    case dsas::Options::OutlierMetric::None:
+      return;
+    case dsas::Options::OutlierMetric::FrechetDistance:
+      // remove outlier
+      for (size_t i = 0; i < intersects.size(); i++) {
+        if (intersects[i].is_fre_outlier) {
+          intersects.erase(intersects.begin() + i);
+          i--;
+        }
+      }
+      break;
+    case dsas::Options::OutlierMetric::BaseDistance:
+      // remove outlier
+      for (size_t i = 0; i < intersects.size(); i++) {
+        if (intersects[i].is_base_outlier) {
+          intersects.erase(intersects.begin() + i);
+          i--;
+        }
+      }
+      break;
+    case dsas::Options::OutlierMetric::Mix:
+      // remove outlier
+      for (size_t i = 0; i < intersects.size(); i++) {
+        if (intersects[i].is_base_outlier && intersects[i].is_fre_outlier) {
+          intersects.erase(intersects.begin() + i);
+          i--;
+        }
+      }
+      break;
+    default:
+      std::cerr << __FILE__;
+      throw std::runtime_error(": not a valid metric");
+  }
+}
 void remove_outliers(std::vector<gm::IntersectPoint> &intersects,
                      const dsas::Options &options) {
   double standard_dev;
@@ -466,7 +515,6 @@ void remove_outliers(std::vector<gm::IntersectPoint> &intersects,
 }
 
 gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
-                                 const std::string &field_name,
                                  const dsas::Options &options) {
   // Initialize GDAL
   GDALAllRegister();
@@ -488,6 +536,7 @@ gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
   OGRFeature *poFeature;
   poLayer->ResetReading();
   gm::Baselines baselines;
+  int baseline_id = 0;
   while ((poFeature = poLayer->GetNextFeature()) != nullptr) {
     OGRGeometry *poGeometry;
     poGeometry = poFeature->GetGeometryRef();
@@ -502,9 +551,7 @@ gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
         poLine->getPoint(i, &point);
         baseline_vertices.emplace_back(point.getX(), point.getY());
       }
-      int baseline_id{poFeature->GetFieldAsInteger(field_name.c_str())};
-      gm::Baseline baseline{baseline_vertices, baseline_id, baseline_id,
-                            options};
+      gm::Baseline baseline{baseline_vertices, baseline_id++, options};
       baselines.push_back(std::move(baseline));
     } else {
       std::cout << "No geometry\n";
@@ -575,8 +622,9 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
         shoreline_vertices.emplace_back(point.getX(), point.getY());
       }
       int year{poFeature->GetFieldAsInteger("year")};
+      gm::GeoInfo geo_info;
       shorelines.emplace_back(shoreline_vertices, shoreline_id++, year,
-                              image_id);
+                              image_id, geo_info);
     } else {
       std::cout << "No geometry\n";
     }
@@ -647,8 +695,9 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
       std::string date = std::string(poFeature->GetFieldAsString("Date_"));
       int year = std::atoi(date.substr(6, 4).c_str());
       int image_id{poFeature->GetFieldAsInteger("ImageID")};
+      gm::GeoInfo geo_info;
       shorelines.emplace_back(shoreline_vertices, shoreline_id++, year,
-                              image_id);
+                              image_id, geo_info);
     } else {
       std::cout << "No geometry\n";
     }
@@ -695,65 +744,72 @@ void remove_same_year_intersections(
   }
   intersect_points = std::move(new_intersects);
 }
+
 std::vector<gm::Point<>> get_subset_of_vertices(
     const std::vector<gm::Point<>> &line, const gm::Point<> &p1,
     const gm::Point<> &p2) {
-  auto isBefore = [](const gm::Point<> &a, const gm::Point<> &b) {
-    return a.x < b.x || (a.x == b.x && a.y < b.y);
+  auto is_between = [](const gm::Point<> &p, const gm::Point<> &a,
+                       const gm::Point<> &b) {
+    if (p == a || p == b) {
+      return false;
+    }
+    return std::abs(a.distance_to_point(b) -
+                    (a.distance_to_point(p) + p.distance_to_point(b))) < 1e-3;
   };
 
-  gm::Point<> before_p1, after_p1, before_p2, after_p2;
+  std::vector<gm::Point<>> sub_vec;
+  size_t p1_pos{0}, p2_pos{0};
+  for (size_t i = 0; i < line.size() - 1; i++) {
+    auto edge_1 = line.at(i);
+    auto edge_2 = line.at(i + 1);
+    if (edge_1 == p1 || is_between(p1, edge_1, edge_2)) {
+      p1_pos = i + 1;
+      break;
+    }
+  }
+  for (size_t i = 0; i < line.size() - 1; i++) {
+    auto edge_1 = line.at(i);
+    auto edge_2 = line.at(i + 1);
+    if (edge_1 == p2 || is_between(p2, edge_1, edge_2)) {
+      p2_pos = i + 1;
+      break;
+    }
+  }
 
-  double min_dist_before_p1{MAX_DOUBLE}, min_dist_after_p1{MAX_DOUBLE},
-      min_dist_before_p2{MAX_DOUBLE}, min_dist_after_p2{MAX_DOUBLE};
-  for (const auto &vertex : line) {
-    if (isBefore(vertex, p1)) {
-      auto dist = vertex.distance_to_point((p1));
-      if (dist < min_dist_before_p1) {
-        before_p1 = vertex;
-        min_dist_before_p1 = dist;
-      }
+  if (p1_pos == 0 || p2_pos == 0) {
+    return {};
+  }
+
+  if (p1_pos < p2_pos) {
+    sub_vec.insert(sub_vec.end(), line.begin() + p1_pos, line.begin() + p2_pos);
+    if (sub_vec[0] != p1) {
+      sub_vec.insert(sub_vec.begin(), p1);
+    }
+    if (sub_vec[sub_vec.size() - 1] != p2) {
+      sub_vec.push_back(p2);
+    }
+  } else if (p1_pos > p2_pos) {
+    sub_vec.insert(sub_vec.end(), line.begin() + p2_pos, line.begin() + p1_pos);
+    if (sub_vec[0] != p2) {
+      sub_vec.insert(sub_vec.begin(), p2);
+    }
+    if (sub_vec[sub_vec.size() - 1] != p1) {
+      sub_vec.push_back(p1);
+    }
+  } else {
+    if (line[p1_pos - 1].distance_to_point(p1) <
+        line[p1_pos - 1].distance_to_point(p2)) {
+      sub_vec.push_back(p1);
+      sub_vec.push_back(p2);
     } else {
-      auto dist = vertex.distance_to_point((p1));
-      if (dist < min_dist_after_p1) {
-        after_p1 = vertex;
-        min_dist_after_p1 = dist;
-      }
-    }
-
-    if (isBefore(vertex, p2)) {
-      auto dist = vertex.distance_to_point((p2));
-      if (dist < min_dist_before_p2) {
-        before_p2 = vertex;
-        min_dist_before_p2 = dist;
-      }
-    } else {
-      auto dist = vertex.distance_to_point((p2));
-      if (dist < min_dist_after_p2) {
-        after_p2 = vertex;
-        min_dist_after_p2 = dist;
-      }
+      sub_vec.push_back(p2);
+      sub_vec.push_back(p1);
     }
   }
-
-  auto it1 = std::find(line.begin(), line.end(), before_p1);
-  auto it2 = std::find(line.begin(), line.end(), after_p1);
-  auto it3 = std::find(line.begin(), line.end(), before_p2);
-  auto it4 = std::find(line.begin(), line.end(), after_p2);
-
-  if (isBefore(p1, p2)) {
-    if (it2 < it3) {
-      return {it2, it3 + 1};
-    }
-    return {it3, it2 + 1};
-  }
-
-  if (it4 < it1) {
-    return {it4, it1 + 1};
-  }
-  return {it1, it4 + 1};
+  return sub_vec;
 }
-std::optional<gm::Shoreline> truncate_shore_by_transect(
+
+std::optional<gm::Shoreline> truncate_shore_by_transects(
     const gm::TransectLine &tran1, const gm::TransectLine &tran2,
     const gm::Shoreline &shoreline) {
   auto vertices = shoreline.shoreline_vertices_;
@@ -812,8 +868,8 @@ double frechet_distance(std::vector<gm::Point<>> line1,
   size_t m = line1.size();
   size_t n = line2.size();
   std::vector<std::vector<double>> D(m, std::vector<double>(n, 0.0));
-  for (int i = 0; i < m; ++i) {
-    for (int j = 0; j < n; ++j) {
+  for (size_t i = 0; i < m; ++i) {
+    for (size_t j = 0; j < n; ++j) {
       D[i][j] = line1[i].distance_to_point(line2[j]);
     }
   }
@@ -821,21 +877,117 @@ double frechet_distance(std::vector<gm::Point<>> line1,
   std::vector<std::vector<double>> F(m, std::vector<double>(n, -1.0));
   F[0][0] = D[0][0];
   // Initialize first row and first column of F
-  for (int i = 1; i < m; ++i) {
+  for (size_t i = 1; i < m; ++i) {
     F[i][0] = std::max(F[i - 1][0], D[i][0]);
   }
-  for (int j = 1; j < n; ++j) {
+  for (size_t j = 1; j < n; ++j) {
     F[0][j] = std::max(F[0][j - 1], D[0][j]);
   }
 
   // Fill in the rest of F
-  for (int i = 1; i < m; ++i) {
-    for (int j = 1; j < n; ++j) {
+  for (size_t i = 1; i < m; ++i) {
+    for (size_t j = 1; j < n; ++j) {
       F[i][j] = std::max(std::min({F[i - 1][j], F[i - 1][j - 1], F[i][j - 1]}),
                          D[i][j]);
     }
   }
-
   return F[m - 1][n - 1];
+}
+
+std::vector<gm::Point<>> equal_divided_polyline(
+    const std::vector<gm::Point<>> &line, size_t n) {
+  assert(n >= 2 && "vertices needs to be larger than 2");
+  double length = 0.0;
+  for (size_t i = 1; i < line.size(); ++i) {
+    length += line[i].distance_to_point(line[i - 1]);
+  }
+  double segment_length = length / (n - 1);
+  std::vector<gm::Point<>> divided_line;
+  divided_line.push_back(line.front());
+  double accumulated_length = 0.0;
+  size_t current_point = 0;
+  for (size_t i = 1; i < n - 1; ++i) {
+    double targetLength = i * segment_length;
+
+    while (accumulated_length +
+               line[current_point].distance_to_point(line[current_point + 1]) <
+           targetLength) {
+      accumulated_length +=
+          line[current_point].distance_to_point(line[current_point + 1]);
+      current_point++;
+    }
+
+    double remainingLength = targetLength - accumulated_length;
+    double localSegmentLength =
+        line[current_point].distance_to_point(line[current_point + 1]);
+    double fraction = remainingLength / localSegmentLength;
+
+    divided_line.push_back(gm::Point<>::interpolate(
+        line[current_point], line[current_point + 1], fraction));
+  }
+
+  divided_line.push_back(line.back());  // add the ending point
+  return divided_line;
+}
+double modified_frechet_distance(const std::vector<gm::Point<>> &line1,
+                                 const std::vector<gm::Point<>> &line2) {
+  std::vector<gm::Point<>> line_a;
+  std::vector<gm::Point<>> line_b;
+  size_t n_size{std::max(line1.size(), line2.size())};
+  line_a = std::move(equal_divided_polyline(line1, n_size));
+  line_b = std::move(equal_divided_polyline(line2, n_size));
+
+  double max_distance = MIN_DOUBLE;
+  double min_distance = MAX_DOUBLE;
+  double dist = 0;
+  for (size_t i = 0; i < n_size; i++) {
+    dist = line_a[i].distance_to_point(line_b[i]);
+    max_distance = std::max(dist, max_distance);
+    min_distance = std::min(dist, min_distance);
+  }
+  return max_distance - min_distance;
+}
+
+std::vector<gm::Shoreline> truncate_shore_by_transects(
+    const gm::TransectLine &tran1, const gm::TransectLine &tran2) {
+  std::vector<gm::Shoreline> shorelines_segs;
+  auto year_intersect_map1 = tran1.year_intersect_map_;
+  auto year_intersect_map2 = tran2.year_intersect_map_;
+
+  std::vector<int> common_years;
+  for (const auto pair : year_intersect_map1) {
+    if (year_intersect_map2.find(pair.first) != year_intersect_map2.end()) {
+      common_years.push_back((pair.first));
+    }
+  }
+
+  if (common_years.empty()) {
+    return {};
+  }
+
+  std::sort(common_years.begin(), common_years.end());
+
+  for (int year : common_years) {
+    auto *intersect1 = year_intersect_map1[year];
+    assert(intersect1 != nullptr);
+    auto *intersect2 = year_intersect_map2[year];
+    assert(intersect2 != nullptr);
+    auto *shoreline1 = intersect1->shoreline_ptr_;
+    assert(shoreline1 != nullptr);
+    auto *shoreline2 = intersect2->shoreline_ptr_;
+    assert(shoreline2 != nullptr);
+    if (shoreline1 != shoreline2) {
+      continue;
+    }
+    auto sub_vertices = get_subset_of_vertices(shoreline1->shoreline_vertices_,
+                                               *intersect1, *intersect2);
+    if (sub_vertices.empty()) {
+      continue;
+    }
+    shorelines_segs.emplace_back(sub_vertices, shoreline1->shoreline_id_, year,
+                                 shoreline1->image_id_, shoreline1->geo_info_);
+  }
+
+  return shorelines_segs;
 }
 }  // namespace util

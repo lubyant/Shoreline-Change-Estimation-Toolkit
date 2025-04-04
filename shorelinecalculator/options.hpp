@@ -6,7 +6,7 @@
 
 namespace dsas {
 struct Options {
-  enum class OutlierMetric { None, BaseDistance, FrechetDistance };
+  enum class OutlierMetric { None, BaseDistance, FrechetDistance, Mix };
   enum class IntersectionMode { Closest, Farthest };
   enum class TransectOrientation { Left, Right, Mix };
   int smooth_factor{1};

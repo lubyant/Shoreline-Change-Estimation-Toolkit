@@ -92,10 +92,12 @@ BOOST_AUTO_TEST_CASE(TestRemoveOutliers) {
   }
   {
     std::vector<double> data = {1, 2, 3, 100, 5, 6, -20, 8, 9, 10};
-    std::vector<double> x = {2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010};
+    std::vector<double> x = {2001, 2002, 2003, 2004, 2005,
+                             2006, 2007, 2008, 2009, 2010};
     std::vector<gm::IntersectPoint> intersects;
-    for(size_t i=0; i<data.size(); i++){
-      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, x[i], data[i], nullptr, nullptr);
+    for (size_t i = 0; i < data.size(); i++) {
+      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, 0, x[i], data[i],
+                              nullptr, nullptr);
     }
     dsas::Options options;
     options.outlier_metric = dsas::Options::OutlierMetric::BaseDistance;
@@ -106,10 +108,12 @@ BOOST_AUTO_TEST_CASE(TestRemoveOutliers) {
   }
   {
     std::vector<double> data = {1, 2, 3, 100, 5, 6, -20, 8, 9, 10};
-    std::vector<double> x = {2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010};
+    std::vector<double> x = {2001, 2002, 2003, 2004, 2005,
+                             2006, 2007, 2008, 2009, 2010};
     std::vector<gm::IntersectPoint> intersects;
-    for(size_t i=0; i<data.size(); i++){
-      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, x[i], data[i], nullptr, nullptr);
+    for (size_t i = 0; i < data.size(); i++) {
+      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, 0, x[i], data[i],
+                              nullptr, nullptr);
     }
     dsas::Options options;
     options.outlier_metric = dsas::Options::OutlierMetric::BaseDistance;
@@ -120,11 +124,13 @@ BOOST_AUTO_TEST_CASE(TestRemoveOutliers) {
   }
   {
     std::vector<double> data = {1, 2, 3, 100, 5, 6, -20, 8, 9, 10};
-    std::vector<double> x = {2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010};
+    std::vector<double> x = {2001, 2002, 2003, 2004, 2005,
+                             2006, 2007, 2008, 2009, 2010};
     std::vector<gm::IntersectPoint> intersects;
-    for(size_t i=0; i<data.size(); i++){
-      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, x[i], data[i], nullptr, nullptr);
-      intersects[intersects.size()-1].frechet_distance_diff_ = data[i];
+    for (size_t i = 0; i < data.size(); i++) {
+      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, 0, x[i], data[i],
+                              nullptr, nullptr);
+      intersects[intersects.size() - 1].frechet_distance_diff_ = data[i];
     }
     dsas::Options options;
     options.outlier_metric = dsas::Options::OutlierMetric::FrechetDistance;
@@ -135,11 +141,13 @@ BOOST_AUTO_TEST_CASE(TestRemoveOutliers) {
   }
   {
     std::vector<double> data = {1, 2, 3, 100, 5, 6, -20, 8, 9, 10};
-    std::vector<double> x = {2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010};
+    std::vector<double> x = {2001, 2002, 2003, 2004, 2005,
+                             2006, 2007, 2008, 2009, 2010};
     std::vector<gm::IntersectPoint> intersects;
-    for(size_t i=0; i<data.size(); i++){
-      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, x[i], data[i], nullptr, nullptr);
-      intersects[intersects.size()-1].frechet_distance_diff_ = data[i];
+    for (size_t i = 0; i < data.size(); i++) {
+      intersects.emplace_back(gm::Point(0.0, 0.0), 0, 0, 0, 0, 0, x[i], data[i],
+                              nullptr, nullptr);
+      intersects[intersects.size() - 1].frechet_distance_diff_ = data[i];
     }
     dsas::Options options;
     options.outlier_metric = dsas::Options::OutlierMetric::FrechetDistance;
@@ -156,9 +164,9 @@ BOOST_AUTO_TEST_CASE(TestSubsetVertices) {
     gm::Point<> p1 = {1.5, 3};
     gm::Point<> p2 = {3.5, 7};
     auto subset = get_subset_of_vertices(line, p1, p2);
-    std::vector<gm::Point<>> true_subset{{2, 4}, {3, 6}};
-    BOOST_CHECK_EQUAL(subset.size(), 2);
-    for (size_t i = 0; i < 2; i++) {
+    std::vector<gm::Point<>> true_subset{{1.5, 3}, {2, 4}, {3, 6}, {3.5, 7}};
+    BOOST_CHECK_EQUAL(subset.size(), 4);
+    for (size_t i = 0; i < 4; i++) {
       BOOST_CHECK_CLOSE(subset[i].x, true_subset[i].x, TOL);
       BOOST_CHECK_CLOSE(subset[i].y, true_subset[i].y, TOL);
     }
@@ -169,9 +177,9 @@ BOOST_AUTO_TEST_CASE(TestSubsetVertices) {
     gm::Point<> p2 = {1.5, 3};
     gm::Point<> p1 = {3.5, 7};
     auto subset = get_subset_of_vertices(line, p1, p2);
-    std::vector<gm::Point<>> true_subset{{2, 4}, {3, 6}};
-    BOOST_CHECK_EQUAL(subset.size(), 2);
-    for (size_t i = 0; i < 2; i++) {
+    std::vector<gm::Point<>> true_subset{{1.5, 3}, {2, 4}, {3, 6}, {3.5, 7}};
+    BOOST_CHECK_EQUAL(subset.size(), 4);
+    for (size_t i = 0; i < 4; i++) {
       BOOST_CHECK_CLOSE(subset[i].x, true_subset[i].x, TOL);
       BOOST_CHECK_CLOSE(subset[i].y, true_subset[i].y, TOL);
     }
@@ -183,10 +191,10 @@ BOOST_AUTO_TEST_CASE(TestSubsetVertices) {
     gm::Point<> p1 = {1.5, 3};
     gm::Point<> p2 = {3.5, 7};
     auto subset = get_subset_of_vertices(line, p1, p2);
-    std::vector<gm::Point<>> true_subset{{2, 4}, {3, 6}};
+    std::vector<gm::Point<>> true_subset{{1.5, 3}, {2, 4}, {3, 6}, {3.5, 7}};
     std::reverse(true_subset.begin(), true_subset.end());
-    BOOST_CHECK_EQUAL(subset.size(), 2);
-    for (size_t i = 0; i < 2; i++) {
+    BOOST_CHECK_EQUAL(subset.size(), 4);
+    for (size_t i = 0; i < 4; i++) {
       BOOST_CHECK_CLOSE(subset[i].x, true_subset[i].x, TOL);
       BOOST_CHECK_CLOSE(subset[i].y, true_subset[i].y, TOL);
     }
@@ -198,10 +206,35 @@ BOOST_AUTO_TEST_CASE(TestSubsetVertices) {
     gm::Point<> p2 = {1.5, 3};
     gm::Point<> p1 = {3.5, 7};
     auto subset = get_subset_of_vertices(line, p1, p2);
-    std::vector<gm::Point<>> true_subset{{2, 4}, {3, 6}};
+    std::vector<gm::Point<>> true_subset{{1.5, 3}, {2, 4}, {3, 6}, {3.5, 7}};
     std::reverse(true_subset.begin(), true_subset.end());
+    BOOST_CHECK_EQUAL(subset.size(), 4);
+    for (size_t i = 0; i < 4; i++) {
+      BOOST_CHECK_CLOSE(subset[i].x, true_subset[i].x, TOL);
+      BOOST_CHECK_CLOSE(subset[i].y, true_subset[i].y, TOL);
+    }
+  }
+  {
+    std::vector<gm::Point<>> line = {{0, 0}, {1, 2}, {4, 8}, {5, 10}};
+    gm::Point<> p1 = {1.5, 3};
+    gm::Point<> p2 = {3.5, 7};
+    auto subset = get_subset_of_vertices(line, p1, p2);
+    std::vector<gm::Point<>> true_subset{{1.5, 3}, {3.5, 7}};
     BOOST_CHECK_EQUAL(subset.size(), 2);
     for (size_t i = 0; i < 2; i++) {
+      BOOST_CHECK_CLOSE(subset[i].x, true_subset[i].x, TOL);
+      BOOST_CHECK_CLOSE(subset[i].y, true_subset[i].y, TOL);
+    }
+  }
+  {
+    std::vector<gm::Point<>> line = {{0, 0},   {1, 2}, {1.5, 3}, {2, 4},
+                                     {3.5, 7}, {4, 8}, {5, 10}};
+    gm::Point<> p1 = {1.5, 3};
+    gm::Point<> p2 = {3.5, 7};
+    auto subset = get_subset_of_vertices(line, p1, p2);
+    std::vector<gm::Point<>> true_subset{{1.5, 3}, {2, 4}, {3.5, 7}};
+    BOOST_CHECK_EQUAL(subset.size(), 3);
+    for (size_t i = 0; i < 3; i++) {
       BOOST_CHECK_CLOSE(subset[i].x, true_subset[i].x, TOL);
       BOOST_CHECK_CLOSE(subset[i].y, true_subset[i].y, TOL);
     }
@@ -233,7 +266,35 @@ BOOST_AUTO_TEST_CASE(TestFrechetDistance) {
     auto dist = frechet_distance(line1, line2);
     BOOST_CHECK_CLOSE(dist, 1, TOL);
   }
+  {
+    std::vector<gm::Point<>> line1{{0, 1}, {1, 2}, {2, 1}, {3, 3}};
+    std::vector<gm::Point<>> line2{{0, 0}, {1, 0}, {2, 0}, {3, 0}};
+    auto dist = frechet_distance(line1, line2);
+    BOOST_CHECK_CLOSE(dist, 3, TOL);
+  }
 }
+
+BOOST_AUTO_TEST_CASE(TestModifiedFrechetDistance) {
+  {
+    std::vector<gm::Point<>> line1{{0, 0}, {1, 1}, {2, 2}};
+    std::vector<gm::Point<>> line2{{0, 0}, {1, 1}, {2, 2}};
+    auto dist = modified_frechet_distance(line1, line2);
+    BOOST_CHECK_CLOSE(dist, 0, TOL);
+  }
+  {
+    std::vector<gm::Point<>> line1{{0, 0}, {1, 1}, {2, 2}};
+    std::vector<gm::Point<>> line2{{1, 1}, {2, 2}, {3, 3}};
+    auto dist = modified_frechet_distance(line1, line2);
+    BOOST_CHECK_CLOSE(dist, 0, TOL);
+  }
+  {
+    std::vector<gm::Point<>> line1{{0, 0}, {1, 1}, {2, 2}};
+    std::vector<gm::Point<>> line2{{2, 0}, {1, 1}, {0, 2}};
+    auto dist = modified_frechet_distance(line1, line2);
+    BOOST_CHECK_CLOSE(dist, 2, TOL);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(Test_truncatebyintersect) {
   using namespace gm;
   std::vector<Point<>> baseline_points{{0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}};
@@ -242,7 +303,7 @@ BOOST_AUTO_TEST_CASE(Test_truncatebyintersect) {
   options.transect_spacing = 0.5;
   options.transect_offset = 0;
   options.smooth_factor = 10;
-  Baseline baseline{baseline_points, 0, 10, options};
+  Baseline baseline{baseline_points, 0, options};
   Baselines baselines{baseline};
   auto transect_groups = dsas::generate_transects(baselines);
 
@@ -255,13 +316,14 @@ BOOST_AUTO_TEST_CASE(Test_truncatebyintersect) {
       {1.75, 2}, {2.25, 2}, {2.5, 2}, {2.75, 2}, {3.25, 2}, {3.5, 2},
       {3.75, 2}, {4.25, 2}, {4.5, 2}, {4.75, 2}};
 
-  Shoreline shoreline1{shoreline1_points, 0, 2000, 10};
-  Shoreline shoreline2{shoreline2_points, 1, 2001, 10};
+  gm::GeoInfo geo_info;
+  Shoreline shoreline1{shoreline1_points, 0, 2000, 0, geo_info};
+  Shoreline shoreline2{shoreline2_points, 1, 2001, 0, geo_info};
   Shorelines shorelines{shoreline1, shoreline2};
 
   auto intersects_maps =
       dsas::generate_intersections(shorelines, transect_groups);
-  compute_rate(intersects_maps, transect_groups, options);
+  compute_rate(transect_groups, options);
   for (auto &[baseline_id, maps] : intersects_maps) {
     for (auto &[transect_id, intersects] : maps) {
       for (auto &intersect : intersects) {

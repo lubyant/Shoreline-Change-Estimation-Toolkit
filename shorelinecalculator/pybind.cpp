@@ -17,7 +17,7 @@ void generate_result_from_image(const std::string &image_path,
   auto psz_prj_ = img.psz_prj_.c_str();
   std::vector<dsas::Image> images;
   images.push_back(std::move(img));
-  auto shorelines = dsas::Image::merge_shorelines_from_images(images);
+  auto shorelines = dsas::Image::merge_shorelines_from_images(images, psz_prj_);
   // save the shoreline to shp
   util::save_lines<gm::Shoreline>(shorelines, psz_prj_,
                                   output_folder + "/shoreline.shp");
