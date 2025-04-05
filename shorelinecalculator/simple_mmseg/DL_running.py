@@ -5,8 +5,10 @@ from .tools.customize_tools.image_demo_config import image_folder_demo_config, i
 import os
 import argparse
 
+CONFIG_PATH = "shorelinecalculator/simple_mmseg/my_model/deeplabv3plus/deeplabv3plus_r50-d8_4xb4-20k_voc12aug-512x512.py"
 
-def process_img_folder(img_folder, output_folder, config_file, checkpoint_file, img_suffix='png'):
+
+def process_img_folder(img_folder, output_folder, checkpoint_file, img_suffix='png'):
     """_summary_
     This is a function to process img_folder, use DL model to extract water body, and output a binary image of segmentation results.
     img_folder can be a folder with images, it can also be a folder with many subfolders, and the images are saved within each subfolder.
@@ -20,6 +22,7 @@ def process_img_folder(img_folder, output_folder, config_file, checkpoint_file, 
         img_suffix (str, optional): suffix of image file. Defaults to 'png'.
     """
     os.makedirs(output_folder, exist_ok=True)
+    config_file = CONFIG_PATH
     if get_all_files_with_suffix(img_folder, img_suffix):
         args = image_folder_demo_config(
             img_folder, config_file, checkpoint_file, output_folder, img_suffix=img_suffix)
@@ -43,7 +46,7 @@ def process_img_folder(img_folder, output_folder, config_file, checkpoint_file, 
                 count += 1
 
 
-def process_single_img(img_file, out_file, config_file, checkpoint_file, img_suffix='png'):
+def process_single_img(img_file, out_file, checkpoint_file, img_suffix='png'):
     """
     This is a function for demoing an image using trained DL model
     Args:
@@ -56,9 +59,9 @@ def process_single_img(img_file, out_file, config_file, checkpoint_file, img_suf
     # print(out_file)
     output_folder = '/'.join(out_file.split('/')[:-1])
     os.makedirs(output_folder, exist_ok=True)
+    config_file = CONFIG_PATH
     args = image_demo_config(img_file, config_file,
                              checkpoint_file, out_file, img_suffix=img_suffix)
-    print(args.config)
     model = load_model(args)
     single_img_main_args(args, model=model)
 
