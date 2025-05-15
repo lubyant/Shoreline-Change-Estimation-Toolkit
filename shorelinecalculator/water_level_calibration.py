@@ -532,6 +532,22 @@ def caculate_slope(
 
     return slope
 
+def calculate_azimuth(x1, y1, x2, y2):
+    """
+    Calculate the azimuth angle between two points.
+
+    Parameters:
+    - x1, y1: Coordinates of the first point.
+    - x2, y2: Coordinates of the second point.
+
+    Returns:
+    - float: Azimuth angle in degrees.
+    """
+    delta_x = x2 - x1
+    delta_y = y2 - y1
+    angle = np.arctan2(delta_x, delta_y)
+    azimuth_deg = (np.degrees(angle) + 360) % 360
+    return azimuth_deg
 
 if __name__ == "__main__1":
     lake_name = "LakeMichigan"
@@ -592,6 +608,8 @@ if __name__ == "__main__":
     shp_folder = "/media/weiwang/easystore/BackupData/dsas"
     transect_shp_file = "transect_prj.shp"
     transects = load_shapefile(shp_folder, transect_shp_file)
+    transects["slope"] = np.nan
+    transects["azimuth"] = np.nan
 
     baseline_ids = transects["BaselineId"]
     transect_ids = transects["TransectId"]
@@ -605,7 +623,34 @@ if __name__ == "__main__":
             raster_data, metadata, transect_line, num_points=100
         )
         slope = caculate_slope(elev_vals, dists, search_dist=400)
-        print(
-            "BaselineId: %d, TransectId: %d, ImageId: %d, Slope: %.4f"
-            % (bid, tid, image_id, slope)
+        transects.loc[
+            (transects["BaselineId"] == bid)
+            & (transects["TransectId"] == tid)
+            & (transects["GroupId"] == image_id),
+            "slope",
+        ] = abs(slope)
+        coords = list(transect_line["geometry"].iloc[0].coords)
+        assert len(coords) >= 2
+        azimuth = calculate_azimuth(
+            coords[-1][0],
+            coords[-1][1],
+            coords[0][0], 
+            coords[0][1],
         )
+        transects.loc[
+            (transects["BaselineId"] == bid)
+            & (transects["TransectId"] == tid)
+            & (transects["GroupId"] == image_id),
+            "azimuth",
+        ] = azimuth
+
+        print(
+            "BaselineId: %d, TransectId: %d, ImageId: %d, Slope: %.4f, azimuth: %d"
+            % (bid, tid, image_id, slope, azimuth)
+        )
+        
+
+    transects.to_csv(
+        "/media/weiwang/easystore/BackupData/dsas/transect_slope.csv",
+        index=False,
+    )
