@@ -515,7 +515,8 @@ void remove_outliers(std::vector<gm::IntersectPoint> &intersects,
 }
 
 gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
-                                 const dsas::Options &options) {
+                                 const dsas::Options &options,
+                                 const std::string &baseline_id_field) {
   // Initialize GDAL
   GDALAllRegister();
 
@@ -537,24 +538,59 @@ gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
   poLayer->ResetReading();
   gm::Baselines baselines;
   int baseline_id = 0;
+  if (baseline_id_field.empty()) {
+    baseline_id = 0;
+  } else {
+    OGRFeatureDefn *poFDefn = poLayer->GetLayerDefn();
+    int field_index = poFDefn->GetFieldIndex(baseline_id_field.c_str());
+
+    if (field_index < 0) {
+      std::cerr << "Field '" << baseline_id_field
+                << "' not found in shapefile.\n";
+      GDALClose(poDS);
+      exit(1);
+    }
+  }
+
   while ((poFeature = poLayer->GetNextFeature()) != nullptr) {
     OGRGeometry *poGeometry;
     poGeometry = poFeature->GetGeometryRef();
-    if (poGeometry != nullptr &&
-        wkbFlatten(poGeometry->getGeometryType()) == wkbLineString) {
-      auto *poLine = dynamic_cast<OGRLineString *>(poGeometry);
-      int numPoints = poLine->getNumPoints();
-
-      std::vector<gm::Point<double>> baseline_vertices;
-      for (int i = 0; i < numPoints; i++) {
-        OGRPoint point;
-        poLine->getPoint(i, &point);
-        baseline_vertices.emplace_back(point.getX(), point.getY());
-      }
-      gm::Baseline baseline{baseline_vertices, baseline_id++, options};
-      baselines.push_back(std::move(baseline));
+    if (baseline_id_field.empty()) {
+      baseline_id++;
     } else {
-      std::cout << "No geometry\n";
+      baseline_id = poFeature->GetFieldAsInteger(baseline_id_field.c_str());
+    }
+
+    if (poGeometry != nullptr) {
+      auto gtype = wkbFlatten(poGeometry->getGeometryType());
+      if (gtype == wkbLineString) {
+        std::vector<gm::Point<double>> baseline_vertices;
+        OGRLineString *poLine = dynamic_cast<OGRLineString *>(poGeometry);
+        for (int i = 0; i < poLine->getNumPoints(); i++) {
+          OGRPoint point;
+          poLine->getPoint(i, &point);
+          baseline_vertices.emplace_back(point.getX(), point.getY());
+        }
+        baselines.emplace_back(baseline_vertices, baseline_id, options);
+      } else if (gtype == wkbMultiLineString) {
+        OGRMultiLineString *poMulti =
+            dynamic_cast<OGRMultiLineString *>(poGeometry);
+        for (int j = 0; j < poMulti->getNumGeometries(); j++) {
+          std::vector<gm::Point<double>> baseline_vertices;
+          OGRGeometry *subGeom = poMulti->getGeometryRef(j);
+          OGRLineString *poLine = dynamic_cast<OGRLineString *>(subGeom);
+          for (int i = 0; i < poLine->getNumPoints(); i++) {
+            OGRPoint point;
+            poLine->getPoint(i, &point);
+            baseline_vertices.emplace_back(point.getX(), point.getY());
+          }
+          baselines.emplace_back(baseline_vertices, baseline_id, options);
+        }
+      } else {
+        std::cout << "Unsupported geometry type.\n";
+        OGRFeature::DestroyFeature(poFeature);
+        continue;
+      }
     }
     OGRFeature::DestroyFeature(poFeature);
   }
@@ -564,6 +600,7 @@ gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
 
   return baselines;
 }
+
 gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
                                    const std::string &baseline_proj,
                                    int image_id) {
@@ -636,6 +673,7 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
 
   return shorelines;
 }
+
 gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
                                    const std::string &baseline_proj) {
   gm::Shorelines shorelines;
@@ -709,6 +747,99 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
 
   return shorelines;
 }
+
+boost::gregorian::date generate_date_from_str(const char *date_str) {
+  std::string date_string = std::string(date_str);
+  std::stringstream ss(date_string);
+  std::string sub_str;
+  std::vector<std::string> m_d_y;
+  while (std::getline(ss, sub_str, '/')) {
+    m_d_y.push_back(sub_str);
+  }
+  assert(m_d_y.size() == 3);
+
+  std::cout << date_str << std::endl;
+  boost::gregorian::date g_date(std::stoi(m_d_y[2]), std::stoi(m_d_y[0]),
+                                std::stoi(m_d_y[1]));
+  return g_date;
+}
+
+gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
+                                   const char *date_field_name) {
+  gm::Shorelines shorelines;
+  int shoreline_id{0};
+
+  // Initialize GDAL
+  GDALAllRegister();
+
+  // Open the Shapefile
+  GDALDataset *poDS;
+  poDS = static_cast<GDALDataset *>(GDALOpenEx(
+      shoreline_shp_path.c_str(), GDAL_OF_VECTOR, nullptr, nullptr, nullptr));
+  if (poDS == nullptr) {
+    std::cerr << "Open failed.\n";
+    exit(1);
+  }
+
+  // Get the Layer Containing the Line Features
+  OGRLayer *poLayer;
+  poLayer = poDS->GetLayer(0);
+
+  // Iterate Through the Features in the Layer and Access Points
+  OGRFeature *poFeature;
+  poLayer->ResetReading();
+  while ((poFeature = poLayer->GetNextFeature()) != nullptr) {
+    OGRGeometry *poGeometry;
+    poGeometry = poFeature->GetGeometryRef();
+    const char *date_field = poFeature->GetFieldAsString(date_field_name);
+    auto date = generate_date_from_str(date_field);
+    if (poGeometry != nullptr) {
+      auto gtype = wkbFlatten(poGeometry->getGeometryType());
+      gm::Shoreline shoreline;
+      if (gtype == wkbLineString) {
+        OGRLineString *poLine = dynamic_cast<OGRLineString *>(poGeometry);
+        for (int i = 0; i < poLine->getNumPoints(); i++) {
+          OGRPoint point;
+          poLine->getPoint(i, &point);
+          shoreline.shoreline_vertices_.emplace_back(point.getX(),
+                                                     point.getY());
+        }
+        shoreline.shoreline_id_ = shoreline_id++;
+        shoreline.date_ = date;
+        shorelines.push_back(std::move(shoreline));
+      } else if (gtype == wkbMultiLineString) {
+        OGRMultiLineString *poMulti =
+            dynamic_cast<OGRMultiLineString *>(poGeometry);
+        for (int j = 0; j < poMulti->getNumGeometries(); j++) {
+          gm::Shoreline shoreline;
+          OGRGeometry *subGeom = poMulti->getGeometryRef(j);
+          OGRLineString *poLine = dynamic_cast<OGRLineString *>(subGeom);
+          for (int i = 0; i < poLine->getNumPoints(); i++) {
+            OGRPoint point;
+            poLine->getPoint(i, &point);
+            shoreline.shoreline_vertices_.emplace_back(point.getX(),
+                                                       point.getY());
+          }
+          shoreline.shoreline_id_ = shoreline_id;
+          shoreline.date_ = date;
+          shorelines.push_back(std::move(shoreline));
+        }
+        shoreline_id++;
+      } else {
+        std::cout << "Unsupported geometry type.\n";
+        OGRFeature::DestroyFeature(poFeature);
+        continue;
+      }
+    }
+    OGRFeature::DestroyFeature(poFeature);
+  }
+
+  // Cleanup
+  GDALClose(poDS);
+
+  return shorelines;
+}
+
 void remove_same_year_intersections(
     std::vector<gm::IntersectPoint> &intersect_points,
     const dsas::Options::IntersectionMode &mode) {

@@ -520,9 +520,9 @@ void compute_rate(gm::TransectGroups &transect_groups, const Options &options) {
 }
 void create_transects_from_baseline(const Path &path, const Path &output_path,
                                     gm::TransectGroups *output_transects,
-                                    const Options &options) {
-  std::string field_name{"DSAS_ID"};
-  auto baselines = util::load_baselines_shp(path, options);
+                                    const Options &options,
+                                    const std::string &field_name) {
+  auto baselines = util::load_baselines_shp(path, options, field_name);
   auto psz_prj_ = util::get_shp_proj(path.c_str());
   *output_transects = std::move(generate_transects(baselines));
 
@@ -535,6 +535,7 @@ void create_transects_from_baseline(const Path &path, const Path &output_path,
   }
   util::save_lines(output_file, psz_prj_.c_str(), output_path);
 }
+
 void create_intersects_by_transects(gm::TransectGroups &transect_groups,
                                     const Path &shoreline_folders,
                                     const Path &output, const Options &options,
@@ -588,6 +589,46 @@ void create_intersects_by_transects(gm::TransectGroups &transect_groups,
     throw std::runtime_error("No intersections");
   }
   util::save_points(intersections, proj.c_str(), output);
+}
+
+void create_intersects_by_transects(gm::TransectGroups &transect_groups,
+                                    const Path &shoreline_shp_path,
+                                    const std::string &date_field_name,
+                                    const Path &intersects_output_path) {
+  gm::Shorelines shorelines =
+      util::load_shorelines_shp(shoreline_shp_path, date_field_name.c_str());
+  std::vector<gm::IntersectPoint> intersections;
+  auto psz_prj_ = util::get_shp_proj(shoreline_shp_path.c_str());
+  size_t num = transect_groups.size();
+
+  std::mutex mutex;
+  std::atomic<size_t> count{1};
+
+#pragma omp parallel for
+  for (int i = 0; i < static_cast<int>(transect_groups.size()); ++i) {
+    std::vector<gm::IntersectPoint> local_intersections;
+    const auto &transect_group = transect_groups[i];
+
+    for (const auto &transect_line : transect_group.transects_) {
+#pragma omp simd
+      for (int j = 0; j < static_cast<int>(shorelines.size()); ++j) {
+        const auto &shoreline = shorelines[j];
+        auto ret = transect_line.intersection(shoreline);
+        if (ret.has_value()) {
+          local_intersections.push_back(ret.value());
+        }
+      }
+    }
+
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      intersections.insert(intersections.end(), local_intersections.begin(),
+                           local_intersections.end());
+      std::cout << count++ << "/" << num << std::endl;
+    }
+  }
+
+  util::save_points(intersections, psz_prj_.c_str(), intersects_output_path);
 }
 
 void processes_shoreline_rate(intersects_maps_t &intersection_maps,

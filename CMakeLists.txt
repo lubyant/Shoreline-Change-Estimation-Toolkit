@@ -16,10 +16,12 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og -g -fno-inline")
 include_directories(${GDAL_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 
-find_package(Boost 1.75.0...1.84.0 REQUIRED COMPONENTS json date_time unit_test_framework)
+find_package(Boost REQUIRED COMPONENTS json date_time unit_test_framework)
+set(BUILD_SHARED_LIBS OFF)
 find_package(GDAL REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(pybind11 REQUIRED)
+find_package(OpenMP REQUIRED)
 
 add_library(DSAS STATIC
         shorelinecalculator/geometry.cpp
@@ -32,17 +34,28 @@ target_link_libraries(
         PUBLIC
         pthread
         ${GDAL_LIBRARIES} ${OpenCV_LIBS} ${Boost_LIBRARIES}
+        OpenMP::OpenMP_CXX
 )
 
 add_executable(${PROJECT_NAME}
         shorelinecalculator/main.cpp
 )
 
+add_executable(generate_transects
+        shorelinecalculator/generate_transects.cpp
+)       
+
 pybind11_add_module(cppext shorelinecalculator/pybind.cpp)
 target_link_libraries(cppext PRIVATE DSAS)
 
 target_link_libraries(
         ${PROJECT_NAME}
+        PUBLIC
+        DSAS
+)
+
+target_link_libraries(
+        generate_transects
         PUBLIC
         DSAS
 )

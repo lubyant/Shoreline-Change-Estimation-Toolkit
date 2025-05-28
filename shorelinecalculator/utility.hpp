@@ -273,7 +273,8 @@ void remove_outliers_v2(std::vector<gm::IntersectPoint> &intersects,
                         const dsas::Options &options);
 
 gm::Baselines load_baselines_shp(const gm::Path &baseline_shp_path,
-                                 const dsas::Options &options);
+                                 const dsas::Options &options,
+                                 const std::string &baseline_id_field = "");
 
 gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
                                    const std::string &baseline_proj,
@@ -281,6 +282,9 @@ gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
 
 gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
                                    const std::string &baseline_proj);
+
+gm::Shorelines load_shorelines_shp(const gm::Path &shoreline_shp_path,
+                                   const char *date_field_name);
 
 void remove_same_year_intersections(std::vector<gm::IntersectPoint> &,
                                     const dsas::Options::IntersectionMode &);

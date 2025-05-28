@@ -59,7 +59,7 @@ struct Point {
   T x, y;
   size_t id_{};
 
-  Point() : x(0), y(0){};
+  Point() : x(0), y(0) {};
   Point(T x, T y) : x(x), y(y) {}
   Point(T x, T y, size_t id) : x(x), y(y), id_(id) {}
 
@@ -358,7 +358,7 @@ struct Shoreline : public MultiLine<Point<>>, GDALShpSaver<int, int> {
 };
 
 #define IntersectPoint_t \
-  int, int, int, int, int, int, double, double, double, double
+  int, int, int, int, int, const char *, double, double, double, double, double
 struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
   int image_id_;
   int transect_id_;
@@ -367,6 +367,7 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
   int group_id_;
   int year_;
   boost::gregorian::date date_;
+  std::string date_str_;
   double distance_to_ref_{-1};
   double euc_distance_diff{-1};
   double frechet_distance_diff_{-1};  // the frechet distance difference between
@@ -388,22 +389,45 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
         baseline_id_(baseline_id),
         group_id_(group_id),
         year_(year),
-        date_(year_, 1, 1),
+        date_(year, 1, 1),
         distance_to_ref_(distance_to_ref),
         transect_line_ptr_(transect_line_ptr),
-        shoreline_ptr_(shoreline_ptr) {}
+        shoreline_ptr_(shoreline_ptr) {
+    date_str_ = boost::gregorian::to_simple_string(date_);
+  }
+
+  IntersectPoint(Point<double> point, int transect_id, int shoreline_id,
+                 int baseline_id, int image_id, int group_id,
+                 boost::gregorian::date date, double distance_to_ref,
+                 const TransectLine *transect_line_ptr,
+                 const Shoreline *shoreline_ptr)
+      : Point<double>(point),
+        image_id_(image_id),
+        transect_id_(transect_id),
+        shoreline_id_(shoreline_id),
+        baseline_id_(baseline_id),
+        group_id_(group_id),
+        date_(date),
+        distance_to_ref_(distance_to_ref),
+        transect_line_ptr_(transect_line_ptr),
+        shoreline_ptr_(shoreline_ptr) {
+    year_ = date_.year();
+    date_str_ = boost::gregorian::to_simple_string(date_);
+  }
 
   [[nodiscard]] std::vector<std::string> get_names() const override {
-    return {"BaselineId", "TransectId", "ShoreID",  "ImageID", "GroupID",
-            "Year",       "euc_dist",   "fre_dist", "X",       "Y"};
+    return {"BaselineId", "TransectId", "ShoreID",  "ImageID",
+            "GroupID",    "Date",       "ref_dist", "euc_dist",
+            "fre_dist",   "X",          "Y"};
   }
 
   [[nodiscard]] std::vector<OGRFieldType> get_types() const override {
     return {OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
             OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
-            OGRFieldType::OFTInteger, OGRFieldType::OFTInteger,
+            OGRFieldType::OFTInteger, OGRFieldType::OFTString,
             OGRFieldType::OFTReal,    OGRFieldType::OFTReal,
-            OGRFieldType::OFTReal,    OGRFieldType::OFTReal};
+            OGRFieldType::OFTReal,    OGRFieldType::OFTReal,
+            OGRFieldType::OFTReal};
   }
 
   [[nodiscard]] std::tuple<IntersectPoint_t> get_values() const override {
@@ -412,7 +436,8 @@ struct IntersectPoint : public Point<>, GDALShpSaver<IntersectPoint_t> {
             shoreline_id_,
             image_id_,
             group_id_,
-            year_,
+            date_str_.c_str(),
+            distance_to_ref_,
             euc_distance_diff,
             frechet_distance_diff_,
             x,

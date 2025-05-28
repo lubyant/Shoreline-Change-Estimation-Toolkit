@@ -282,7 +282,8 @@ std::vector<gm::Shoreline> Image::merge_shorelines_from_images(
   // check the projection
   for (size_t i = 1; i < images.size(); i++) {
     if (images.at(i).psz_prj_ != psz_prj) {
-      throw std::runtime_error(__LINE__ + "Project is not the same!\n");
+      throw std::runtime_error("Line " + std::to_string(__LINE__) +
+                               ": Project is not the same!\n");
     }
   }
 

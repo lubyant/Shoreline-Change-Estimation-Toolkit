@@ -78,12 +78,18 @@ void euc_distance(gm::TransectGroups &transect_groups, const Options &options);
 
 void create_transects_from_baseline(const Path &path, const Path &output_path,
                                     gm::TransectGroups *output_transects,
-                                    const Options &options);
+                                    const Options &options,
+                                    const std::string &field_name = "");
 
 void create_intersects_by_transects(gm::TransectGroups &transects,
                                     const Path &shoreline_folders,
                                     const Path &output, const Options &options,
                                     const std::string &proj);
+
+void create_intersects_by_transects(gm::TransectGroups &transects,
+                                    const Path &shoreline_shp_path,
+                                    const std::string &date_field_name,
+                                    const Path &output);
 
 }  // namespace dsas
 

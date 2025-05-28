@@ -221,7 +221,7 @@ std::optional<IntersectPoint> TransectLine::intersection(
                                        baseline_id_,
                                        shoreline.image_id_,
                                        group_id_,
-                                       shoreline.year_,
+                                       shoreline.date_,
                                        distance,
                                        this,
                                        &shoreline};
@@ -236,7 +236,7 @@ std::optional<IntersectPoint> TransectLine::intersection(
                                        baseline_id_,
                                        shoreline.image_id_,
                                        group_id_,
-                                       shoreline.year_,
+                                       shoreline.date_,
                                        distance,
                                        this,
                                        &shoreline};
