@@ -1,0 +1,15 @@
+[build-system]
+requires = ["scikit-build-core[pyproject]>=0.6.0", "pybind11", "setuptools"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "scet"
+version = "0.1.0"
+description = "Shoreline Calculator using Pybind11 and OpenCV"
+readme = "README.md"
+requires-python = "==3.10.*"
+dependencies = ["numpy"]
+
+[tool.scikit-build]
+wheel.packages = ["shorelinecalculator"]
+build-dir = "build"
