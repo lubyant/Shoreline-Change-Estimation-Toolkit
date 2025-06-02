@@ -1,8 +1,7 @@
 import os
 import shutil
 
-from cppext import Options, generate_result_from_folder, generate_result_from_image
-
+from shorelinecalculator.cppext import Options, generate_result_from_folder, generate_result_from_image
 from .extract_merge_data import extract_NAIP_folder, merge_detect_folder
 from .simple_mmseg.DL_running import process_img_folder, process_single_img
 
@@ -26,22 +25,14 @@ class SCET:
 
     def method1(self, input_naip_zipfiles_folder,
                 output_folder):
-        output_raster_folder = os.path.join(output_folder,
-                                            "Raster")
-        output_divided_img_folder = os.path.join(output_folder,
-                                                 "Divided_Img")
-        output_infrared_folder = os.path.join(output_folder,
-                                              "Infrared")
-        output_pkl_folder = os.path.join(output_folder,
-                                         "Pckl_Folder")
-        output_txt_folder = os.path.join(output_folder,
-                                         "TXT_Folder")
-        output_binary_map_folder = os.path.join(output_folder,
-                                                "binary_map")
-        final_save_folder = os.path.join(output_folder,
-                                         "Final_Folder")
-        output_result_folder = os.path.join(output_folder,
-                                            "Result")
+        output_raster_folder = os.path.join(output_folder, "Raster")
+        output_divided_img_folder = os.path.join(output_folder, "Divided_Img")
+        output_infrared_folder = os.path.join(output_folder, "Infrared")
+        output_pkl_folder = os.path.join(output_folder, "Pckl_Folder")
+        output_txt_folder = os.path.join(output_folder, "TXT_Folder")
+        output_binary_map_folder = os.path.join(output_folder, "binary_map")
+        final_save_folder = os.path.join(output_folder, "Final_Folder")
+        output_result_folder = os.path.join(output_folder, "Result")
 
         extract_NAIP_folder(input_naip_zipfiles_folder,
                             output_raster_folder,

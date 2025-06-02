@@ -1,38 +1,25 @@
 FROM quay.io/pypa/manylinux_2_28_x86_64
 
-ENV CONDA_DIR=/opt/conda
-ENV PATH="$CONDA_DIR/bin:$PATH"
+# Install essential build tools
+RUN yum install -y epel-release && \
+    yum install -y \
+    gcc gcc-c++ make cmake ninja-build \
+    libgomp \
+    gdal-devel opencv-devel boost-devel \
+    python3-devel
 
-# Install Miniconda
-RUN curl -sLo miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
-    bash miniconda.sh -b -p $CONDA_DIR && \
-    rm miniconda.sh
+# Use Python 3.10 explicitly
+RUN /opt/python/cp310-cp310/bin/pip install --upgrade \
+    setuptools wheel build scikit-build-core[pyproject] pybind11[global]
 
-RUN $CONDA_DIR/bin/conda create -y -n buildenv python=3.10 && \
-    $CONDA_DIR/bin/conda run -n buildenv conda install -y -c conda-forge \
-        pybind11 cmake make ninja \
-        gdal opencv boost \
-        pillow rasterio pyproj tqdm ftfy regex rhash && \
-    $CONDA_DIR/bin/conda run -n buildenv conda install -y -c pytorch \
-        pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.3 && \
-    $CONDA_DIR/bin/conda run -n buildenv pip install -U openmim build && \
-    $CONDA_DIR/bin/conda run -n buildenv mim install mmengine && \
-    $CONDA_DIR/bin/conda run -n buildenv mim install "mmcv==2.0.0rc4" && \
-    $CONDA_DIR/bin/conda run -n buildenv pip install "mmsegmentation>=1.0.0"
+# Set paths explicitly for Python 3.10
+ENV PATH="/opt/python/cp310-cp310/bin:$PATH"
+ENV CMAKE_PREFIX_PATH="/usr"
 
-
-# Set environment for buildenv
-ENV PATH="$CONDA_DIR/envs/buildenv/bin:$PATH"
-ENV LD_LIBRARY_PATH="$CONDA_DIR/envs/buildenv/lib:$LD_LIBRARY_PATH"
-
-# Set working directory
 WORKDIR /io
 
-# If needed, copy your project (or use docker mount with -v)
-# COPY . /io
+# Build wheel (assumes pyproject.toml is present)
+# You’ll run this at build time:
+# docker build -t scet .
+# docker run --rm -v $(pwd):/io scet bash -c "python3 -m build && auditwheel repair dist/*.whl -w dist/"
 
-# Build wheel
-# RUN python -m build
-
-# Repair with auditwheel
-# RUN auditwheel repair dist/*.whl -w dist/

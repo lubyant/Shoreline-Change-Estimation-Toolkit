@@ -114,7 +114,7 @@ void Image::extract_geoinfo() {
 
 void Image::extract_contours() {
   // read the image
-  cv::Mat img = cv::imread(image_path_);
+  cv::Mat img = cv::imread(image_path_.string());
   geo_info_.rows_ = img.rows;
   geo_info_.cols_ = img.cols;
 

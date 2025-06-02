@@ -1,7 +1,11 @@
 #include "options.hpp"
 
 #include <boost/test/unit_test.hpp>
+#include <nlohmann/json.hpp>
+#include <sstream>
+
 BOOST_AUTO_TEST_SUITE(OptionsTests)
+
 BOOST_AUTO_TEST_CASE(TestDefault) {
   dsas::Options options;
   BOOST_CHECK_EQUAL(options.edge_distance, 100);
@@ -16,6 +20,7 @@ BOOST_AUTO_TEST_CASE(TestDefault) {
               dsas::Options::TransectOrientation::Mix);
   BOOST_CHECK_EQUAL(options.thread_num, std::thread::hardware_concurrency());
 }
+
 BOOST_AUTO_TEST_CASE(JsonInput) {
   std::string json_string = R"(
     {
@@ -33,12 +38,15 @@ BOOST_AUTO_TEST_CASE(JsonInput) {
       }
     }
   )";
-  boost::system::error_code ec;
-  auto json_value = boost::json::parse(json_string, ec);
-  if (ec) {
-    std::cerr << "json parser err\n";
+
+  nlohmann::json json_value;
+  try {
+    json_value = nlohmann::json::parse(json_string);
+  } catch (const nlohmann::json::parse_error& e) {
+    std::cerr << "json parse error: " << e.what() << std::endl;
     BOOST_CHECK(false);
   }
+
   dsas::Options options{json_value};
   BOOST_CHECK_EQUAL(options.smooth_factor, 5);
   BOOST_CHECK_EQUAL(options.edge_distance, 50);
@@ -53,4 +61,5 @@ BOOST_AUTO_TEST_CASE(JsonInput) {
   BOOST_CHECK(options.transect_orient ==
               dsas::Options::TransectOrientation::Left);
 }
+
 BOOST_AUTO_TEST_SUITE_END()
