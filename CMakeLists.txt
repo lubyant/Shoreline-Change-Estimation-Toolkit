@@ -46,7 +46,11 @@ target_link_libraries(DSAS
 )
 
 # Build Python extension module using pybind11
-pybind11_add_module(cppext shorelinecalculator/pybind.cpp)
+pybind11_add_module(cppext MODULE shorelinecalculator/pybind.cpp)
+
+set_target_properties(cppext PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/shorelinecalculator
+)
 
 # Add GDAL include directories to the Python extension
 target_include_directories(cppext PRIVATE ${GDAL_INCLUDE_DIRS})
