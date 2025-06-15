@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Shoreline Calculator using Pybind11 and OpenCV"
 readme = "README.md"
 requires-python = "==3.10.*"
-dependencies = ["numpy"]
+dependencies = ["numpy", "rasterio", "pillow", "pyproj"]
 
 [tool.scikit-build]
 wheel.packages = ["shorelinecalculator"]
