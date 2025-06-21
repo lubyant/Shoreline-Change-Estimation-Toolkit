@@ -2,33 +2,28 @@ cmake_minimum_required(VERSION 3.22)
 project(ShorelineCalculator LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Prefer static libraries globally
-set(BUILD_SHARED_LIBS OFF)
-set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
+# Remove conda-specific paths
+# list(APPEND CMAKE_PREFIX_PATH "$ENV{CONDA_PREFIX}/share/cmake")
 
-# Set system installation paths for static GDAL/OpenCV builds
-set(CMAKE_PREFIX_PATH "/usr/local")
-include_directories(/usr/local/include)
-
-
-# Find remaining dependencies normally
+# Find dependencies from system paths
 find_package(pybind11 REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(GDAL REQUIRED)
 find_package(Boost REQUIRED COMPONENTS date_time)
+find_package(OpenMP REQUIRED)
 
-# Add third-party JSON header-only library
+# Add third-party JSON library
 add_subdirectory(shorelinecalculator/third_party/json)
 
-# Print diagnostics
-message(STATUS "Linking static GDAL: ${GDAL_STATIC}")
-message(STATUS "Linking static OpenCV core: ${OpenCV_CORE_STATIC}")
-message(STATUS "Linking static OpenCV imgproc: ${OpenCV_IMGPROC_STATIC}")
-message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
+# Print debug info
+message(STATUS "Using OpenCV: ${OpenCV_LIBS}")
+message(STATUS "Using GDAL: ${GDAL_LIBRARIES}")
+message(STATUS "Using GDAL include dirs: ${GDAL_INCLUDE_DIRS}")
+message(STATUS "Using Boost: ${Boost_LIBRARIES}")
+message(STATUS "Using pybind11: ${pybind11_INCLUDE_DIRS}")
 
-# Core C++ static library
+# Build core static library
 add_library(DSAS STATIC
     shorelinecalculator/geometry.cpp
     shorelinecalculator/image.cpp
@@ -36,39 +31,26 @@ add_library(DSAS STATIC
     shorelinecalculator/shorelinecalculator.cpp
     shorelinecalculator/utility.cpp
 )
+set_target_properties(DSAS PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+# Add system include directories
 target_include_directories(DSAS PUBLIC
-    /usr/local/include
+    ${GDAL_INCLUDE_DIRS}
+    ${OpenCV_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
 )
-include_directories(/usr/local/include/opencv4)
 
+# Link libraries to core
 target_link_libraries(DSAS
     PUBLIC
-        ${GDAL_STATIC}
-        ${OpenCV_CORE_STATIC}
-        ${OpenCV_IMGPROC_STATIC}
+        ${GDAL_LIBRARIES}
+        ${OpenCV_LIBS}
         ${Boost_LIBRARIES}
-        -lproj
-        -lgeos
-        -lgeos_c
-        -ltiff
-        -ljpeg
-        -lpng
-        -lsqlite3
-        -lpcre
-        -lexpat
-        -lz
-        -lcurl
-        -lpthread
-        -lstdc++
-        -ldl
-        -lm
-        -fopenmp
+        OpenMP::OpenMP_CXX
         nlohmann_json::nlohmann_json
 )
 
-# Python extension using pybind11
+# Build Python extension module using pybind11
 pybind11_add_module(cppext MODULE shorelinecalculator/pybind.cpp)
 
 set_target_properties(cppext PROPERTIES
@@ -76,14 +58,17 @@ set_target_properties(cppext PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/shorelinecalculator
 )
 
+# Add include directories
 target_include_directories(cppext PRIVATE
-    /usr/local/include
+    ${GDAL_INCLUDE_DIRS}
+    ${OpenCV_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
 )
 
+# Link the Python extension with the core library
 target_link_libraries(cppext PRIVATE DSAS)
 
-# Install to shorelinecalculator/ package dir
+# Install the Python extension to the shorelinecalculator package directory
 install(TARGETS cppext
     LIBRARY DESTINATION shorelinecalculator
 )
