@@ -1,3 +1,6 @@
+from typing import Optional
+import fiona
+from pyproj import CRS
 import geopandas as gpd
 import pandas as pd
 import rasterio
@@ -90,9 +93,10 @@ def load_raster(raster_folder: str, raster_file: str):
     # Open the raster file
     with rasterio.open(raster_path) as dataset:
         raster_data = dataset.read()  # Read the raster as a NumPy array
-        metadata = dataset.meta  # Extract metadata
+        crs = CRS(dataset.crs)
+        metadata = dataset.meta
 
-    return raster_data, metadata
+    return raster_data, crs, metadata
 
 
 def load_shapefile(shp_folder: str, shp_file: str) -> gpd.GeoDataFrame:
@@ -112,16 +116,18 @@ def load_shapefile(shp_folder: str, shp_file: str) -> gpd.GeoDataFrame:
 
     # Construct the full file path
     shp_path = os.path.join(shp_folder, shp_file)
+    with fiona.open(shp_path) as shp:
+        shape_crs = CRS(shp.crs)
 
     # Load and return the shapefile
-    return gpd.read_file(shp_path)
+    return gpd.read_file(shp_path), shape_crs
 
 
 def extract_transect_line(
     geo_df: gpd.GeoDataFrame,
-    baseline_id: int,
-    transect_id: int,
-    image_id: int,
+    baseline_id: Optional[int]=None,
+    transect_id: Optional[int]=None,
+    image_id: Optional[int]=None,
     baseline_col: str = "BaselineId",
     transect_col: str = "TransectId",
     image_col: str = "ImageId",
@@ -137,17 +143,26 @@ def extract_transect_line(
 
     Returns:
     - shapely.geometry.LineString: The geometry of the matched transect line.
-    - None: If no matching transect is found.
     """
     # Filter the GeoDataFrame for the matching row
-    filtered_df = geo_df[
-        (geo_df[baseline_col] == baseline_id)
-        & (geo_df[transect_col] == transect_id)
-        & (geo_df[image_col] == image_id)
-    ]
+    filtered_df = geo_df
+    if baseline_id is not None:
+        filtered_df = filtered_df.loc[
+            filtered_df[baseline_col] == baseline_id, :
+        ]
+
+    if transect_id is not None:
+        filtered_df = filtered_df.loc[
+            filtered_df[transect_col] == transect_id, :
+        ]
+
+    if image_id is not None:
+        filtered_df = filtered_df.loc[
+            filtered_df[image_col] == image_id, :
+        ]
 
     # Return the geometry if a match is found, else return None
-    return filtered_df if not filtered_df.empty else None
+    return filtered_df
 
 
 def extract_raster_profile_from_metadata(
@@ -168,11 +183,6 @@ def extract_raster_profile_from_metadata(
     """
     # Retrieve transform and CRS from metadata
     transform = metadata["transform"]
-    raster_crs = metadata["crs"]
-
-    # Check if the transect_line is in the same CRS as the raster
-    if transect_line.crs != raster_crs:
-        transect_line = transform_geom(transect_line.crs, raster_crs, transect_line)
 
     # Generate interpolated points along the transect
     distances = np.linspace(0, transect_line.length, num_points)
@@ -378,6 +388,9 @@ def merge_excel_files(folder: str, prefix: str, suffix: str) -> pd.DataFrame:
 
     return merged_df
 
+def read_excel(file_path, col_name):
+    df = pd.read_csv(file_path) 
+    return df
 
 def reproject_raster(raster_array, metadata, input_epsg, output_epsg):
     """

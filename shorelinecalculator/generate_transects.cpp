@@ -14,17 +14,17 @@ int main() {
   options.intersection_mode = Options::IntersectionMode::Closest;
   options.outlier_metric = Options::OutlierMetric::None;
   const Path baseline_shp_path =
-      "/home/lby/Desktop/ShorelineCalculator/DSAS/baseline.shp";
+      "/home/lby/Desktop/ShorelineCalculator/indiana/baseline.shp";
   const Path transect_shp_path =
-      "/home/lby/Desktop/ShorelineCalculator/DSAS/transect.shp";
+      "/home/lby/Desktop/ShorelineCalculator/indiana/transect.shp";
   const Path shoreline_shp_path =
-      "/home/lby/Desktop/ShorelineCalculator/DSAS/bluffCrest_TM.shp";
-  const std::string baseline_id_field = "DSAS_id";
+      "/home/lby/Desktop/ShorelineCalculator/indiana/Indiana_prj.shp";
+  const std::string baseline_id_field = "Id";
   const std::string intersect_path =
-      "/home/lby/Desktop/ShorelineCalculator/DSAS/crest_intersects.shp";
+      "/home/lby/Desktop/ShorelineCalculator/indiana/intersects.shp";
   gm::TransectGroups transect_groups;
   create_transects_from_baseline(baseline_shp_path, transect_shp_path,
-                                 &transect_groups, options, "DSAS_ID");
+                                 &transect_groups, options, baseline_id_field);
   create_intersects_by_transects(transect_groups, shoreline_shp_path, "Date_",
                                  intersect_path);
   return 0;
