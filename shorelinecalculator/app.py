@@ -152,9 +152,10 @@ class SCET:
             except ValueError as e:
                 print(f"Warning: {bid}, {tid} with {e}")
                 water_level_rate = 0
-            orig_rate = line_to_analysis.ChangeRate.iloc[0]
+            print(line_to_analysis)
+            orig_rate = line_to_analysis.ChangeRate.iloc[i]
             calibrate_rate = orig_rate - water_level_rate
-            result_df["calibrated_rate"][i] = calibrate_rate
+            result_df.loc[i, "calibrated_rate"] = calibrate_rate
             print(calibrate_rate)
         print(result_df)
         return result_df
