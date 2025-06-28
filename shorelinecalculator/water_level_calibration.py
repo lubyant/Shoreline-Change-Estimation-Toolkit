@@ -8,13 +8,10 @@ import os
 import numpy as np
 from shapely.geometry import LineString
 from rasterio.transform import rowcol
-from scipy.interpolate import interp1d
-from rasterio.transform import xy
 from rasterio.warp import (
     calculate_default_transform,
     reproject,
     Resampling,
-    transform_geom,
 )
 from rasterio.transform import array_bounds
 from rasterio.crs import CRS
@@ -125,9 +122,9 @@ def load_shapefile(shp_folder: str, shp_file: str) -> gpd.GeoDataFrame:
 
 def extract_transect_line(
     geo_df: gpd.GeoDataFrame,
-    baseline_id: Optional[int]=None,
-    transect_id: Optional[int]=None,
-    image_id: Optional[int]=None,
+    baseline_id: Optional[int] = None,
+    transect_id: Optional[int] = None,
+    image_id: Optional[int] = None,
     baseline_col: str = "BaselineId",
     transect_col: str = "TransectId",
     image_col: str = "ImageId",
@@ -296,7 +293,8 @@ def reproject_raster_to_match_shapefile(raster_array, metadata, target_crs):
     # Create new metadata with the updated CRS
     new_metadata = metadata.copy()
     new_metadata.update(
-        {"crs": target_crs, "transform": transform, "width": width, "height": height}
+        {"crs": target_crs, "transform": transform,
+            "width": width, "height": height}
     )
 
     # Create an empty array for the reprojected raster
@@ -373,7 +371,8 @@ def merge_excel_files(folder: str, prefix: str, suffix: str) -> pd.DataFrame:
     ]
 
     if not matching_files:
-        print(f"No matching files found with prefix '{prefix}' and suffix '{suffix}'.")
+        print(
+            f"No matching files found with prefix '{prefix}' and suffix '{suffix}'.")
         return None
 
     # Read and merge files
@@ -388,9 +387,11 @@ def merge_excel_files(folder: str, prefix: str, suffix: str) -> pd.DataFrame:
 
     return merged_df
 
-def read_excel(file_path, col_name):
-    df = pd.read_csv(file_path) 
+
+def read_excel(file_path):
+    df = pd.read_csv(file_path)
     return df
+
 
 def reproject_raster(raster_array, metadata, input_epsg, output_epsg):
     """
@@ -492,7 +493,8 @@ def calculate_rate(time_diffs, distances):
     - ValueError: If the length of the input lists is less than 2.
     """
     if len(time_diffs) < 2 or len(distances) < 2:
-        raise ValueError("At least two data points are required to calculate the rate.")
+        raise ValueError(
+            "At least two data points are required to calculate the rate.")
 
     if len(time_diffs) == 2:
         # Simple slope calculation for two points
@@ -545,6 +547,7 @@ def caculate_slope(
 
     return slope
 
+
 def calculate_azimuth(x1, y1, x2, y2):
     """
     Calculate the azimuth angle between two points.
@@ -561,6 +564,7 @@ def calculate_azimuth(x1, y1, x2, y2):
     angle = np.arctan2(delta_x, delta_y)
     azimuth_deg = (np.degrees(angle) + 360) % 360
     return azimuth_deg
+
 
 if __name__ == "__main__1":
     lake_name = "LakeMichigan"
@@ -587,7 +591,8 @@ if __name__ == "__main__1":
 
     water_level_folder = "/media/weiwang/easystore/NAIP/Waterlevel/"
     water_level_prefix = "MIC"
-    water_level_data = merge_excel_files(water_level_folder, water_level_prefix, ".csv")
+    water_level_data = merge_excel_files(
+        water_level_folder, water_level_prefix, ".csv")
 
     line_to_analysis = extract_transect_line(transects, 0, 10, site_num)
     elev_vals, dists = extract_raster_profile_from_metadata(
@@ -647,7 +652,7 @@ if __name__ == "__main__":
         azimuth = calculate_azimuth(
             coords[-1][0],
             coords[-1][1],
-            coords[0][0], 
+            coords[0][0],
             coords[0][1],
         )
         transects.loc[
@@ -661,7 +666,6 @@ if __name__ == "__main__":
             "BaselineId: %d, TransectId: %d, ImageId: %d, Slope: %.4f, azimuth: %d"
             % (bid, tid, image_id, slope, azimuth)
         )
-        
 
     transects.to_csv(
         "/media/weiwang/easystore/BackupData/dsas/transect_slope.csv",
