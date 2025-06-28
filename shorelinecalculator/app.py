@@ -120,25 +120,24 @@ class SCET:
                                        "ShoreID",
                                        "ImageID",
                                        "GroupID",
-                                       "Date",
                                        "X",
                                        "Y"
                                        ]].groupby(by=["BaselineId",
                                                       "TransectId"]).mean()
         result_df["calibrated_rate"] = 0
         for i in range(len(result_df)):
-            bid = result_df.loc[i, "BaselineId"]
-            tid = result_df.loc[i, "TransectId"]
+            print(f"{i}/{len(result_df)}")
+            bid, tid = result_df.index[i]
             intersecton_info_sel = intersection_info.loc[
-                (intersection_info["BaselineId"] == bid) & (intersection_info["TreansectId"] == tid), :]
+                (intersection_info["BaselineId"] == bid) & (intersection_info["TransectId"] == tid), :]
             refined_dists, refined_time_intervals = [], []
-            for i in range(len(intersecton_info_sel)):
-                temp_intersect = intersection_info.iloc[i]
+            for j in range(len(intersecton_info_sel)):
+                temp_intersect = intersecton_info_sel.iloc[j]
                 temp_year = int(pd.to_datetime(temp_intersect["Date"]).year)
-                temp_dist = float(temp_intersect["Dist"])
+                temp_dist = float(temp_intersect["ref_dist"])
 
-                site_val = water_level_data.loc[water_level_data["year"]
-                                                == temp_year, "Water Level"]
+                site_val = float(water_level_data.loc[water_level_data["Year"]
+                                                      == temp_year, " Water Level"])
                 target_dists = find_elevation_intersections(
                     elev_vals, dists, site_val)
                 target_dists = [300 - x for x in target_dists]
@@ -147,11 +146,15 @@ class SCET:
                 refined_dists.append(refined_dist)
                 refined_time_intervals.append(temp_year-2000)
 
-            water_level_rate = calculate_rate(
-                refined_time_intervals, refined_dists)
+            try:
+                water_level_rate = calculate_rate(
+                    refined_time_intervals, refined_dists)
+            except ValueError as e:
+                print(f"Warning: {bid}, {tid} with {e}")
+                water_level_rate = 0
             orig_rate = line_to_analysis.ChangeRate.iloc[0]
             calibrate_rate = orig_rate - water_level_rate
-            result_df.loc[i, "calibrated_rate"] = calibrate_rate
+            result_df["calibrated_rate"][i] = calibrate_rate
             print(calibrate_rate)
         print(result_df)
         return result_df
