@@ -1,5 +1,6 @@
 import os
 import shutil
+import pandas as pd
 
 from cppext import (Options, generate_result_from_folder,
                     generate_result_from_image)
@@ -11,7 +12,7 @@ from .water_level_calibration import (load_shapefile, load_raster, read_excel,
                                       extract_raster_profile_from_metadata,
                                       find_elevation_intersections,
                                       refine_intersection_points,
-                                      days_difference, get_verified_value)
+                                      calculate_rate)
 
 
 class Config:
@@ -113,15 +114,44 @@ class SCET:
             raster_data, meta, line_to_analysis, num_points=100
         )
 
-        # refined_dists, refined_time_intervals = [], []
-        # for i in range(len(line_to_analysis)):
-        #     temp_intersect = line_to_analysis.iloc[i]
-        #     temp_year = temp_intersect["Year"]
-        #     temp_dist = temp_intersect["Dist"]
-        #     site_date = site_date_info[str(site_num)].get(str(temp_year))
-        #     site_val = float(get_verified_value(water_level_data, site_date))
-        #     target_dists = find_elevation_intersections(elev_vals, dists, site_val)
-        #     target_dists = [300 - x for x in target_dists]
-        #     refined_dist = refine_intersection_points(target_dists, temp_dist)
-        #     refined_dists.append(refined_dist)
-        #     refined_time_intervals.append(days_difference("20000101", site_date))
+        intersection_info = extract_transect_line(intersection)
+        result_df = intersection_info[["BaselineId",
+                                       "TransectId",
+                                       "ShoreID",
+                                       "ImageID",
+                                       "GroupID",
+                                       "Date",
+                                       "X",
+                                       "Y"
+                                       ]].groupby(by=["BaselineId",
+                                                      "TransectId"]).mean()
+        result_df["calibrated_rate"] = 0
+        for i in range(len(result_df)):
+            bid = result_df.loc[i, "BaselineId"]
+            tid = result_df.loc[i, "TransectId"]
+            intersecton_info_sel = intersection_info.loc[
+                (intersection_info["BaselineId"] == bid) & (intersection_info["TreansectId"] == tid), :]
+            refined_dists, refined_time_intervals = [], []
+            for i in range(len(intersecton_info_sel)):
+                temp_intersect = intersection_info.iloc[i]
+                temp_year = int(pd.to_datetime(temp_intersect["Date"]).year)
+                temp_dist = float(temp_intersect["Dist"])
+
+                site_val = water_level_data.loc[water_level_data["year"]
+                                                == temp_year, "Water Level"]
+                target_dists = find_elevation_intersections(
+                    elev_vals, dists, site_val)
+                target_dists = [300 - x for x in target_dists]
+                refined_dist = refine_intersection_points(
+                    target_dists, temp_dist)
+                refined_dists.append(refined_dist)
+                refined_time_intervals.append(temp_year-2000)
+
+            water_level_rate = calculate_rate(
+                refined_time_intervals, refined_dists)
+            orig_rate = line_to_analysis.ChangeRate.iloc[0]
+            calibrate_rate = orig_rate - water_level_rate
+            result_df.loc[i, "calibrated_rate"] = calibrate_rate
+            print(calibrate_rate)
+        print(result_df)
+        return result_df

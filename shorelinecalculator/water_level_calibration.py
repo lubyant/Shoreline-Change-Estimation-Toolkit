@@ -390,6 +390,10 @@ def merge_excel_files(folder: str, prefix: str, suffix: str) -> pd.DataFrame:
 
 def read_excel(file_path):
     df = pd.read_csv(file_path)
+    df["Date"] = pd.to_datetime(df["Date"])
+    df = df.set_index("Date")
+    df = df.resample('YE').mean()
+    df["Year"] = df.index.year
     return df
 
 
