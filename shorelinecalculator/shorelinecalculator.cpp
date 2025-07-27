@@ -524,7 +524,7 @@ void create_transects_from_baseline(const Path &path, const Path &output_path,
                                     const std::string &field_name) {
   auto baselines = util::load_baselines_shp(path, options, field_name);
   auto psz_prj_ = util::get_shp_proj(path.c_str());
-  *output_transects = std::move(generate_transects(baselines));
+  *output_transects = generate_transects(baselines);
 
   // output the transects
   std::vector<gm::TransectLine> output_file;
@@ -591,10 +591,9 @@ void create_intersects_by_transects(gm::TransectGroups &transect_groups,
   util::save_points(intersections, proj.c_str(), output);
 }
 
-void create_intersects_by_transects(gm::TransectGroups &transect_groups,
-                                    const Path &shoreline_shp_path,
-                                    const std::string &date_field_name,
-                                    const Path &intersects_output_path) {
+std::vector<gm::IntersectPoint> create_intersects_by_transects(
+    gm::TransectGroups &transect_groups, const Path &shoreline_shp_path,
+    const std::string &date_field_name, const Path &intersects_output_path) {
   gm::Shorelines shorelines =
       util::load_shorelines_shp(shoreline_shp_path, date_field_name.c_str());
   std::vector<gm::IntersectPoint> intersections;
@@ -629,6 +628,37 @@ void create_intersects_by_transects(gm::TransectGroups &transect_groups,
   }
 
   util::save_points(intersections, psz_prj_.c_str(), intersects_output_path);
+  return intersections;
+}
+
+void calculate_erosion_rate(
+    const std::vector<gm::IntersectPoint> &intersections,
+    gm::TransectGroups &transect_groups, const std::string &output_path,
+    const std::string &psz_prj_, const dsas::Options &options) {
+  // group the intersections by baseline_id and group_id
+  std::unordered_map<bid_t,
+                     std::unordered_map<tid_t, std::vector<gm::IntersectPoint>>>
+      intersect_map;
+  for (const auto &intersect : intersections) {
+    bid_t bid{intersect.baseline_id_};
+    tid_t tid{intersect.transect_id_};
+    auto &sub_set = intersect_map[bid];
+    sub_set[tid].push_back(intersect);
+  }
+  std::vector<gm::TransectLine> results_transects;
+  for (auto &transect_group : transect_groups) {
+    for (auto &transect : transect_group.transects_) {
+      auto bid = transect.baseline_id_;
+      auto tid = transect.transect_id_;
+      if(intersect_map.count(bid)){
+        if(intersect_map[bid].count(tid)){
+          util::linearRegressRate(intersect_map[bid][tid], transect,options);
+          results_transects.push_back(transect);
+        }
+      }
+    }
+  }
+  util::save_lines(results_transects, psz_prj_.c_str(), output_path);
 }
 
 void processes_shoreline_rate(intersects_maps_t &intersection_maps,

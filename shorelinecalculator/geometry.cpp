@@ -280,7 +280,7 @@ void TransectLine::set_info(const std::vector<double> &years,
   std::stringstream ss;
   for (size_t i = 0; i < num_intersect_; i++) {
     ss << years[i] << ", " << distances[i] << ". ";
-    intersect_info_ = ss.str();
+    intersect_info_ += ss.str();
     ss.clear();
   }
 
