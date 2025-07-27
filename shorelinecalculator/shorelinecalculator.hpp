@@ -93,7 +93,7 @@ std::vector<gm::IntersectPoint> create_intersects_by_transects(
 void calculate_erosion_rate(
     const std::vector<gm::IntersectPoint> &intersections,
     gm::TransectGroups &transect_groups, const std::string &output_path,
-    const dsas::Options &options);
+    const std::string &psz_prj_, const dsas::Options &options);
 }  // namespace dsas
 
 #endif  // SHORELINECALCULATOR_SHORELINECALCULATOR_HPP

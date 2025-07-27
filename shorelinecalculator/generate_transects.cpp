@@ -29,6 +29,9 @@ int main() {
                                  &transect_groups, options, baseline_id_field);
   auto intersections = create_intersects_by_transects(
       transect_groups, shoreline_shp_path, "Date_", intersect_path);
-  calculate_erosion_rate(intersections, transect_groups, result_path, options);
+
+  auto psz_prj_ = util::get_shp_proj(baseline_shp_path.c_str());
+  calculate_erosion_rate(intersections, transect_groups, result_path, psz_prj_,
+                         options);
   return 0;
 }
