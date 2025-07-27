@@ -591,10 +591,9 @@ void create_intersects_by_transects(gm::TransectGroups &transect_groups,
   util::save_points(intersections, proj.c_str(), output);
 }
 
-void create_intersects_by_transects(gm::TransectGroups &transect_groups,
-                                    const Path &shoreline_shp_path,
-                                    const std::string &date_field_name,
-                                    const Path &intersects_output_path) {
+std::vector<gm::IntersectPoint> create_intersects_by_transects(
+    gm::TransectGroups &transect_groups, const Path &shoreline_shp_path,
+    const std::string &date_field_name, const Path &intersects_output_path) {
   gm::Shorelines shorelines =
       util::load_shorelines_shp(shoreline_shp_path, date_field_name.c_str());
   std::vector<gm::IntersectPoint> intersections;
@@ -629,6 +628,38 @@ void create_intersects_by_transects(gm::TransectGroups &transect_groups,
   }
 
   util::save_points(intersections, psz_prj_.c_str(), intersects_output_path);
+  return intersections;
+}
+
+void calculate_erosion_rate(
+    const std::vector<gm::IntersectPoint> &intersections,
+    gm::TransectGroups &transect_groups, 
+    const std::string &output_path,
+    const dsas::Options &options) {
+  // group the intersections by baseline_id and group_id
+  std::map<bid_t, std::map<tid_t, std::vector<gm::IntersectPoint>>>
+      intersect_set;
+  for (const auto &intersect : intersections) {
+    bid_t bid{intersect.baseline_id_};
+    tid_t tid{intersect.transect_id_};
+    auto &sub_set = intersect_set[bid];
+    sub_set[tid].push_back(intersect);
+  }
+  for (const auto &[bid, sub_set] : intersect_set) {
+    for (const auto &[tid, interescts] : sub_set) {
+      auto &transect_group =
+          *std::find_if(transect_groups.begin(), transect_groups.end(),
+                        [&bid](const gm::Transects &transect) {
+                          return transect.baseline_id_ == bid;
+                        });
+      auto &transect = *std::find_if(transect_group.transects_.begin(),
+                                     transect_group.transects_.end(),
+                                     [&tid](const gm::TransectLine transect) {
+                                       return transect.transect_id_ == tid;
+                                     });
+      util::linearRegressRate(interescts, transect, options);
+    }
+  }
 }
 
 void processes_shoreline_rate(intersects_maps_t &intersection_maps,

@@ -86,11 +86,14 @@ void create_intersects_by_transects(gm::TransectGroups &transects,
                                     const Path &output, const Options &options,
                                     const std::string &proj);
 
-void create_intersects_by_transects(gm::TransectGroups &transects,
-                                    const Path &shoreline_shp_path,
-                                    const std::string &date_field_name,
-                                    const Path &output);
+std::vector<gm::IntersectPoint> create_intersects_by_transects(
+    gm::TransectGroups &transects, const Path &shoreline_shp_path,
+    const std::string &date_field_name, const Path &output);
 
+void calculate_erosion_rate(
+    const std::vector<gm::IntersectPoint> &intersections,
+    gm::TransectGroups &transect_groups, const std::string &output_path,
+    const dsas::Options &options);
 }  // namespace dsas
 
 #endif  // SHORELINECALCULATOR_SHORELINECALCULATOR_HPP
