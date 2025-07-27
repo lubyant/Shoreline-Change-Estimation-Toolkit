@@ -124,9 +124,10 @@ class SCET:
                                        "Y"
                                        ]].groupby(by=["BaselineId",
                                                       "TransectId"]).mean()
+        result_df["original_rate"] = 0
         result_df["calibrated_rate"] = 0
         for i in range(len(result_df)):
-            print(f"{i}/{len(result_df)}")
+            print(f"{i+1}/{len(result_df)}")
             bid, tid = result_df.index[i]
             intersecton_info_sel = intersection_info.loc[
                 (intersection_info["BaselineId"] == bid) & (intersection_info["TransectId"] == tid), :]
@@ -152,10 +153,9 @@ class SCET:
             except ValueError as e:
                 print(f"Warning: {bid}, {tid} with {e}")
                 water_level_rate = 0
-            print(line_to_analysis)
             orig_rate = line_to_analysis.ChangeRate.iloc[i]
             calibrate_rate = orig_rate - water_level_rate
-            result_df.loc[i, "calibrated_rate"] = calibrate_rate
+            result_df.iloc[i, -2] = orig_rate 
+            result_df.iloc[i, -1] = calibrate_rate
             print(calibrate_rate)
-        print(result_df)
         return result_df
