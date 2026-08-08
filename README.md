@@ -22,9 +22,12 @@ used by `SCET.method1`/`method2`), install the `dl` extra:
 pip install "scet-toolkit[dl]"
 ```
 
-`mmcv` is version- and CUDA-build-sensitive; if the plain pip install doesn't
-pick the right wheel for your platform, run `mim install mmcv==2.0.0rc4`
-afterward (see `build.sh`).
+`torch`/`torchvision`/`torchaudio` are CUDA-build-sensitive; if the plain pip
+install doesn't pick the right wheel for your platform, install them from
+https://pytorch.org first, matching your CUDA version, then re-run. `mmcv-lite`
+(no compiled CUDA ops, unlike `mmcv`) is used instead of `mmcv` since this
+project's segmentation config doesn't need them and `mmcv-lite` installs via
+plain pip with no CUDA toolchain required.
 
 ## Usage
 
@@ -54,5 +57,5 @@ This writes `shoreline.shp`, `baseline.shp`, `transect.shp`, and
 ```bash
 conda create -n my_env python==3.9
 conda activate my_env
-bash build.sh  # pip install -e ".[dl]" + mim install for mmcv
+bash build.sh  # pip install -e ".[dl]"
 ```

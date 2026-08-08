@@ -37,10 +37,16 @@ dependencies = [
 [project.optional-dependencies]
 # Needed for scet.simple_mmseg (DL-based segmentation) and extract_merge_data.py's
 # NAIP raster helpers -- both used by SCET.method1/method2.
-# torch/torchvision/torchaudio/mmcv are version- and CUDA-build-sensitive; if
+# torch/torchvision/torchaudio are version- and CUDA-build-sensitive; if
 # `pip install "scet-toolkit[dl]"` doesn't pick the right binary wheel for your
-# platform, install torch from https://pytorch.org (matching CUDA build) and/or
-# `mim install mmcv==2.0.0rc4` first, then re-run.
+# platform, install torch from https://pytorch.org matching your CUDA build
+# first, then re-run.
+# mmcv-lite (unlike mmcv) has no compiled CUDA ops, so it builds from its sdist
+# with no CUDA toolchain required -- fine for this project's deeplabv3plus
+# config, which doesn't use mmcv's custom ops. If a future model config needs
+# them, switch this back to mmcv and install it via `mim install mmcv==<version>`
+# instead (mim resolves a prebuilt wheel matching your torch/CUDA build; plain
+# `pip install mmcv` only has an sdist and needs a CUDA toolchain to compile).
 # GDAL's PyPI package ships no prebuilt wheels and its source build requires an
 # exact match with your system libgdal version -- if the plain `GDAL` install
 # below fails, pin it yourself: `pip install "GDAL==$(gdal-config --version)"`.
@@ -48,9 +54,8 @@ dl = [
     "torch==1.12.1",
     "torchvision==0.13.1",
     "torchaudio==0.12.1",
-    "openmim",
     "mmengine",
-    "mmcv==2.0.0rc4",
+    "mmcv-lite==2.0.0rc4",
     "mmsegmentation>=1.0.0",
     "GDAL",
 ]
