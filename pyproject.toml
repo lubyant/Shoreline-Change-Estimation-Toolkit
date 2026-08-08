@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scet-toolkit"
+version = "0.2.0"
+description = "Shoreline Change Estimation Toolkit: extract shorelines from segmented imagery and compute change rates via OpenDSAS"
+readme = "README.md"
+license = { file = "LICENCE.txt" }
+requires-python = ">=3.9"
+authors = [{ name = "Boyuan Lu" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: GIS",
+]
+dependencies = [
+    "numpy",
+    "opencv-python-headless",
+    "rasterio",
+    "geopandas",
+    "shapely",
+    "pyproj",
+    "pandas",
+    "scipy",
+    "scikit-learn",
+    "matplotlib",
+    "pillow",
+    "opendsas",
+    "tqdm",
+    "ftfy",
+    "regex",
+]
+
+[project.optional-dependencies]
+# Needed for scet.simple_mmseg (DL-based segmentation) and extract_merge_data.py's
+# NAIP raster helpers -- both used by SCET.method1/method2.
+# torch/torchvision/torchaudio are version- and CUDA-build-sensitive; if
+# `pip install "scet-toolkit[dl]"` doesn't pick the right binary wheel for your
+# platform, install torch from https://pytorch.org matching your CUDA build
+# first, then re-run.
+# mmcv-lite (unlike mmcv) has no compiled CUDA ops, so it builds from its sdist
+# with no CUDA toolchain required -- fine for this project's deeplabv3plus
+# config, which doesn't use mmcv's custom ops. If a future model config needs
+# them, switch this back to mmcv and install it via `mim install mmcv==<version>`
+# instead (mim resolves a prebuilt wheel matching your torch/CUDA build; plain
+# `pip install mmcv` only has an sdist and needs a CUDA toolchain to compile).
+# GDAL's PyPI package ships no prebuilt wheels and its source build requires an
+# exact match with your system libgdal version -- if the plain `GDAL` install
+# below fails, pin it yourself: `pip install "GDAL==$(gdal-config --version)"`.
+dl = [
+    "torch==1.12.1",
+    "torchvision==0.13.1",
+    "torchaudio==0.12.1",
+    "mmengine",
+    "mmcv-lite==2.0.0rc4",
+    "mmsegmentation>=1.0.0",
+    "GDAL",
+]
+
+[project.urls]
+Homepage = "https://github.com/lubyant/ShorelineCalculator"
+
+[tool.setuptools.packages.find]
+include = ["scet*"]

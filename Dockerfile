@@ -1,37 +1,18 @@
-# Stage 1: Build dependencies
-FROM ubuntu:latest as builder
+FROM python:3.11-slim
 
 LABEL authors="lubyant1994"
 
-# Install all required dependencies
-RUN apt update && apt install -y \
-    build-essential \
-    cmake \
-    libopencv-dev \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libgdal-dev \
-    libboost-all-dev \
-    libgtest-dev
+    gdal-bin \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy the source code into the image
+# OpenDSAS provides the `dsas` CLI used for transect casting, shoreline
+# intersection, and change-rate computation.
+RUN pip install --no-cache-dir opendsas
+
+WORKDIR /app
 COPY . /app
+RUN pip install --no-cache-dir .
 
-# Build the project
-WORKDIR /app/build
-RUN cmake ..
-RUN make
-RUN ctest
-
-# Stage 2: Prepare the final image
-FROM ubuntu:latest
-
-# Copy the built artifacts from the builder stage
-COPY --from=builder /app/build /app/build
-
-# Set working directory
-WORKDIR /app/build
-
-# Set the command to run tests when the container starts
-CMD ["./ShorelineCalculator_tests"]
-
-# Set the ENTRYPOINT to keep the container running
-# ENTRYPOINT ["top", "-b"]
+CMD ["python", "-m", "pytest"]

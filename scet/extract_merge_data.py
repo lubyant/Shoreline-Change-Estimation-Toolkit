@@ -4,7 +4,9 @@ import rasterio
 import os
 import numpy as np
 
-from osgeo import gdal
+# osgeo/GDAL is only needed by the get_*_img_from_raster helpers below and is
+# not a core dependency (see pyproject.toml); import it lazily so `import
+# scet` doesn't require it.
 import cv2
 import pickle
 from rasterio.transform import Affine
@@ -87,6 +89,8 @@ def save_new_raster(out_img, out_meta, raster_folder, raster_name):
 
 
 def get_img_from_raster(raster_folder, raster_file):
+    from osgeo import gdal
+
     ds = gdal.Open(os.path.join(raster_folder, raster_file))
     myarray1 = np.array(ds.GetRasterBand(1).ReadAsArray())
     myarray2 = np.array(ds.GetRasterBand(2).ReadAsArray())
@@ -97,11 +101,15 @@ def get_img_from_raster(raster_folder, raster_file):
 
 
 def get_img_source_data_from_raster(raster_folder, raster_file):
+    from osgeo import gdal
+
     ds = gdal.Open(os.path.join(raster_folder, raster_file))
     return ds.GetRasterBand(1).ReadAsArray(), ds.GetRasterBand(2).ReadAsArray(), ds.GetRasterBand(3).ReadAsArray()
 
 
 def get_infrared_img_from_raster(raster_folder, raster_file):
+    from osgeo import gdal
+
     ds = gdal.Open(os.path.join(raster_folder, raster_file))
     myarray1 = np.array(ds.GetRasterBand(4).ReadAsArray())
     return myarray1

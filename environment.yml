@@ -6,9 +6,6 @@ dependencies:
   - python==3.8
   - conda-forge::gdal
   - conda-forge::opencv
-  - conda-forge::boost
-  - conda-forge::pybind11
-  - compilers
   - pillow
   - rasterio
   - pyproj

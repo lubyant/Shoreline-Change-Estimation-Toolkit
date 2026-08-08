@@ -1,7 +1,7 @@
-/cmake-build-debug/*
-/cmake-build-release/*
 /images/*
 /build/*
+/dist/*
+*.egg-info
 __pycache__
 /Validation/*
 /ErosionFiles/*
