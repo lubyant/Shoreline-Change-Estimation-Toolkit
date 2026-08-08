@@ -1,10 +1,12 @@
 import os
 import shutil
 
-from cppext import Options, generate_result_from_folder, generate_result_from_image
-
 from .extract_merge_data import extract_NAIP_folder, merge_detect_folder
-from .simple_mmseg.DL_running import process_img_folder, process_single_img
+from .options import Options
+from .pipeline import generate_result_from_folder, generate_result_from_image
+
+# simple_mmseg pulls in torch/mmengine/mmcv, which are optional (extras_require
+# "dl"). Import lazily so `import scet` works without them installed.
 
 
 class Config:
@@ -26,6 +28,8 @@ class SCET:
 
     def method1(self, input_naip_zipfiles_folder,
                 output_folder):
+        from .simple_mmseg.DL_running import process_img_folder
+
         output_raster_folder = os.path.join(output_folder,
                                             "Raster")
         output_divided_img_folder = os.path.join(output_folder,
@@ -71,6 +75,8 @@ class SCET:
         shutil.rmtree(final_save_folder)
 
     def method2(self, input_img_path, output_folder):
+        from .simple_mmseg.DL_running import process_single_img
+
         output_img_path = os.path.join(output_folder, "output.png")
         process_single_img(input_img_path,
                            output_img_path,
