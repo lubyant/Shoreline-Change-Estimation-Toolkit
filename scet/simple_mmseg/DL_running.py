@@ -5,7 +5,11 @@ from .tools.customize_tools.image_demo_config import image_folder_demo_config, i
 import os
 import argparse
 
-CONFIG_PATH = "shorelinecalculator/simple_mmseg/my_model/deeplabv3plus/deeplabv3plus_r50-d8_4xb4-20k_voc12aug-512x512.py"
+CONFIG_PATH = os.path.join(
+    os.path.dirname(__file__),
+    "my_model", "deeplabv3plus",
+    "deeplabv3plus_r50-d8_4xb4-20k_voc12aug-512x512.py",
+)
 
 
 def process_img_folder(img_folder, output_folder, checkpoint_file, img_suffix='png'):
