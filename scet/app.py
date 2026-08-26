@@ -1,5 +1,6 @@
 import os
 import shutil
+from typing import Optional
 
 import pandas as pd
 
@@ -16,6 +17,7 @@ from .water_level_calibration import (
     read_excel,
     refine_intersection_points,
 )
+from .weights import download_weights
 
 # simple_mmseg pulls in torch/mmengine/mmcv, which are optional (extras_require
 # "dl"). Import lazily so `import scet` works without them installed.
@@ -23,10 +25,11 @@ from .water_level_calibration import (
 
 class Config:
     def __init__(self,
-                 checkpoint_file,
+                 checkpoint_file: Optional[str] = None,
                  transect_spacing: float = 30.0,
                  transect_length: float = 500.0) -> None:
 
+        # None defers to the pretrained checkpoint, downloaded on first use.
         self.checkpoint_file = checkpoint_file
         self.keep_raster = False
         self.options = Options()
@@ -41,6 +44,8 @@ class SCET:
     def method1(self, input_naip_zipfiles_folder,
                 output_folder):
         from .simple_mmseg.DL_running import process_img_folder
+
+        checkpoint_file = self.config.checkpoint_file or download_weights()
 
         output_raster_folder = os.path.join(output_folder,
                                             "Raster")
@@ -68,7 +73,7 @@ class SCET:
 
         process_img_folder(output_divided_img_folder,
                            output_binary_map_folder,
-                           self.config.checkpoint_file)
+                           checkpoint_file)
 
         merge_detect_folder(output_binary_map_folder,
                             output_pkl_folder,
@@ -89,10 +94,12 @@ class SCET:
     def method2(self, input_img_path, output_folder):
         from .simple_mmseg.DL_running import process_single_img
 
+        checkpoint_file = self.config.checkpoint_file or download_weights()
+
         output_img_path = os.path.join(output_folder, "output.png")
         process_single_img(input_img_path,
                            output_img_path,
-                           self.config.checkpoint_file)
+                           checkpoint_file)
         generate_result_from_image(input_img_path,
                                    output_folder,
                                    self.config.options)
