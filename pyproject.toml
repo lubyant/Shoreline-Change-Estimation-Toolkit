@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scet-toolkit"
-version = "0.2.0"
+version = "0.2.1"
 description = "Shoreline Change Estimation Toolkit: extract shorelines from segmented imagery and compute change rates via OpenDSAS"
 readme = "README.md"
 license = { file = "LICENCE.txt" }
