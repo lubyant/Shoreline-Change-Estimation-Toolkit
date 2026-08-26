@@ -18,7 +18,10 @@ classifiers = [
 ]
 dependencies = [
     "numpy",
-    "opencv-python-headless",
+    # opencv-python-headless>=5 requires numpy>=2, which conflicts with the
+    # "dl" extra's torch==1.12.1 (numpy<2 ABI). Capped for everyone so a
+    # plain install and a "[dl]" install resolve to the same opencv line.
+    "opencv-python-headless<5",
     "rasterio",
     "geopandas",
     "shapely",
@@ -36,28 +39,66 @@ dependencies = [
 
 [project.optional-dependencies]
 # Needed for scet.simple_mmseg (DL-based segmentation) and extract_merge_data.py's
-# NAIP raster helpers -- both used by SCET.method1/method2.
-# torch/torchvision/torchaudio are version- and CUDA-build-sensitive; if
-# `pip install "scet-toolkit[dl]"` doesn't pick the right binary wheel for your
-# platform, install torch from https://pytorch.org matching your CUDA build
-# first, then re-run.
-# mmcv-lite (unlike mmcv) has no compiled CUDA ops, so it builds from its sdist
-# with no CUDA toolchain required -- fine for this project's deeplabv3plus
-# config, which doesn't use mmcv's custom ops. If a future model config needs
-# them, switch this back to mmcv and install it via `mim install mmcv==<version>`
-# instead (mim resolves a prebuilt wheel matching your torch/CUDA build; plain
-# `pip install mmcv` only has an sdist and needs a CUDA toolchain to compile).
-# GDAL's PyPI package ships no prebuilt wheels and its source build requires an
-# exact match with your system libgdal version -- if the plain `GDAL` install
-# below fails, pin it yourself: `pip install "GDAL==$(gdal-config --version)"`.
+# NAIP raster helpers -- both used by SCET.method1/method2. Verified end-to-end
+# (real NAIP imagery -> segmentation -> DSAS change rates) with this exact
+# pinned set on Python 3.10; see the notes below before deviating from it.
+#
+# torch/torchvision/torchaudio: pinned to the CUDA 10.2 build that matches the
+# pretrained checkpoint (scet.weights.download_weights()) and the mmcv build
+# below. torch==1.12.1 has no wheel past Python 3.10, so the "dl" extra only
+# installs on Python <=3.10 -- create a 3.10 env (e.g. `conda create -n
+# scet-dl python=3.10`) if your default interpreter is newer. If you need a
+# different CUDA build, install torch from https://pytorch.org matching your
+# CUDA build first, then re-run, but you'll also need a matching mmcv build
+# (see below) -- the pretrained checkpoint's compatibility with a newer
+# torch/mmcv/mmsegmentation combo is untested.
+#
+# numpy<2: torch==1.12.1 was compiled against NumPy 1.x; importing it under
+# NumPy 2 emits ABI warnings and risks a crash on actual tensor/array calls.
+#
+# mmsegmentation is pinned to 1.2.2, not left as ">=1.0.0": this repo's
+# image_demo_folder.py passes `with_labels=` to `show_result_pyplot`, which
+# 1.0.0 doesn't accept (added later); 1.2.2 is the version this was verified
+# against.
+#
+# mmcv is deliberately NOT listed here (mmcv-lite doesn't work at all --
+# see below -- and plain `pip install mmcv` only has a source distribution on
+# PyPI, needing a full C++/CUDA toolchain to compile). Install a prebuilt
+# wheel via mim instead, after `pip install "scet-toolkit[dl]"`:
+#     pip install openmim
+#     mim install "mmcv==2.0.0rc4"
+# mim resolves a prebuilt wheel matching your installed torch/CUDA build from
+# https://download.openmmlab.com/mmcv/dist/ -- this is the version verified
+# against torch==1.12.1+cu102. A previous version of this comment suggested
+# mmcv-lite (no compiled ops, no CUDA toolchain needed) was fine for this
+# project's deeplabv3plus config since it doesn't use mmcv's custom ops --
+# that turned out to be false: mmseg.models unconditionally imports backbones
+# and losses that import mmcv.ops at package-load time regardless of which
+# model you actually use, and mmcv-lite ships no compiled `_ext`, so
+# `import mmseg.apis` fails outright without real mmcv installed.
+#
+# GDAL's PyPI package ships no prebuilt wheels; its source build must be
+# pinned to your system's libgdal and run with --no-build-isolation, otherwise
+# the build's isolated env can't see your already-installed numpy and
+# silently skips compiling the numpy-array extension (osgeo._gdal_array) --
+# everything still imports, but extract_merge_data.py's raster-reading
+# helpers fail at runtime ("cannot import name '_gdal_array' from 'osgeo'"),
+# which extract_NAIP_folder's broad exception handling swallows per-file.
+# Also pass --no-cache-dir: pip's wheel cache is keyed by name+version+
+# platform, not by build flags, so a plain `pip install GDAL==<version>` run
+# earlier (isolated, missing _gdal_array) can leave a cached wheel that a
+# later --no-build-isolation install silently reuses instead of rebuilding.
+#     pip install --no-cache-dir --no-build-isolation \
+#         "GDAL==$(gdal-config --version)"
 dl = [
     "torch==1.12.1",
     "torchvision==0.13.1",
     "torchaudio==0.12.1",
+    "numpy<2",
     "mmengine",
-    "mmcv-lite==2.0.0rc4",
-    "mmsegmentation>=1.0.0",
+    "mmsegmentation==1.2.2",
     "GDAL",
+    "openmim",
 ]
 
 [project.urls]

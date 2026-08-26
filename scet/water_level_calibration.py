@@ -1,3 +1,5 @@
+from typing import Optional
+
 import geopandas as gpd
 import pandas as pd
 import rasterio
@@ -5,16 +7,13 @@ import os
 import numpy as np
 from shapely.geometry import LineString
 from rasterio.transform import rowcol
-from scipy.interpolate import interp1d
-from rasterio.transform import xy
 from rasterio.warp import (
     calculate_default_transform,
     reproject,
     Resampling,
-    transform_geom,
 )
 from rasterio.transform import array_bounds
-from rasterio.crs import CRS
+from pyproj import CRS
 
 import matplotlib.pyplot as plt
 
@@ -78,6 +77,7 @@ def load_raster(raster_folder: str, raster_file: str):
 
     Returns:
     - numpy.ndarray: The raster data as a NumPy array.
+    - pyproj.CRS: The CRS of the raster.
     - dict: The metadata of the raster file.
     """
     # Ensure the file has a valid raster extension (assume .tif if no extension)
@@ -90,12 +90,13 @@ def load_raster(raster_folder: str, raster_file: str):
     # Open the raster file
     with rasterio.open(raster_path) as dataset:
         raster_data = dataset.read()  # Read the raster as a NumPy array
+        crs = CRS.from_wkt(dataset.crs.to_wkt())
         metadata = dataset.meta  # Extract metadata
 
-    return raster_data, metadata
+    return raster_data, crs, metadata
 
 
-def load_shapefile(shp_folder: str, shp_file: str) -> gpd.GeoDataFrame:
+def load_shapefile(shp_folder: str, shp_file: str):
     """
     Load a shapefile from a given folder and return it as a GeoDataFrame.
 
@@ -105,6 +106,7 @@ def load_shapefile(shp_folder: str, shp_file: str) -> gpd.GeoDataFrame:
 
     Returns:
     - gpd.GeoDataFrame: The loaded shapefile as a GeoDataFrame.
+    - pyproj.CRS: The CRS of the shapefile.
     """
     # Ensure the file has the .shp extension
     if not shp_file.endswith(".shp"):
@@ -114,40 +116,43 @@ def load_shapefile(shp_folder: str, shp_file: str) -> gpd.GeoDataFrame:
     shp_path = os.path.join(shp_folder, shp_file)
 
     # Load and return the shapefile
-    return gpd.read_file(shp_path)
+    gdf = gpd.read_file(shp_path)
+    return gdf, gdf.crs
 
 
 def extract_transect_line(
     geo_df: gpd.GeoDataFrame,
-    baseline_id: int,
-    transect_id: int,
-    image_id: int,
+    baseline_id: Optional[int] = None,
+    transect_id: Optional[int] = None,
+    image_id: Optional[int] = None,
     baseline_col: str = "BaselineId",
     transect_col: str = "TransectId",
     image_col: str = "ImageId",
-) -> LineString:
+) -> gpd.GeoDataFrame:
     """
-    Extract the transect line geometry from a GeoDataFrame based on the given IDs.
+    Extract the rows of a GeoDataFrame matching the given IDs. Any ID left as
+    None is not filtered on, so this also doubles as a plain column selector.
 
     Parameters:
     - geo_df (gpd.GeoDataFrame): The input GeoDataFrame with columns ['BaselineId', 'TransectId', 'ImageId', 'ChangeRate'].
-    - baseline_id (int): The BaselineId of the transect.
-    - transect_id (int): The TransectId of the transect.
-    - image_id (int): The ImageId associated with the transect.
+    - baseline_id (Optional[int]): The BaselineId of the transect.
+    - transect_id (Optional[int]): The TransectId of the transect.
+    - image_id (Optional[int]): The ImageId associated with the transect.
 
     Returns:
-    - shapely.geometry.LineString: The geometry of the matched transect line.
-    - None: If no matching transect is found.
+    - gpd.GeoDataFrame: The rows matching the given IDs (possibly empty).
     """
-    # Filter the GeoDataFrame for the matching row
-    filtered_df = geo_df[
-        (geo_df[baseline_col] == baseline_id)
-        & (geo_df[transect_col] == transect_id)
-        & (geo_df[image_col] == image_id)
-    ]
+    filtered_df = geo_df
+    if baseline_id is not None:
+        filtered_df = filtered_df.loc[filtered_df[baseline_col] == baseline_id, :]
 
-    # Return the geometry if a match is found, else return None
-    return filtered_df if not filtered_df.empty else None
+    if transect_id is not None:
+        filtered_df = filtered_df.loc[filtered_df[transect_col] == transect_id, :]
+
+    if image_id is not None:
+        filtered_df = filtered_df.loc[filtered_df[image_col] == image_id, :]
+
+    return filtered_df
 
 
 def extract_raster_profile_from_metadata(
@@ -166,13 +171,8 @@ def extract_raster_profile_from_metadata(
     - list: The extracted elevation values along the transect.
     - list: The corresponding distances along the transect.
     """
-    # Retrieve transform and CRS from metadata
+    # Retrieve transform from metadata
     transform = metadata["transform"]
-    raster_crs = metadata["crs"]
-
-    # Check if the transect_line is in the same CRS as the raster
-    if transect_line.crs != raster_crs:
-        transect_line = transform_geom(transect_line.crs, raster_crs, transect_line)
 
     # Generate interpolated points along the transect
     distances = np.linspace(0, transect_line.length, num_points)
@@ -237,7 +237,7 @@ def find_elevation_intersections(elevation_values, distances, target_elevation):
         else:
             interp_dist = x1 + (target_elevation - y1) * (x2 - x1) / (y2 - y1)
 
-        intersection_dists.append(interp_dist[0])
+        intersection_dists.append(float(interp_dist))
 
     # If no intersection found, return [-999999]
     return intersection_dists if intersection_dists else [-999999]
@@ -377,6 +377,24 @@ def merge_excel_files(folder: str, prefix: str, suffix: str) -> pd.DataFrame:
     merged_df = pd.concat(df_list, ignore_index=True)
 
     return merged_df
+
+
+def read_excel(file_path):
+    """
+    Load a water-level CSV, resampled to one mean reading per year.
+
+    Parameters:
+    - file_path (str): Path to the water-level CSV (must contain a 'Date' column).
+
+    Returns:
+    - pd.DataFrame: Indexed by year-end date, with a 'Year' column.
+    """
+    df = pd.read_csv(file_path)
+    df["Date"] = pd.to_datetime(df["Date"])
+    df = df.set_index("Date")
+    df = df.resample("YE").mean()
+    df["Year"] = df.index.year
+    return df
 
 
 def reproject_raster(raster_array, metadata, input_epsg, output_epsg):
@@ -562,12 +580,12 @@ if __name__ == "__main__1":
     )
     transect_shp_file = "%d_transect.shp" % site_num
     intersect_shp_file = "%d_intersection.shp" % site_num
-    transects = load_shapefile(shp_folder, transect_shp_file)
-    intersection = load_shapefile(shp_folder, intersect_shp_file)
+    transects, _ = load_shapefile(shp_folder, transect_shp_file)
+    intersection, _ = load_shapefile(shp_folder, intersect_shp_file)
 
     raster_folder = "/media/weiwang/easystore/NAIP/Topybathy_LIDAR_DEM/Lake_Michigan_2020/usace2020_lake_mich_dem/"
     raster_file = "usace2020_lake_mich_dem_J1137436.tif"
-    raster_data, metadata = load_raster(raster_folder, raster_file)
+    raster_data, _, metadata = load_raster(raster_folder, raster_file)
     new_raster_data, new_meta_data = reproject_raster(
         raster_data, metadata, "6345", "26916"
     )
@@ -607,14 +625,14 @@ if __name__ == "__main__":
 
     shp_folder = "/media/weiwang/easystore/BackupData/dsas"
     transect_shp_file = "transect_prj.shp"
-    transects = load_shapefile(shp_folder, transect_shp_file)
+    transects, _ = load_shapefile(shp_folder, transect_shp_file)
     transects["slope"] = np.nan
     transects["azimuth"] = np.nan
 
     baseline_ids = transects["BaselineId"]
     transect_ids = transects["TransectId"]
     image_ids = transects["GroupId"]
-    raster_data, metadata = load_raster(raster_folder, raster_file)
+    raster_data, _, metadata = load_raster(raster_folder, raster_file)
     for bid, tid, image_id in zip(baseline_ids, transect_ids, image_ids):
         transect_line = extract_transect_line(
             transects, bid, tid, image_id, image_col="GroupId"
