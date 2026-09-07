@@ -27,3 +27,10 @@ jobs:
         run: |
           python -m pip install dist/*.whl
           python -c "import scet; from scet import SCET, Config; from scet.pipeline import generate_result_from_folder; from scet import dsas_cli"
+
+      - name: Run test suite
+        run: |
+          python -m pip install ".[test]"
+          # `dsas` is installed via the "opendsas" core dependency, so the
+          # end-to-end pipeline tests run here too (they self-skip otherwise).
+          python -m pytest -q
