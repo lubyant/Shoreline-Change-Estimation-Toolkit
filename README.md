@@ -59,3 +59,16 @@ conda create -n my_env python==3.9
 conda activate my_env
 bash build.sh  # pip install -e ".[dl]"
 ```
+
+### Testing
+
+```bash
+pip install -e ".[test]"
+pytest                 # full suite, including end-to-end pipeline tests
+pytest -m "not e2e"    # unit tests only (skip anything that shells out to `dsas`)
+```
+
+The end-to-end tests build synthetic georeferenced rasters, run the full
+`images -> shoreline/baseline -> dsas cast/cal` pipeline, and check the
+output shapefiles. They need the `dsas` executable (installed with the
+`opendsas` dependency) on `PATH` and self-skip if it is missing.

@@ -101,8 +101,23 @@ dl = [
     "openmim",
 ]
 
+# Test-suite only. `dsas` (from the "opendsas" core dependency) must be on
+# PATH for the end-to-end pipeline tests; they self-skip if it is missing.
+test = [
+    "pytest>=7",
+]
+
 [project.urls]
 Homepage = "https://github.com/lubyant/ShorelineCalculator"
 
 [tool.setuptools.packages.find]
 include = ["scet*"]
+
+[tool.pytest.ini_options]
+# Put the repo root on sys.path so `import tests.synthetic` works without an
+# editable install.
+pythonpath = ["."]
+testpaths = ["tests"]
+markers = [
+    "e2e: end-to-end test that shells out to the real `dsas` executable",
+]
