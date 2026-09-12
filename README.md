@@ -16,7 +16,7 @@ This installs `scet-toolkit`'s dependencies including `opendsas`, which
 provides the `dsas` CLI used for transect/intersection/rate calculations.
 
 For the optional deep-learning-based segmentation step (`scet.simple_mmseg`,
-used by `SCET.method1`/`method2`), install the `dl` extra:
+used by `SCET.process_folder`/`process_image`), install the `dl` extra:
 
 ```bash
 pip install "scet-toolkit[dl]"
@@ -36,7 +36,7 @@ from scet import SCET, Config
 
 config = Config(checkpoint_file="path/to/checkpoint.pth")
 scet = SCET(config)
-scet.method1(input_naip_zipfiles_folder="...", output_folder="...")
+scet.process_folder(input_naip_zipfiles_folder="...", output_folder="...")
 ```
 
 Or drive the shoreline pipeline directly, given a folder of already-segmented,

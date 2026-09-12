@@ -1,4 +1,4 @@
-"""Fetch the pretrained segmentation checkpoint used by method1/method2.
+"""Fetch the pretrained segmentation checkpoint used by process_folder/process_image.
 
 The checkpoint (~360MB) is too large for a PyPI sdist/wheel (PyPI caps
 individual files at 100MB), so it's hosted as a GitHub Release asset instead

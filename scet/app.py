@@ -41,8 +41,8 @@ class SCET:
     def __init__(self, config: Config) -> None:
         self.config = config
 
-    def method1(self, input_naip_zipfiles_folder,
-                output_folder):
+    def process_folder(self, input_naip_zipfiles_folder,
+                        output_folder):
         from .simple_mmseg.DL_running import process_img_folder
 
         checkpoint_file = self.config.checkpoint_file or download_weights()
@@ -91,7 +91,7 @@ class SCET:
             shutil.rmtree(output_binary_map_folder)
         shutil.rmtree(final_save_folder)
 
-    def method2(self, input_img_path, output_folder):
+    def process_image(self, input_img_path, output_folder):
         from .simple_mmseg.DL_running import process_single_img
 
         checkpoint_file = self.config.checkpoint_file or download_weights()
@@ -104,8 +104,8 @@ class SCET:
                                    output_folder,
                                    self.config.options)
 
-    def method3(self, transect_path, intersect_path, bathy_raster_path,
-                water_level_path):
+    def calibrate_water_level(self, transect_path, intersect_path, bathy_raster_path,
+                               water_level_path):
         """Calibrate DSAS ChangeRates against a bathymetric raster and a
         water-level time series.
 
