@@ -14,8 +14,8 @@ from .water_level_calibration import (
 )
 from .weights import download_weights
 
-# simple_mmseg pulls in torch/mmengine/mmcv, which are optional (extras_require
-# "dl"). Import lazily so `import scet` works without them installed.
+# scet.segmentation is imported lazily so `import scet` stays fast (it pulls
+# in torch).
 
 
 class Config:
@@ -38,7 +38,7 @@ class SCET:
 
     def process_folder(self, input_naip_zipfiles_folder,
                         output_folder):
-        from .simple_mmseg.DL_running import process_img_folder
+        from .segmentation import process_img_folder
 
         checkpoint_file = self.config.checkpoint_file or download_weights()
 
@@ -87,7 +87,7 @@ class SCET:
         shutil.rmtree(final_save_folder)
 
     def process_image(self, input_img_path, output_folder):
-        from .simple_mmseg.DL_running import process_single_img
+        from .segmentation import process_single_img
 
         checkpoint_file = self.config.checkpoint_file or download_weights()
 

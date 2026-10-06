@@ -15,19 +15,13 @@ pip install scet-toolkit
 This installs `scet-toolkit`'s dependencies including `opendsas`, which
 provides the `dsas` CLI used for transect/intersection/rate calculations.
 
-For the optional deep-learning-based segmentation step (`scet.simple_mmseg`,
-used by `SCET.process_folder`/`process_image`), install the `dl` extra:
-
-```bash
-pip install "scet-toolkit[dl]"
-```
-
-`torch`/`torchvision`/`torchaudio` are CUDA-build-sensitive; if the plain pip
-install doesn't pick the right wheel for your platform, install them from
-https://pytorch.org first, matching your CUDA version, then re-run. `mmcv-lite`
-(no compiled CUDA ops, unlike `mmcv`) is used instead of `mmcv` since this
-project's segmentation config doesn't need them and `mmcv-lite` installs via
-plain pip with no CUDA toolchain required.
+The deep-learning segmentation step (`scet.segmentation`, used by
+`SCET.process_folder`/`process_image`) is included: the DeepLabV3+ network is
+plain PyTorch, so there is no mmcv/mmsegmentation or GDAL to build and any
+Python 3.9+ works. `torch` is CUDA-build-sensitive: if the default wheel isn't
+right for your platform, install torch from https://pytorch.org first (matching
+your CUDA version), then `pip install scet-toolkit`. Inference uses the GPU
+when available and falls back to CPU.
 
 ## Usage
 
@@ -55,9 +49,9 @@ This writes `shoreline.shp`, `baseline.shp`, `transect.shp`, and
 ## Development
 
 ```bash
-conda create -n my_env python==3.9
+conda create -n my_env python==3.12
 conda activate my_env
-bash build.sh  # pip install -e ".[dl]"
+bash build.sh  # pip install -e .
 ```
 
 ### Testing

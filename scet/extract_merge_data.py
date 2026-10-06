@@ -4,9 +4,6 @@ import rasterio
 import os
 import numpy as np
 
-# osgeo/GDAL is only needed by the get_*_img_from_raster helpers below and is
-# not a core dependency (see pyproject.toml); import it lazily so `import
-# scet` doesn't require it.
 import cv2
 import pickle
 from rasterio.transform import Affine
@@ -88,31 +85,22 @@ def save_new_raster(out_img, out_meta, raster_folder, raster_name):
         dest.write(out_img)
 
 
-def get_img_from_raster(raster_folder, raster_file):
-    from osgeo import gdal
+def _read_bands(raster_folder, raster_file, bands):
+    with rasterio.open(os.path.join(raster_folder, raster_file)) as src:
+        return src.read(list(bands))
 
-    ds = gdal.Open(os.path.join(raster_folder, raster_file))
-    myarray1 = np.array(ds.GetRasterBand(1).ReadAsArray())
-    myarray2 = np.array(ds.GetRasterBand(2).ReadAsArray())
-    myarray3 = np.array(ds.GetRasterBand(3).ReadAsArray())
-    res = np.stack((np.uint8(myarray3), np.uint8(
-        myarray2), np.uint8(myarray1)), axis=2)
-    return res
+
+def get_img_from_raster(raster_folder, raster_file):
+    b1, b2, b3 = _read_bands(raster_folder, raster_file, (1, 2, 3))
+    return np.stack((np.uint8(b3), np.uint8(b2), np.uint8(b1)), axis=2)
 
 
 def get_img_source_data_from_raster(raster_folder, raster_file):
-    from osgeo import gdal
-
-    ds = gdal.Open(os.path.join(raster_folder, raster_file))
-    return ds.GetRasterBand(1).ReadAsArray(), ds.GetRasterBand(2).ReadAsArray(), ds.GetRasterBand(3).ReadAsArray()
+    return tuple(_read_bands(raster_folder, raster_file, (1, 2, 3)))
 
 
 def get_infrared_img_from_raster(raster_folder, raster_file):
-    from osgeo import gdal
-
-    ds = gdal.Open(os.path.join(raster_folder, raster_file))
-    myarray1 = np.array(ds.GetRasterBand(4).ReadAsArray())
-    return myarray1
+    return _read_bands(raster_folder, raster_file, (4,))[0]
 
 
 def divide_img(img, out_folder, out_name, row_interval=1000, col_interval=1000):
