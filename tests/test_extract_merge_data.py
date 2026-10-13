@@ -6,6 +6,7 @@ import rasterio
 from rasterio.transform import from_origin
 
 from scet.extract_merge_data import (
+    check_folder_exist,
     get_img_from_raster,
     get_img_source_data_from_raster,
     get_infrared_img_from_raster,
@@ -32,3 +33,11 @@ def test_raster_band_helpers(tmp_path):
     assert (b1[0, 0], b2[0, 0], b3[0, 0]) == (10, 20, 30)
 
     assert get_infrared_img_from_raster(str(tmp_path), "r.tif")[0, 0] == 40
+
+
+def test_check_folder_exist_creates_nested_folders(tmp_path):
+    # process_folder is handed an output folder that doesn't exist yet.
+    target = tmp_path / "out" / "Raster"
+    check_folder_exist(str(target))
+    check_folder_exist(str(target))  # idempotent
+    assert target.is_dir()

@@ -19,8 +19,7 @@ import tempfile
 
 
 def check_folder_exist(filepath):
-    if not os.path.exists(filepath):
-        os.mkdir(filepath)
+    os.makedirs(filepath, exist_ok=True)
 
 
 def get_subfolders_with_digits(folder):
